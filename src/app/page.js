@@ -3,7 +3,6 @@ import Herobanner from '@/components/Home/Herobanner'
 function page() {
   return (
     <>
-    <Herobanner />
     </>
   )
 }

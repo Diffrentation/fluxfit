@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/resizable-navbar";
 import { useState } from "react";
 import { IconShoppingCart } from "@tabler/icons-react";
+import Herobanner from "../Home/Herobanner.jsx";
 
 export function Nav() {
   // ecommerce navbar items for desktop (without Cart)
@@ -127,9 +128,10 @@ export function Nav() {
 
 const DummyContent = () => {
   return (
-    <div className="container mx-auto p-8 pt-24">
-      <h1 className="mb-4 text-center text-3xl font-bold">
-        Check the navbar at the top of the container
+    <div className="container">
+      <Herobanner />
+      <h1 className="m-4 text-center text-3xl font-bold">
+      Product Overview
       </h1>
       <p className="mb-10 text-center text-sm text-zinc-500">
         For demo purpose we have kept the position as{" "}
