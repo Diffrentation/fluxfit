@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/resizable-navbar";
 import { useState } from "react";
 import { IconShoppingCart } from "@tabler/icons-react";
+import { useCart } from "@/context/CartContext";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import Herobanner from "../Home/Herobanner.jsx";
 
 export function Nav() {
@@ -60,6 +63,8 @@ export function Nav() {
   ];
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { getCartCount } = useCart();
+  const cartCount = getCartCount();
 
   return (
     <div className="relative w-full">
@@ -71,10 +76,35 @@ export function Nav() {
           <div className="flex items-center gap-4">
             <NavbarButton variant="secondary">Login</NavbarButton>
             <NavbarButton variant="primary">Register</NavbarButton>
-            <NavbarButton variant="primary" className="flex items-center gap-2">
-              <IconShoppingCart className="h-5 w-5" />
-              Cart
-            </NavbarButton>
+            <Link href="/cart">
+              <NavbarButton
+                variant="primary"
+                className="flex items-center gap-2 relative"
+              >
+                <div className="relative">
+                  <IconShoppingCart className="h-5 w-5" />
+                  <AnimatePresence mode="wait">
+                    {cartCount > 0 && (
+                      <motion.span
+                        key={cartCount}
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 180 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 30,
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 shadow-lg"
+                      >
+                        {cartCount > 99 ? "99+" : cartCount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                Cart
+              </NavbarButton>
+            </Link>
           </div>
         </NavBody>
 

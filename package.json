@@ -11,6 +11,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^8.6.0",
     "@tabler/icons-react": "^3.36.0",
+    "antd": "^6.1.2",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",

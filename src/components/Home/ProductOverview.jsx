@@ -13,7 +13,8 @@ import {
   IconFilter,
   IconRefresh,
 } from "@tabler/icons-react";
-import Button from "@/components/ui/Button";
+import { Button } from "antd";
+import { useRouter } from "next/navigation";
 
 // Sample product data
 const sampleProducts = [
@@ -124,6 +125,7 @@ const tags = ["Fashion", "Lifestyle", "Denim", "Streetstyle", "Crafts"];
 const categories = ["All Products", "Women", "Men", "Bag", "Shoes", "Watches"];
 
 function ProductOverview() {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("All Products");
   const [sortBy, setSortBy] = useState("newness");
   const [priceFilter, setPriceFilter] = useState("all");
@@ -133,8 +135,7 @@ function ProductOverview() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleQuickView = (product) => {
-    console.log("Quick view:", product);
-    // You can implement a modal or navigate to product detail page
+    router.push(`/product-details/${product.id}`);
   };
 
   const resetFilters = () => {
@@ -285,12 +286,11 @@ function ProductOverview() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
                 <Button
-                  variant="outline"
-                  size="sm"
+                  size="small"
                   onClick={resetFilters}
                   className="flex items-center gap-2"
+                  icon={<IconRefresh className="w-4 h-4" />}
                 >
-                  <IconRefresh className="w-4 h-4" />
                   Reset Filters
                 </Button>
               </div>
