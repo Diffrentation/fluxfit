@@ -21,6 +21,7 @@ import {
 import { Button, message } from "antd";
 import { useCart } from "@/context/CartContext";
 import { productDatabase } from "@/lib/productDatabase";
+import GetInTouch from "@/components/GetInTouch/GetInTouch";
 
 // Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
 const convertToRupees = (usdPrice) => {
@@ -664,6 +665,9 @@ function ProductDetails() {
           </AnimatePresence>
         </motion.div>
       </motion.div>
+
+      {/* Get In Touch Section */}
+      <GetInTouch />
     </div>
   );
 }

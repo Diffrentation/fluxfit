@@ -14,7 +14,7 @@ import Link from "next/link";
 const Footer = () => {
   const navItems = [
     { name: "Home", link: "/" },
-    { name: "Shop", link: "/shop" },
+    { name: "Shop", link: "/product-list" },
     { name: "About", link: "/about" },
     { name: "Contact", link: "/contact" },
   ];
@@ -22,18 +22,18 @@ const Footer = () => {
   const contactInfo = [
     {
       icon: IconMail,
-      text: "support@fluxfit.com",
-      link: "mailto:support@fluxfit.com",
+      text: "fluxfit1@gmail.com",
+      link: "mailto:fluxfit1@gmail.com",
     },
     {
       icon: IconPhone,
-      text: "+1 (555) 123-4567",
-      link: "tel:+15551234567",
+      text: "+91 9958724005",
+      link: "tel:+91 9958724005",
     },
     {
       icon: IconMapPin,
-      text: "123 Fashion Street, New York, NY 10001",
-      link: "#",
+      text: "Behrampur, Ghaziabad, Uttar Pradesh, India",
+      link: "https://www.google.com/maps/place/Behrampur,+Ghaziabad,+Uttar+Pradesh,+India/@26.7847217,85.1113416,15z/data=!3m1!4b1!4m6!3m5!1s0x39ec105b0e0466e1:0x262a13458380518a!8m2!3d26.7847217!4d85.1113416!16s%2Fg%2F11c402jtvb?entry=ttu&g_ep=EgoyMDI1MDIyMi4wIKXMDSoASAFQAw%3D%3D",
     },
   ];
 

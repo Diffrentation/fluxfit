@@ -26,7 +26,7 @@ export function Nav() {
     },
     {
       name: "Shop",
-      link: "/shop",
+      link: "/product-list",
     },
     {
       name: "About",
@@ -46,7 +46,7 @@ export function Nav() {
     },
     {
       name: "Shop",
-      link: "/shop",
+      link: "/product-list",
     },
     {
       name: "About",
