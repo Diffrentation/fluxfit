@@ -22,6 +22,7 @@ import { Button, message } from "antd";
 import { useCart } from "@/context/CartContext";
 import { productDatabase } from "@/lib/productDatabase";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
+import ProductCard from "@/components/ui/ProductCard";
 
 // Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
 const convertToRupees = (usdPrice) => {
@@ -89,11 +90,62 @@ function ProductDetails() {
       color: selectedColor,
       quantity: quantity,
     });
-    message.success(
-      `${quantity} ${product.name} added to cart!`,
-      2
-    );
+    message.success(`${quantity} ${product.name} added to cart!`, 2);
   };
+
+  // Get all products except current one
+  const getAllProducts = () => {
+    return Object.values(productDatabase)
+      .filter((p) => p.id !== productId)
+      .map((p) => ({
+        ...p,
+        image: p.images?.[0] || "",
+      }));
+  };
+
+  // Get related products (same category or similar tags, excluding current product)
+  const getRelatedProducts = () => {
+    const allProducts = Object.values(productDatabase);
+    const related = allProducts
+      .filter((p) => {
+        if (p.id === productId) return false;
+
+        // Same category products get highest priority
+        if (p.category === product.category) return true;
+
+        // Products with matching tags
+        if (product.tags && p.tags) {
+          const hasMatchingTag = product.tags.some((tag) =>
+            p.tags.includes(tag)
+          );
+          if (hasMatchingTag) return true;
+        }
+
+        return false;
+      })
+      .map((p) => ({
+        ...p,
+        image: p.images?.[0] || "",
+      }))
+      .slice(0, 8); // Limit to 8 related products
+
+    return related;
+  };
+
+  // Get all other products (excluding current and related)
+  const getOtherProducts = () => {
+    const relatedIds = getRelatedProducts().map((p) => p.id);
+    const allProducts = getAllProducts();
+
+    return allProducts.filter((p) => !relatedIds.includes(p.id));
+  };
+
+  const handleQuickView = (product) => {
+    router.push(`/product-details/${product.id}`);
+  };
+
+  const relatedProducts = getRelatedProducts();
+  const otherProducts = getOtherProducts();
 
   const colorMap = {
     white: "bg-white border-2 border-gray-300",
@@ -665,6 +717,92 @@ function ProductDetails() {
           </AnimatePresence>
         </motion.div>
       </motion.div>
+
+      {/* Related Products Section */}
+      {relatedProducts.length > 0 && (
+        <section className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                Related Products
+              </h2>
+              <p className="text-gray-600">Products you might also like</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            >
+              {relatedProducts.map((relatedProduct, index) => (
+                <motion.div
+                  key={relatedProduct.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                >
+                  <ProductCard
+                    product={relatedProduct}
+                    onQuickView={handleQuickView}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* All Other Products Section */}
+      {otherProducts.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                Explore More Products
+              </h2>
+              <p className="text-gray-600">Discover our complete collection</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            >
+              {otherProducts.map((otherProduct, index) => (
+                <motion.div
+                  key={otherProduct.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                >
+                  <ProductCard
+                    product={otherProduct}
+                    onQuickView={handleQuickView}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Get In Touch Section */}
       <GetInTouch />
