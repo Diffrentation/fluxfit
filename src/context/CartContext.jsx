@@ -19,7 +19,7 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     const savedCart = localStorage.getItem("cart");
     const savedCoupon = localStorage.getItem("appliedCoupon");
-    
+
     if (savedCart) {
       try {
         setCartItems(JSON.parse(savedCart));
@@ -27,7 +27,7 @@ export const CartProvider = ({ children }) => {
         console.error("Error loading cart from localStorage:", error);
       }
     }
-    
+
     if (savedCoupon) {
       try {
         setAppliedCoupon(JSON.parse(savedCoupon));
@@ -53,14 +53,12 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product, options = {}) => {
     const { size, color, quantity = 1 } = options;
-    
+
     setCartItems((prevItems) => {
       // Check if item already exists with same product, size, and color
       const existingItemIndex = prevItems.findIndex(
         (item) =>
-          item.id === product.id &&
-          item.size === size &&
-          item.color === color
+          item.id === product.id && item.size === size && item.color === color
       );
 
       if (existingItemIndex >= 0) {
@@ -131,10 +129,25 @@ export const CartProvider = ({ children }) => {
   const applyCoupon = (couponCode) => {
     // Sample coupon codes
     const coupons = {
-      WELCOME10: { code: "WELCOME10", discount: 10, type: "percentage", minPurchase: 0 },
-      SAVE20: { code: "SAVE20", discount: 20, type: "percentage", minPurchase: 100 },
+      WELCOME10: {
+        code: "WELCOME10",
+        discount: 10,
+        type: "percentage",
+        minPurchase: 0,
+      },
+      SAVE20: {
+        code: "SAVE20",
+        discount: 20,
+        type: "percentage",
+        minPurchase: 100,
+      },
       FLAT50: { code: "FLAT50", discount: 50, type: "fixed", minPurchase: 200 },
-      SUMMER25: { code: "SUMMER25", discount: 25, type: "percentage", minPurchase: 50 },
+      SUMMER25: {
+        code: "SUMMER25",
+        discount: 25,
+        type: "percentage",
+        minPurchase: 50,
+      },
     };
 
     const coupon = coupons[couponCode.toUpperCase()];
@@ -146,7 +159,9 @@ export const CartProvider = ({ children }) => {
     if (subtotal < coupon.minPurchase) {
       return {
         success: false,
-        message: `Minimum purchase of ₹${(coupon.minPurchase * 83).toFixed(2)} required`,
+        message: `Minimum purchase of ₹${coupon.minPurchase.toFixed(
+          2
+        )} required`,
       };
     }
 
@@ -160,7 +175,7 @@ export const CartProvider = ({ children }) => {
 
   const getDiscountAmount = () => {
     if (!appliedCoupon) return 0;
-    
+
     const subtotal = getCartTotal();
     if (appliedCoupon.type === "percentage") {
       return (subtotal * appliedCoupon.discount) / 100;
@@ -192,4 +207,3 @@ export const CartProvider = ({ children }) => {
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
-

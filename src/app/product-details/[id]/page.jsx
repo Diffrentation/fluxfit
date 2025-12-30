@@ -25,10 +25,9 @@ import { addToRecentlyViewed } from "@/lib/recentlyViewed";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 import ProductCard from "@/components/ui/ProductCard";
 
-// Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
-const convertToRupees = (usdPrice) => {
-  const rate = 83;
-  return (parseFloat(usdPrice) * rate).toFixed(2);
+// Format price helper - prices are already in INR
+const formatPrice = (price) => {
+  return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 function ProductDetails() {
@@ -323,12 +322,12 @@ function ProductDetails() {
               <div className="border-b border-gray-200 pb-4">
                 <div className="flex items-baseline gap-3 mb-2">
                   <span className="text-3xl lg:text-4xl font-bold text-gray-900">
-                    ₹{convertToRupees(product.price)}
+                    ₹{formatPrice(product.price)}
                   </span>
                   {product.originalPrice && (
                     <>
                       <span className="text-xl text-gray-500 line-through">
-                        ₹{convertToRupees(product.originalPrice)}
+                        ₹{formatPrice(product.originalPrice)}
                       </span>
                       <span className="px-2 py-1 bg-red-100 text-red-600 rounded text-sm font-semibold">
                         {product.discount}% off

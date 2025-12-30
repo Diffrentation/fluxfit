@@ -7,12 +7,6 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { Button, message } from "antd";
 
-// Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
-const convertToRupees = (usdPrice) => {
-  const rate = 83;
-  return (parseFloat(usdPrice) * rate).toFixed(2);
-};
-
 const ProductCard = ({ product, onQuickView }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -23,7 +17,7 @@ const ProductCard = ({ product, onQuickView }) => {
   const handleAddToCart = (e) => {
     e.stopPropagation();
     setIsAddingToCart(true);
-    
+
     // Add to cart with default options
     addToCart(product, {
       size: product.sizes?.[0] || "One Size",
@@ -44,7 +38,7 @@ const ProductCard = ({ product, onQuickView }) => {
     onQuickView?.(product);
   };
 
-  const priceInRupees = convertToRupees(product.price);
+  const price = parseFloat(product.price).toFixed(2);
 
   return (
     <motion.div
@@ -108,7 +102,11 @@ const ProductCard = ({ product, onQuickView }) => {
         </h3>
         <div className="flex items-center justify-between mb-3">
           <p className="text-gray-900 font-bold text-xl">
-            ₹{priceInRupees}
+            ₹
+            {parseFloat(price).toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </p>
         </div>
 

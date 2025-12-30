@@ -111,11 +111,11 @@ const sortOptions = [
 
 const priceOptions = [
   { value: "all", label: "All" },
-  { value: "0-50", label: "$0.00 - $50.00" },
-  { value: "50-100", label: "$50.00 - $100.00" },
-  { value: "100-150", label: "$100.00 - $150.00" },
-  { value: "150-200", label: "$150.00 - $200.00" },
-  { value: "200+", label: "$200.00+" },
+  { value: "0-2000", label: "₹0 - ₹2,000" },
+  { value: "2000-5000", label: "₹2,000 - ₹5,000" },
+  { value: "5000-8000", label: "₹5,000 - ₹8,000" },
+  { value: "8000-10000", label: "₹8,000 - ₹10,000" },
+  { value: "10000+", label: "₹10,000+" },
 ];
 
 const colors = ["Black", "Grey", "Green", "Red", "Blue", "White"];

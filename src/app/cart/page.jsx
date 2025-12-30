@@ -18,10 +18,12 @@ import {
 } from "@tabler/icons-react";
 import { Button, message, Input } from "antd";
 
-// Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
-const convertToRupees = (usdPrice) => {
-  const rate = 83;
-  return (parseFloat(usdPrice) * rate).toFixed(2);
+// Format price helper - prices are already in INR
+const formatPrice = (price) => {
+  return parseFloat(price).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 };
 
 const CartPage = () => {
@@ -133,9 +135,6 @@ const CartPage = () => {
   const subtotal = getCartTotal();
   const discount = getDiscountAmount();
   const finalTotal = getFinalTotal();
-  const subtotalInRupees = convertToRupees(subtotal);
-  const discountInRupees = convertToRupees(discount);
-  const finalTotalInRupees = convertToRupees(finalTotal);
 
   if (cartItems.length === 0) {
     return (
@@ -189,12 +188,10 @@ const CartPage = () => {
                 {cartItems.map((item, index) => {
                   const product = getProductDetails(item);
                   const discount = calculateDiscount(item);
-                  const itemPriceInRupees = convertToRupees(item.price);
-                  const itemTotalInRupees = convertToRupees(
-                    parseFloat(item.price) * item.quantity
-                  );
-                  const originalPriceInRupees = product?.originalPrice
-                    ? convertToRupees(product.originalPrice)
+                  const itemPrice = parseFloat(item.price);
+                  const itemTotal = itemPrice * item.quantity;
+                  const originalPrice = product?.originalPrice
+                    ? parseFloat(product.originalPrice)
                     : null;
 
                   return (
@@ -274,7 +271,7 @@ const CartPage = () => {
                           <div className="mt-auto">
                             <div className="flex items-start justify-between mb-4">
                               <div className="flex-1">
-                                {discount && originalPriceInRupees && (
+                                {discount && originalPrice && (
                                   <div className="mb-2">
                                     <span className="inline-block px-2 py-1 bg-red-100 text-red-600 text-xs font-semibold rounded mr-2">
                                       {discount}% off
@@ -286,17 +283,17 @@ const CartPage = () => {
                                 )}
                                 <div className="flex items-baseline gap-2">
                                   <span className="text-2xl font-bold text-gray-900">
-                                    ₹{itemTotalInRupees}
+                                    ₹{formatPrice(itemTotal)}
                                   </span>
-                                  {originalPriceInRupees && (
+                                  {originalPrice && (
                                     <span className="text-sm text-gray-500 line-through">
-                                      M.R.P.: ₹{originalPriceInRupees}
+                                      M.R.P.: ₹{formatPrice(originalPrice)}
                                     </span>
                                   )}
                                 </div>
                                 {item.quantity > 1 && (
                                   <p className="text-xs text-gray-500 mt-1">
-                                    ₹{itemPriceInRupees} per item
+                                    ₹{formatPrice(itemPrice)} per item
                                   </p>
                                 )}
                               </div>
@@ -409,7 +406,7 @@ const CartPage = () => {
                       {totalItems === 1 ? "item" : "items"}):
                     </p>
                     <span className="text-xl text-end font-bold text-gray-900">
-                      ₹{subtotalInRupees}
+                      ₹{formatPrice(subtotal)}
                     </span>
                   </div>
 
@@ -436,7 +433,7 @@ const CartPage = () => {
                             Discount:
                           </span>
                           <span className="text-sm font-bold text-green-800">
-                            -₹{discountInRupees}
+                            -₹{formatPrice(discount)}
                           </span>
                         </div>
                       </div>
@@ -472,7 +469,7 @@ const CartPage = () => {
                     <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                       <p className="text-lg font-bold text-gray-900">Total:</p>
                       <span className="text-2xl text-end font-bold text-blue-600">
-                        ₹{finalTotalInRupees}
+                        ₹{formatPrice(finalTotal)}
                       </span>
                     </div>
                   )}
@@ -515,10 +512,8 @@ const CartPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {savedForLaterItems.map((item, index) => {
                 const product = getProductDetails(item);
-                const itemPriceInRupees = convertToRupees(item.price);
-                const itemTotalInRupees = convertToRupees(
-                  parseFloat(item.price) * item.quantity
-                );
+                const itemPrice = parseFloat(item.price);
+                const itemTotal = itemPrice * item.quantity;
 
                 return (
                   <motion.div
@@ -552,7 +547,7 @@ const CartPage = () => {
                           </p>
                         )}
                         <p className="text-sm font-bold text-gray-900 mb-3">
-                          ₹{itemTotalInRupees}
+                          ₹{formatPrice(itemTotal)}
                         </p>
                         <div className="flex gap-2">
                           <Button

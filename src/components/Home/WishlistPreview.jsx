@@ -15,10 +15,9 @@ import { useWishlist } from "@/context/WishlistContext";
 import { productDatabase } from "@/lib/productDatabase";
 import { Button, message } from "antd";
 
-// Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
-const convertToRupees = (usdPrice) => {
-  const rate = 83;
-  return (parseFloat(usdPrice) * rate).toFixed(2);
+// Format price helper - prices are already in INR
+const formatPrice = (price) => {
+  return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 function WishlistPreview() {
@@ -110,9 +109,9 @@ function WishlistPreview() {
           <AnimatePresence mode="popLayout">
             {displayItems.map((item, index) => {
               const product = getProductDetails(item);
-              const priceInRupees = convertToRupees(item.price);
-              const originalPriceInRupees = item.originalPrice
-                ? convertToRupees(item.originalPrice)
+              const price = parseFloat(item.price);
+              const originalPrice = item.originalPrice
+                ? parseFloat(item.originalPrice)
                 : null;
 
               return (
@@ -164,11 +163,11 @@ function WishlistPreview() {
                     </h3>
                     <div className="flex items-baseline gap-2">
                       <span className="text-xl font-bold text-gray-900">
-                        ₹{priceInRupees}
+                        ₹{formatPrice(price)}
                       </span>
-                      {originalPriceInRupees && (
+                      {originalPrice && (
                         <span className="text-sm text-gray-500 line-through">
-                          ₹{originalPriceInRupees}
+                          ₹{formatPrice(originalPrice)}
                         </span>
                       )}
                     </div>

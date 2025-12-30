@@ -33,9 +33,9 @@ const OrderConfirmationPage = () => {
     }
   }, [orderId, router]);
 
-  const convertToRupees = (usdPrice) => {
-    const rate = 83;
-    return (parseFloat(usdPrice) * rate).toFixed(2);
+  // Format price helper - prices are already in INR
+  const formatPrice = (price) => {
+    return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const getProductDetails = (item) => {
@@ -105,8 +105,8 @@ const OrderConfirmationPage = () => {
                 <td>${item.size || "One Size"}</td>
                 <td>${item.color || "N/A"}</td>
                 <td>${item.quantity}</td>
-                <td>₹${convertToRupees(item.price)}</td>
-                <td>₹${convertToRupees(parseFloat(item.price) * item.quantity)}</td>
+                <td>₹${formatPrice(item.price)}</td>
+                <td>₹${formatPrice(parseFloat(item.price) * item.quantity)}</td>
               </tr>
             `
               )
@@ -114,8 +114,8 @@ const OrderConfirmationPage = () => {
           </tbody>
         </table>
         <div class="total">
-          <p>Subtotal: ₹${(order.orderSummary.subtotal * 83).toFixed(2)}</p>
-          ${order.orderSummary.discount > 0 ? `<p>Discount: -₹${(order.orderSummary.discount * 83).toFixed(2)}</p>` : ""}
+          <p>Subtotal: ₹${formatPrice(order.orderSummary.subtotal)}</p>
+          ${order.orderSummary.discount > 0 ? `<p>Discount: -₹${formatPrice(order.orderSummary.discount)}</p>` : ""}
           <p>Shipping: ₹${order.orderSummary.shipping}</p>
           <p>Tax (GST 18%): ₹${order.orderSummary.tax}</p>
           <p style="font-size: 18px;">Total: ₹${order.orderSummary.grandTotal}</p>
@@ -190,9 +190,7 @@ const OrderConfirmationPage = () => {
             <div className="space-y-4">
               {order.items.map((item, index) => {
                 const product = getProductDetails(item);
-                const itemTotalInRupees = convertToRupees(
-                  parseFloat(item.price) * item.quantity
-                );
+                const itemTotal = parseFloat(item.price) * item.quantity;
 
                 return (
                   <motion.div
@@ -220,7 +218,7 @@ const OrderConfirmationPage = () => {
                         Qty: {item.quantity}
                       </div>
                       <p className="text-sm font-bold text-gray-900">
-                        ₹{itemTotalInRupees}
+                        ₹{formatPrice(itemTotal)}
                       </p>
                     </div>
                   </motion.div>
@@ -235,12 +233,12 @@ const OrderConfirmationPage = () => {
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-gray-700">
                 <span>Subtotal</span>
-                <span>₹{(order.orderSummary.subtotal * 83).toFixed(2)}</span>
+                <span>₹{formatPrice(order.orderSummary.subtotal)}</span>
               </div>
               {order.orderSummary.discount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Discount</span>
-                  <span>-₹{(order.orderSummary.discount * 83).toFixed(2)}</span>
+                  <span>-₹{formatPrice(order.orderSummary.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-gray-700">

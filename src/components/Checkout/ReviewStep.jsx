@@ -28,9 +28,12 @@ const ReviewStep = ({
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  const convertToRupees = (usdPrice) => {
-    const rate = 83;
-    return (parseFloat(usdPrice) * rate).toFixed(2);
+  // Format price helper - prices are already in INR
+  const formatPrice = (price) => {
+    return parseFloat(price).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
   const getProductDetails = (item) => {
@@ -108,10 +111,8 @@ const ReviewStep = ({
         <div className="space-y-4">
           {cartItems.map((item, index) => {
             const product = getProductDetails(item);
-            const itemPriceInRupees = convertToRupees(item.price);
-            const itemTotalInRupees = convertToRupees(
-              parseFloat(item.price) * item.quantity
-            );
+            const itemPrice = parseFloat(item.price);
+            const itemTotal = itemPrice * item.quantity;
 
             return (
               <motion.div
@@ -130,16 +131,20 @@ const ReviewStep = ({
                   />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">{item.name}</h3>
+                  <h3 className="font-semibold text-gray-900 mb-1">
+                    {item.name}
+                  </h3>
                   <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                     {item.size && item.size !== "One Size" && (
                       <span>Size: {item.size}</span>
                     )}
-                    {item.color && <span className="capitalize">Color: {item.color}</span>}
+                    {item.color && (
+                      <span className="capitalize">Color: {item.color}</span>
+                    )}
                     <span>Qty: {item.quantity}</span>
                   </div>
                   <p className="text-lg font-bold text-gray-900">
-                    ₹{itemTotalInRupees}
+                    ₹{formatPrice(itemTotal)}
                   </p>
                 </div>
               </motion.div>
@@ -201,26 +206,26 @@ const ReviewStep = ({
         <div className="space-y-3">
           <div className="flex justify-between text-gray-700">
             <span>Subtotal ({cartItems.length} items)</span>
-            <span>₹{orderSummary.subtotal.toFixed(2)}</span>
+            <span>₹{formatPrice(orderSummary.subtotal)}</span>
           </div>
           {orderSummary.discount > 0 && (
             <div className="flex justify-between text-green-600">
               <span>Discount</span>
-              <span>-₹{orderSummary.discount.toFixed(2)}</span>
+              <span>-₹{formatPrice(orderSummary.discount)}</span>
             </div>
           )}
           <div className="flex justify-between text-gray-700">
             <span>Shipping</span>
-            <span>₹{orderSummary.shipping.toFixed(2)}</span>
+            <span>₹{orderSummary.shipping}</span>
           </div>
           <div className="flex justify-between text-gray-700">
             <span>Tax (GST 18%)</span>
-            <span>₹{orderSummary.tax.toFixed(2)}</span>
+            <span>₹{formatPrice(orderSummary.tax)}</span>
           </div>
           <div className="border-t border-gray-200 pt-3 flex justify-between">
             <span className="text-lg font-bold text-gray-900">Total</span>
             <span className="text-xl font-bold text-blue-600">
-              ₹{orderSummary.grandTotal.toFixed(2)}
+              ₹{formatPrice(orderSummary.grandTotal)}
             </span>
           </div>
         </div>
@@ -273,4 +278,3 @@ const ReviewStep = ({
 };
 
 export default ReviewStep;
-

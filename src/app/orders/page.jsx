@@ -109,9 +109,9 @@ const OrdersPage = () => {
     return labels[status] || status;
   };
 
-  const convertToRupees = (usdPrice) => {
-    const rate = 83;
-    return (parseFloat(usdPrice) * rate).toFixed(2);
+  // Format price helper - prices are already in INR
+  const formatPrice = (price) => {
+    return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   if (orders.length === 0) {
@@ -270,7 +270,7 @@ const OrdersPage = () => {
                               </p>
                             </div>
                             <p className="text-sm font-semibold text-gray-900">
-                              ₹{convertToRupees(parseFloat(item.price) * item.quantity)}
+                              ₹{formatPrice(parseFloat(item.price) * item.quantity)}
                             </p>
                           </div>
                         ))}

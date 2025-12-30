@@ -1,10 +1,11 @@
 // Product database - shared across the application
+// All prices are in INR (Indian Rupees)
 export const productDatabase = {
   1: {
     id: 1,
     name: "Esprit Ruffle Shirt",
-    price: "16.64",
-    originalPrice: "24.99",
+    price: "1381.12", // ₹1381.12 (was $16.64)
+    originalPrice: "2074.17", // ₹2074.17 (was $24.99)
     discount: 33,
     images: [
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1000&fit=crop&q=80",
@@ -30,15 +31,15 @@ export const productDatabase = {
       "Available in Multiple Colors",
     ],
     shipping:
-      "Free shipping on orders over $50. Standard delivery: 3-5 business days.",
+      "Free shipping on orders over ₹4150. Standard delivery: 3-5 business days.",
     returnPolicy:
       "30-day return policy. Items must be unworn and in original condition.",
   },
   2: {
     id: 2,
     name: "Herschel supply",
-    price: "35.31",
-    originalPrice: "45.00",
+    price: "2930.73", // ₹2930.73 (was $35.31)
+    originalPrice: "3735.00", // ₹3735.00 (was $45.00)
     discount: 22,
     images: [
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1000&fit=crop&q=80",
@@ -67,7 +68,7 @@ export const productDatabase = {
   3: {
     id: 3,
     name: "Only Check Trouser",
-    price: "25.50",
+    price: "2116.50", // ₹2116.50 (was $25.50)
     images: [
       "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&h=1000&fit=crop&q=80",
     ],
@@ -89,7 +90,7 @@ export const productDatabase = {
   4: {
     id: 4,
     name: "Classic Trench Coat",
-    price: "75.00",
+    price: "6225.00", // ₹6225.00 (was $75.00)
     images: [
       "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=800&h=1000&fit=crop&q=80",
     ],
@@ -111,7 +112,7 @@ export const productDatabase = {
   5: {
     id: 5,
     name: "Denim Jacket",
-    price: "45.00",
+    price: "3735.00", // ₹3735.00 (was $45.00)
     images: [
       "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=1000&fit=crop&q=80",
     ],
@@ -133,7 +134,7 @@ export const productDatabase = {
   6: {
     id: 6,
     name: "Leather Bag",
-    price: "55.00",
+    price: "4565.00", // ₹4565.00 (was $55.00)
     images: [
       "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=1000&fit=crop&q=80",
     ],
@@ -155,7 +156,7 @@ export const productDatabase = {
   7: {
     id: 7,
     name: "Running Shoes",
-    price: "89.99",
+    price: "7469.17", // ₹7469.17 (was $89.99)
     images: [
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=1000&fit=crop&q=80",
     ],
@@ -182,7 +183,7 @@ export const productDatabase = {
   8: {
     id: 8,
     name: "Classic Watch",
-    price: "120.00",
+    price: "9960.00", // ₹9960.00 (was $120.00)
     images: [
       "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=1000&fit=crop&q=80",
     ],

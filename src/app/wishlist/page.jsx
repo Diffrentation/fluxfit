@@ -16,10 +16,9 @@ import {
 } from "@tabler/icons-react";
 import { Button, message, Input } from "antd";
 
-// Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
-const convertToRupees = (usdPrice) => {
-  const rate = 83;
-  return (parseFloat(usdPrice) * rate).toFixed(2);
+// Format price helper - prices are already in INR
+const formatPrice = (price) => {
+  return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const WishlistPage = () => {
@@ -159,9 +158,7 @@ const WishlistPage = () => {
   const currentTotal = activeTab === "wishlist" ? wishlistTotal : savedTotal;
   const discount = getDiscountAmountForWishlist();
   const finalTotal = getFinalTotalForWishlist();
-  const totalInRupees = convertToRupees(currentTotal);
-  const discountInRupees = convertToRupees(discount);
-  const finalTotalInRupees = convertToRupees(finalTotal);
+  // Prices are already in INR - no conversion needed
 
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-12">
@@ -223,9 +220,9 @@ const WishlistPage = () => {
                 >
                   {wishlistItems.map((item, index) => {
                     const product = getProductDetails(item);
-                    const priceInRupees = convertToRupees(item.price);
-                    const originalPriceInRupees = item.originalPrice
-                      ? convertToRupees(item.originalPrice)
+                    const price = parseFloat(item.price);
+                    const originalPrice = item.originalPrice
+                      ? parseFloat(item.originalPrice)
                       : null;
 
                     return (
@@ -260,11 +257,11 @@ const WishlistPage = () => {
                           </h3>
                           <div className="flex items-baseline gap-2 mb-4">
                             <span className="text-xl font-bold text-gray-900">
-                              ₹{priceInRupees}
+                              ₹{formatPrice(price)}
                             </span>
-                            {originalPriceInRupees && (
+                            {originalPrice && (
                               <span className="text-sm text-gray-500 line-through">
-                                ₹{originalPriceInRupees}
+                                ₹{formatPrice(originalPrice)}
                               </span>
                             )}
                           </div>
@@ -291,10 +288,8 @@ const WishlistPage = () => {
                 >
                   {savedForLaterItems.map((item, index) => {
                     const product = getProductDetails(item);
-                    const itemPriceInRupees = convertToRupees(item.price);
-                    const itemTotalInRupees = convertToRupees(
-                      parseFloat(item.price) * item.quantity
-                    );
+                    const itemPrice = parseFloat(item.price);
+                    const itemTotal = itemPrice * item.quantity;
 
                     return (
                       <motion.div
@@ -329,7 +324,7 @@ const WishlistPage = () => {
                               </p>
                             )}
                             <p className="text-sm font-bold text-gray-900 mb-3">
-                              ₹{itemTotalInRupees}
+                              ₹{formatPrice(itemTotal)}
                             </p>
                             <div className="flex gap-2">
                               <Button
@@ -381,7 +376,7 @@ const WishlistPage = () => {
                   <div className="flex items-center justify-between">
                     <p className="text-lg font-bold text-gray-900">Subtotal:</p>
                     <span className="text-xl text-end font-bold text-gray-900">
-                      ₹{totalInRupees}
+                      ₹{formatPrice(currentTotal)}
                     </span>
                   </div>
 
@@ -406,7 +401,7 @@ const WishlistPage = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-green-700">Discount:</span>
                           <span className="text-sm font-bold text-green-800">
-                            -₹{discountInRupees}
+                            -₹{formatPrice(discount)}
                           </span>
                         </div>
                       </div>
@@ -440,7 +435,7 @@ const WishlistPage = () => {
                     <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                       <p className="text-lg font-bold text-gray-900">Total:</p>
                       <span className="text-2xl text-end font-bold text-blue-600">
-                        ₹{finalTotalInRupees}
+                        ₹{formatPrice(finalTotal)}
                       </span>
                     </div>
                   )}
