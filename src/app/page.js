@@ -1,6 +1,7 @@
 import React from "react";
 import Herobanner from "@/components/Home/Herobanner";
 import RecentlyViewedProducts from "@/components/Home/RecentlyViewedProducts";
+import WishlistPreview from "@/components/Home/WishlistPreview";
 import ProductOverview from "@/components/Home/ProductOverview";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 
@@ -9,6 +10,7 @@ function page() {
     <div className="pt-15">
       <Herobanner />
       <RecentlyViewedProducts />
+      <WishlistPreview />
       <ProductOverview />
       <GetInTouch />
     </div>
