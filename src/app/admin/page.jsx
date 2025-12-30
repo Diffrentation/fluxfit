@@ -18,6 +18,7 @@ import OrdersChart from "@/components/Admin/OrdersChart";
 import TopProducts from "@/components/Admin/TopProducts";
 import AbandonedCartStats from "@/components/Admin/AbandonedCartStats";
 import UserRegistrations from "@/components/Admin/UserRegistrations";
+import AdminSidebar from "@/components/Admin/AdminSidebar";
 import { format } from "date-fns";
 import {
   exportToCSV,
@@ -92,8 +93,14 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex">
+        {/* Sidebar */}
+        <AdminSidebar activeItem="dashboard" />
+
+        {/* Main Content */}
+        <div className="flex-1 ml-0 lg:ml-64 pt-20 lg:pt-16">
+          <div className="p-4 md:p-6 pb-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -184,6 +191,8 @@ const AdminDashboard = () => {
 
         {/* Abandoned Cart Stats */}
         <AbandonedCartStats />
+          </div>
+        </div>
       </div>
     </div>
   );
