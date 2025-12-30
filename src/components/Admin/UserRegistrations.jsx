@@ -1,0 +1,133 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Card } from "antd";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { IconUsers } from "@tabler/icons-react";
+import { format, subDays, subMonths, eachDayOfInterval, eachMonthOfInterval } from "date-fns";
+
+const UserRegistrations = ({ reportType = "daily", dateRange }) => {
+  const [chartData, setChartData] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+
+  useEffect(() => {
+    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    
+    // Estimate users based on orders (in real app, this would come from user database)
+    const estimatedUsers = Math.floor(orders.length * 1.5);
+    setTotalUsers(estimatedUsers);
+
+    let data = [];
+    
+    if (reportType === "daily") {
+      const days = eachDayOfInterval({
+        start: subDays(new Date(), 29),
+        end: new Date(),
+      });
+
+      data = days.map((day) => {
+        const dayStr = format(day, "yyyy-MM-dd");
+        const dayOrders = orders.filter((order) => {
+          const orderDate = format(new Date(order.orderDate), "yyyy-MM-dd");
+          return orderDate === dayStr;
+        });
+
+        // Estimate 1.5 users per order
+        const users = Math.floor(dayOrders.length * 1.5);
+
+        return {
+          date: format(day, "MMM dd"),
+          users: users,
+        };
+      });
+    } else {
+      const months = eachMonthOfInterval({
+        start: subMonths(new Date(), 11),
+        end: new Date(),
+      });
+
+      data = months.map((month) => {
+        const monthStr = format(month, "yyyy-MM");
+        const monthOrders = orders.filter((order) => {
+          const orderDate = format(new Date(order.orderDate), "yyyy-MM");
+          return orderDate === monthStr;
+        });
+
+        const users = Math.floor(monthOrders.length * 1.5);
+
+        return {
+          date: format(month, "MMM yyyy"),
+          users: users,
+        };
+      });
+    }
+
+    setChartData(data);
+  }, [reportType, dateRange]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+    >
+      <Card
+        title={
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <IconUsers className="w-5 h-5 text-orange-600" />
+              <span className="font-semibold">User Registrations</span>
+            </div>
+            <div className="text-sm text-gray-600">
+              Total: <span className="font-bold text-orange-600">{totalUsers}</span>
+            </div>
+          </div>
+        }
+        className="h-full"
+      >
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+            <XAxis
+              dataKey="date"
+              className="text-xs"
+              tick={{ fill: "#6b7280" }}
+            />
+            <YAxis
+              className="text-xs"
+              tick={{ fill: "#6b7280" }}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#fff",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="users"
+              stroke="#f97316"
+              strokeWidth={2}
+              dot={{ fill: "#f97316", r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+        <div className="mt-4 text-center text-sm text-gray-600">
+          New user registrations over time
+        </div>
+      </Card>
+    </motion.div>
+  );
+};
+
+export default UserRegistrations;

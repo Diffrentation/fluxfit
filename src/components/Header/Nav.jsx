@@ -29,6 +29,10 @@ export function Nav() {
       link: "/product-list",
     },
     {
+      name: "Orders",
+      link: "/orders",
+    },
+    {
       name: "About",
       link: "/about",
     },
@@ -37,8 +41,8 @@ export function Nav() {
       link: "/contact",
     },
     {
-      name: "Orders",
-      link: "/orders",
+      name: "Admin",
+      link: "/admin",
     },
   ];
 
@@ -67,6 +71,10 @@ export function Nav() {
     {
       name: "Orders",
       link: "/orders",
+    },
+    {
+      name: "Admin",
+      link: "/admin",
     },
   ];
 
