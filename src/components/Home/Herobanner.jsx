@@ -59,11 +59,11 @@ function Herobanner() {
   // Auto-play functionality (optional)
   useEffect(() => {
     const interval = setInterval(() => {
-      nextSlide();
-    }, 10000); // Change slide every 5 seconds
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 10000); // Change slide every 10 seconds
 
     return () => clearInterval(interval);
-  }, [currentSlide]);
+  }, []);
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-gray-100">
@@ -72,6 +72,7 @@ function Herobanner() {
         onClick={prevSlide}
         className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-white/80 hover:bg-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110"
         aria-label="Previous slide"
+        suppressHydrationWarning
       >
         <IconChevronLeft className="w-6 h-6 text-gray-700" />
       </button>
@@ -80,6 +81,7 @@ function Herobanner() {
         onClick={nextSlide}
         className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-white/80 hover:bg-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110"
         aria-label="Next slide"
+        suppressHydrationWarning
       >
         <IconChevronRight className="w-6 h-6 text-gray-700" />
       </button>
@@ -105,25 +107,30 @@ function Herobanner() {
               {/* Left Side - Text Content */}
               <div className="flex flex-col justify-center space-y-6 text-left">
                 <p className="text-gray-600 text-sm md:text-base font-medium tracking-wide">
-                  {slides[currentSlide].subtitle}
+                  {slides[currentSlide]?.subtitle || ""}
                 </p>
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
-                  {slides[currentSlide].title}
+                  {slides[currentSlide]?.title || ""}
                 </h1>
-                <button className="self-start px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-semibold text-sm md:text-base transition-colors duration-200 shadow-lg hover:shadow-xl">
-                  {slides[currentSlide].buttonText}
+                <button
+                  className="self-start px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-semibold text-sm md:text-base transition-colors duration-200 shadow-lg hover:shadow-xl"
+                  suppressHydrationWarning
+                >
+                  {slides[currentSlide]?.buttonText || "SHOP NOW"}
                 </button>
               </div>
 
               {/* Right Side - Image */}
               <div className="relative w-full h-[400px] lg:h-[600px] rounded-lg overflow-hidden">
-                <Image
-                  src={slides[currentSlide].image}
-                  alt={slides[currentSlide].title}
-                  fill
-                  className="object-cover object-center"
-                  priority={currentSlide === 0}
-                />
+                {slides[currentSlide]?.image && (
+                  <Image
+                    src={slides[currentSlide].image}
+                    alt={slides[currentSlide].title || "Product"}
+                    fill
+                    className="object-cover object-center"
+                    priority={currentSlide === 0}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -144,6 +151,7 @@ function Herobanner() {
                 : "w-2 bg-gray-400 hover:bg-gray-600"
             }`}
             aria-label={`Go to slide ${index + 1}`}
+            suppressHydrationWarning
           />
         ))}
       </div>

@@ -21,6 +21,7 @@ import {
 import { Button, message } from "antd";
 import { useCart } from "@/context/CartContext";
 import { productDatabase } from "@/lib/productDatabase";
+import { addToRecentlyViewed } from "@/lib/recentlyViewed";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 import ProductCard from "@/components/ui/ProductCard";
 
@@ -45,6 +46,13 @@ function ProductDetails() {
   const [activeTab, setActiveTab] = useState("description");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const infoSectionRef = useRef(null);
+
+  // Track product view in recently viewed
+  useEffect(() => {
+    if (product && productId) {
+      addToRecentlyViewed(productId);
+    }
+  }, [product, productId]);
 
   // Handle scroll detection for right section
   useEffect(() => {

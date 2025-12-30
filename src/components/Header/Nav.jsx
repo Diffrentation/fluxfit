@@ -76,10 +76,11 @@ export function Nav() {
           <div className="flex items-center gap-4">
             <NavbarButton variant="secondary">Login</NavbarButton>
             <NavbarButton variant="primary">Register</NavbarButton>
-            <Link href="/cart">
+            <Link href="/cart" className="inline-block">
               <NavbarButton
                 variant="primary"
                 className="flex items-center gap-2 relative"
+                as="span"
               >
                 <div className="relative">
                   <IconShoppingCart className="h-5 w-5" />
@@ -122,14 +123,14 @@ export function Nav() {
             onClose={() => setIsMobileMenuOpen(false)}
           >
             {mobileNavItems.map((item, idx) => (
-              <a
+              <Link
                 key={`mobile-link-${idx}`}
                 href={item.link}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="relative text-neutral-600 dark:text-neutral-300"
               >
                 <span className="block">{item.name}</span>
-              </a>
+              </Link>
             ))}
             <div className="flex w-full flex-col gap-4">
               <NavbarButton
@@ -157,8 +158,5 @@ export function Nav() {
 }
 
 const DummyContent = () => {
-  return (
-    <div className="container">
-    </div>
-  );
+  return <div className="container"></div>;
 };
