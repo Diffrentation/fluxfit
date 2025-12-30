@@ -10,6 +10,7 @@ import {
   IconHome,
   IconBuilding,
   IconBriefcase,
+  IconChevronRight,
 } from "@tabler/icons-react";
 import { Button, Input, Radio, Modal, Form, message, Select } from "antd";
 
@@ -62,11 +63,12 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
     }
   }, []);
 
-  // Set default selected address
+  // Set default selected address (don't auto-proceed)
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddress) {
-      const defaultAddr = addresses.find((addr) => addr.isDefault) || addresses[0];
-      onAddressSelect(defaultAddr);
+      const defaultAddr =
+        addresses.find((addr) => addr.isDefault) || addresses[0];
+      onAddressSelect(defaultAddr, false);
     }
   }, [addresses, selectedAddress, onAddressSelect]);
 
@@ -87,8 +89,13 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
       title: "Delete Address",
       content: "Are you sure you want to delete this address?",
       onOk: () => {
-        const updatedAddresses = addresses.filter((addr) => addr.id !== addressId);
-        if (updatedAddresses.length > 0 && !updatedAddresses.some((a) => a.isDefault)) {
+        const updatedAddresses = addresses.filter(
+          (addr) => addr.id !== addressId
+        );
+        if (
+          updatedAddresses.length > 0 &&
+          !updatedAddresses.some((a) => a.isDefault)
+        ) {
           updatedAddresses[0].isDefault = true;
         }
         setAddresses(updatedAddresses);
@@ -105,7 +112,9 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
     if (editingAddress) {
       // Update existing address
       const updatedAddresses = addresses.map((addr) =>
-        addr.id === editingAddress.id ? { ...values, id: editingAddress.id } : addr
+        addr.id === editingAddress.id
+          ? { ...values, id: editingAddress.id }
+          : addr
       );
       setAddresses(updatedAddresses);
       localStorage.setItem("userAddresses", JSON.stringify(updatedAddresses));
@@ -167,7 +176,7 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
         value={selectedAddress?.id}
         onChange={(e) => {
           const address = addresses.find((addr) => addr.id === e.target.value);
-          onAddressSelect(address);
+          onAddressSelect(address, false); // Don't auto-proceed, just select
         }}
         className="w-full"
       >
@@ -205,7 +214,9 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
                             <span className="font-semibold text-gray-900">
                               {address.name}
                             </span>
-                            <span className="text-gray-500">{address.phone}</span>
+                            <span className="text-gray-500">
+                              {address.phone}
+                            </span>
                             {address.isDefault && (
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
                                 Default
@@ -270,6 +281,21 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
         </div>
       </Radio.Group>
 
+      {/* Continue Button */}
+      {selectedAddress && (
+        <div className="mt-6 flex justify-end">
+          <Button
+            type="primary"
+            size="large"
+            onClick={() => onAddressSelect(selectedAddress, true)}
+            className="min-w-[150px]"
+          >
+            Continue to Payment
+            <IconChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      )}
+
       {/* Add/Edit Address Modal */}
       <Modal
         title={editingAddress ? "Edit Address" : "Add New Address"}
@@ -313,7 +339,11 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
               label="Phone Number"
               rules={[
                 { required: true, message: "Please enter phone number" },
-                { pattern: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, message: "Invalid phone number" }
+                {
+                  pattern:
+                    /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
+                  message: "Invalid phone number",
+                },
               ]}
             >
               <Input placeholder="+91 9876543210" />
@@ -328,10 +358,7 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
             <Input placeholder="House/Flat No., Building Name" />
           </Form.Item>
 
-          <Form.Item
-            name="addressLine2"
-            label="Address Line 2"
-          >
+          <Form.Item name="addressLine2" label="Address Line 2">
             <Input placeholder="Street, Area, Colony" />
           </Form.Item>
 
@@ -357,26 +384,25 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
               label="Pincode"
               rules={[
                 { required: true, message: "Please enter pincode" },
-                { pattern: /^[0-9]{6}$/, message: "Invalid pincode" }
+                { pattern: /^[0-9]{6}$/, message: "Invalid pincode" },
               ]}
             >
               <Input placeholder="400001" maxLength={6} />
             </Form.Item>
           </div>
 
-          <Form.Item
-            name="landmark"
-            label="Landmark (Optional)"
-          >
+          <Form.Item name="landmark" label="Landmark (Optional)">
             <Input placeholder="Near City Park" />
           </Form.Item>
 
           <Form.Item className="mb-0">
             <div className="flex justify-end gap-2">
-              <Button onClick={() => {
-                setIsModalVisible(false);
-                form.resetFields();
-              }}>
+              <Button
+                onClick={() => {
+                  setIsModalVisible(false);
+                  form.resetFields();
+                }}
+              >
                 Cancel
               </Button>
               <Button type="primary" htmlType="submit">
@@ -391,4 +417,3 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
 };
 
 export default AddressStep;
-

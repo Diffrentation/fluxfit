@@ -195,26 +195,26 @@ const ReviewStep = ({
         <div className="space-y-3">
           <div className="flex justify-between text-gray-700">
             <span>Subtotal ({cartItems.length} items)</span>
-            <span>₹{(orderSummary.subtotal * 83).toFixed(2)}</span>
+            <span>₹{orderSummary.subtotal.toFixed(2)}</span>
           </div>
           {orderSummary.discount > 0 && (
             <div className="flex justify-between text-green-600">
               <span>Discount</span>
-              <span>-₹{(orderSummary.discount * 83).toFixed(2)}</span>
+              <span>-₹{orderSummary.discount.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between text-gray-700">
             <span>Shipping</span>
-            <span>₹{orderSummary.shipping}</span>
+            <span>₹{orderSummary.shipping.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-gray-700">
             <span>Tax (GST 18%)</span>
-            <span>₹{orderSummary.tax}</span>
+            <span>₹{orderSummary.tax.toFixed(2)}</span>
           </div>
           <div className="border-t border-gray-200 pt-3 flex justify-between">
             <span className="text-lg font-bold text-gray-900">Total</span>
             <span className="text-xl font-bold text-blue-600">
-              ₹{orderSummary.grandTotal}
+              ₹{orderSummary.grandTotal.toFixed(2)}
             </span>
           </div>
         </div>

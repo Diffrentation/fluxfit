@@ -50,9 +50,11 @@ const CheckoutPage = () => {
     },
   ];
 
-  const handleAddressSelect = (address) => {
+  const handleAddressSelect = (address, shouldProceed = false) => {
     setSelectedAddress(address);
-    setCurrentStep(1);
+    if (shouldProceed) {
+      setCurrentStep(1);
+    }
   };
 
   const handlePaymentSelect = (method, details = {}) => {
@@ -79,11 +81,21 @@ const CheckoutPage = () => {
     return null;
   }
 
-  const subtotal = getCartTotal();
-  const discount = getDiscountAmount();
-  const finalTotal = getFinalTotal();
-  const shipping = 50; // Dummy shipping cost
-  const tax = (finalTotal * 0.18).toFixed(2); // 18% GST
+  // Convert USD to INR (rate: 1 USD = 83 INR)
+  const USD_TO_INR_RATE = 83;
+
+  // All cart totals are in USD, convert to INR
+  const subtotalUSD = getCartTotal();
+  const discountUSD = getDiscountAmount();
+  const finalTotalUSD = getFinalTotal();
+
+  // Convert to INR
+  const subtotal = (subtotalUSD * USD_TO_INR_RATE).toFixed(2);
+  const discount = (discountUSD * USD_TO_INR_RATE).toFixed(2);
+  const finalTotal = (finalTotalUSD * USD_TO_INR_RATE).toFixed(2);
+
+  const shipping = 50; // Shipping cost in INR
+  const tax = (parseFloat(finalTotal) * 0.18).toFixed(2); // 18% GST on final total in INR
   const grandTotal = (
     parseFloat(finalTotal) +
     parseFloat(shipping) +
@@ -218,11 +230,11 @@ const CheckoutPage = () => {
                     onOrderPlace={handleOrderPlace}
                     onBack={() => setCurrentStep(1)}
                     orderSummary={{
-                      subtotal,
-                      discount,
-                      shipping,
-                      tax,
-                      grandTotal,
+                      subtotal: parseFloat(subtotal),
+                      discount: parseFloat(discount),
+                      shipping: parseFloat(shipping),
+                      tax: parseFloat(tax),
+                      grandTotal: parseFloat(grandTotal),
                     }}
                   />
                 </motion.div>
@@ -244,12 +256,12 @@ const CheckoutPage = () => {
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between text-gray-700">
                   <span>Subtotal ({cartItems.length} items)</span>
-                  <span>₹{(subtotal * 83).toFixed(2)}</span>
+                  <span>₹{subtotal}</span>
                 </div>
-                {discount > 0 && (
+                {parseFloat(discount) > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount</span>
-                    <span>-₹{(discount * 83).toFixed(2)}</span>
+                    <span>-₹{discount}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-gray-700">
