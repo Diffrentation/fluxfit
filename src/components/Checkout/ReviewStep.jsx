@@ -70,6 +70,12 @@ const ReviewStep = ({
         orderSummary,
         orderDate: new Date().toISOString(),
         status: "confirmed",
+        statusHistory: [
+          {
+            status: "confirmed",
+            timestamp: new Date().toISOString(),
+          },
+        ],
       };
 
       // Save order to localStorage (dummy)

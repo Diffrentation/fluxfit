@@ -8,6 +8,7 @@ import {
   IconShoppingBag,
   IconHome,
   IconFileText,
+  IconPackage,
 } from "@tabler/icons-react";
 import { Button, Card, message } from "antd";
 import Image from "next/image";
@@ -298,6 +299,15 @@ const OrderConfirmationPage = () => {
             className="flex-1"
           >
             Download Invoice
+          </Button>
+          <Button
+            type="default"
+            size="large"
+            icon={<IconPackage className="w-4 h-4" />}
+            onClick={() => router.push(`/orders/${order.orderId}`)}
+            className="flex-1"
+          >
+            View Order Details
           </Button>
           <Button
             size="large"
