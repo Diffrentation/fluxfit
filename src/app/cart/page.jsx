@@ -480,7 +480,13 @@ const CartPage = () => {
                 <p className="text-sm text-gray-600 mb-4">
                   Taxes and shipping calculated at checkout
                 </p>
-                <Button type="primary" size="large" block className="mb-4">
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  className="mb-4"
+                  onClick={() => router.push("/checkout")}
+                >
                   Proceed to Checkout
                 </Button>
                 <Button
