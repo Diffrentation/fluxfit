@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { productDatabase } from "@/lib/productDatabase";
 import {
   IconTrash,
@@ -11,8 +12,11 @@ import {
   IconMinus,
   IconShare,
   IconArrowLeft,
+  IconTag,
+  IconX,
+  IconShoppingCart,
 } from "@tabler/icons-react";
-import { Button, message } from "antd";
+import { Button, message, Input } from "antd";
 
 // Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
 const convertToRupees = (usdPrice) => {
@@ -28,8 +32,17 @@ const CartPage = () => {
     updateQuantity,
     getCartTotal,
     getCartCount,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
+    getDiscountAmount,
+    getFinalTotal,
+    addToCart,
   } = useCart();
-  const [savedItems, setSavedItems] = useState([]);
+  const { savedForLaterItems, addToSavedForLater, removeFromSavedForLater } =
+    useWishlist();
+  const [couponCode, setCouponCode] = useState("");
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const handleQuantityChange = (item, newQuantity) => {
     if (newQuantity < 1) {
@@ -46,9 +59,43 @@ const CartPage = () => {
   };
 
   const handleSaveForLater = (item) => {
-    setSavedItems([...savedItems, item]);
+    addToSavedForLater(item);
     removeFromCart(item.id, item.size, item.color);
     message.success("Item saved for later");
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      message.warning("Please enter a coupon code");
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    const result = applyCoupon(couponCode.trim());
+
+    if (result.success) {
+      message.success(result.message);
+      setCouponCode("");
+    } else {
+      message.error(result.message);
+    }
+
+    setIsApplyingCoupon(false);
+  };
+
+  const handleRemoveCoupon = () => {
+    removeCoupon();
+    message.success("Coupon removed");
+  };
+
+  const handleMoveToCart = (item) => {
+    addToCart(productDatabase[item.id], {
+      size: item.size,
+      color: item.color,
+      quantity: item.quantity,
+    });
+    removeFromSavedForLater(item.id, item.size, item.color);
+    message.success("Item moved to cart");
   };
 
   const handleShare = (item) => {
@@ -84,7 +131,11 @@ const CartPage = () => {
 
   const totalItems = getCartCount();
   const subtotal = getCartTotal();
+  const discount = getDiscountAmount();
+  const finalTotal = getFinalTotal();
   const subtotalInRupees = convertToRupees(subtotal);
+  const discountInRupees = convertToRupees(discount);
+  const finalTotalInRupees = convertToRupees(finalTotal);
 
   if (cartItems.length === 0) {
     return (
@@ -351,16 +402,80 @@ const CartPage = () => {
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Order Summary
                 </h2>
-                <div className="border-b border-gray-200 pb-4 mb-4">
+                <div className="border-b border-gray-200 pb-4 mb-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-lg font-bold text-gray-900">
                       Subtotal ({totalItems}{" "}
                       {totalItems === 1 ? "item" : "items"}):
                     </p>
-                    <span className="text-2xl text-end font-bold text-blue-600">
+                    <span className="text-xl text-end font-bold text-gray-900">
                       ₹{subtotalInRupees}
                     </span>
                   </div>
+
+                  {/* Coupon Section */}
+                  <div className="space-y-2">
+                    {appliedCoupon ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <IconTag className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-semibold text-green-800">
+                              {appliedCoupon.code}
+                            </span>
+                          </div>
+                          <button
+                            onClick={handleRemoveCoupon}
+                            className="text-green-600 hover:text-green-800"
+                          >
+                            <IconX className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-green-700">
+                            Discount:
+                          </span>
+                          <span className="text-sm font-bold text-green-800">
+                            -₹{discountInRupees}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Enter coupon code"
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value)}
+                            onPressEnter={handleApplyCoupon}
+                            className="flex-1"
+                            prefix={
+                              <IconTag className="w-4 h-4 text-gray-400" />
+                            }
+                          />
+                          <Button
+                            onClick={handleApplyCoupon}
+                            loading={isApplyingCoupon}
+                            type="default"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Try: WELCOME10, SAVE20, FLAT50, SUMMER25
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {appliedCoupon && (
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                      <p className="text-lg font-bold text-gray-900">Total:</p>
+                      <span className="text-2xl text-end font-bold text-blue-600">
+                        ₹{finalTotalInRupees}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Taxes and shipping calculated at checkout
@@ -380,6 +495,91 @@ const CartPage = () => {
             </div>
           </motion.div>
         </div>
+
+        {/* Saved for Later Section */}
+        {savedForLaterItems.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-12"
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Saved for Later ({savedForLaterItems.length})
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {savedForLaterItems.map((item, index) => {
+                const product = getProductDetails(item);
+                const itemPriceInRupees = convertToRupees(item.price);
+                const itemTotalInRupees = convertToRupees(
+                  parseFloat(item.price) * item.quantity
+                );
+
+                return (
+                  <motion.div
+                    key={`${item.id}-${item.size}-${item.color}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white rounded-lg shadow-sm p-4 border border-gray-200"
+                  >
+                    <div className="flex gap-4">
+                      <div className="relative w-24 h-24 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                        <Image
+                          src={item.image || product?.images?.[0] || ""}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">
+                          {item.name}
+                        </h3>
+                        {item.size && item.size !== "One Size" && (
+                          <p className="text-xs text-gray-600 mb-1">
+                            Size: {item.size}
+                          </p>
+                        )}
+                        {item.color && (
+                          <p className="text-xs text-gray-600 mb-2 capitalize">
+                            Color: {item.color}
+                          </p>
+                        )}
+                        <p className="text-sm font-bold text-gray-900 mb-3">
+                          ₹{itemTotalInRupees}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            size="small"
+                            type="primary"
+                            icon={<IconShoppingCart className="w-4 h-4" />}
+                            onClick={() => handleMoveToCart(item)}
+                            className="flex-1"
+                          >
+                            Move to Cart
+                          </Button>
+                          <Button
+                            size="small"
+                            danger
+                            icon={<IconTrash className="w-4 h-4" />}
+                            onClick={() => {
+                              removeFromSavedForLater(
+                                item.id,
+                                item.size,
+                                item.color
+                              );
+                              message.success("Item removed");
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

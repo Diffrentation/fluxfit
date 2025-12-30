@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { IconHeart, IconShoppingCart } from "@tabler/icons-react";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { Button, message } from "antd";
 
 // Helper function to convert USD to INR (approximate rate: 1 USD = 83 INR)
@@ -14,9 +15,10 @@ const convertToRupees = (usdPrice) => {
 
 const ProductCard = ({ product, onQuickView }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const isWishlisted = isInWishlist(product.id);
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -73,12 +75,18 @@ const ProductCard = ({ product, onQuickView }) => {
         <motion.button
           onClick={(e) => {
             e.stopPropagation();
-            setIsWishlisted(!isWishlisted);
+            if (isWishlisted) {
+              removeFromWishlist(product.id);
+              message.success("Removed from wishlist");
+            } else {
+              addToWishlist(product);
+              message.success("Added to wishlist");
+            }
           }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           className="absolute top-3 right-3 z-10 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
-          aria-label="Add to wishlist"
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
           <motion.div
             animate={{ scale: isWishlisted ? [1, 1.2, 1] : 1 }}
