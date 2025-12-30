@@ -31,6 +31,55 @@ FluxFit is your premier destination for custom clothing and printing services. W
   - Tags
   - Search functionality
 - **Product Sorting**: Sort by newness, popularity, rating, and price
+- **Wishlist**: Save favorite products for later
+- **Recently Viewed**: Track and display recently viewed products
+
+### Checkout & Payment
+
+- **Multi-Step Checkout Process**:
+  - Delivery address selection and management
+  - Multiple payment methods (Card, UPI, Net Banking, COD, Razorpay, Stripe, PayPal)
+  - Order review and confirmation
+- **Address Management**:
+  - Add, edit, and delete delivery addresses
+  - Set default address
+  - Multiple address types (Home, Work, Other)
+- **Payment Options**:
+  - Credit/Debit Card with secure form
+  - UPI payment
+  - Net Banking
+  - Cash on Delivery (COD)
+  - Payment gateways (Razorpay, Stripe, PayPal)
+- **Coupon System**: Apply discount coupons during checkout
+- **Price Conversion**: Automatic USD to INR conversion (₹83 rate)
+- **Order Confirmation**: Detailed confirmation page with invoice download
+
+### Order Management
+
+- **Order Tracking**:
+  - View all orders in one place
+  - Search orders by ID or product name
+  - Filter orders by status
+  - Order status timeline with visual progress
+- **Order Details**:
+  - Complete order information
+  - Status timeline with timestamps
+  - Delivery address and payment details
+  - Order items with images and specifications
+- **Order Actions**:
+  - **Cancel Order**: Cancel orders with reason selection (for confirmed/processing orders)
+  - **Return Request**: Request returns with item selection and reason
+  - **Refund Request**: Request refunds for cancelled/returned orders
+  - **Download Invoice**: Generate and download HTML invoices
+  - **Reorder**: Add all items from previous order to cart with one click
+- **Order Statuses**:
+  - Confirmed
+  - Processing
+  - Shipped
+  - Delivered
+  - Cancelled
+  - Returned
+  - Refunded
 
 ### Custom Printing Services
 
@@ -128,9 +177,20 @@ fluxfit/
 │   │   ├── product-list/      # Product listing page
 │   │   ├── product-details/   # Product detail pages
 │   │   ├── cart/              # Shopping cart page
+│   │   ├── wishlist/          # Wishlist page
+│   │   ├── checkout/          # Checkout pages
+│   │   │   ├── page.jsx       # Main checkout page
+│   │   │   └── confirmation/  # Order confirmation page
+│   │   ├── orders/            # Order management pages
+│   │   │   ├── page.jsx       # Orders list page
+│   │   │   └── [id]/          # Order details page
 │   │   └── contact/           # Contact page
 │   ├── components/            # React components
 │   │   ├── About/             # About section components
+│   │   ├── Checkout/          # Checkout components
+│   │   │   ├── AddressStep.jsx    # Address selection step
+│   │   │   ├── PaymentStep.jsx     # Payment method step
+│   │   │   └── ReviewStep.jsx      # Order review step
 │   │   ├── ContactUs/         # Contact form component
 │   │   ├── Footer/            # Footer component
 │   │   ├── GetInTouch/        # Get in touch section
@@ -138,9 +198,11 @@ fluxfit/
 │   │   ├── Home/              # Home page components
 │   │   └── ui/                # Reusable UI components
 │   ├── context/               # React Context providers
-│   │   └── CartContext.jsx    # Shopping cart state management
+│   │   ├── CartContext.jsx    # Shopping cart state management
+│   │   └── WishlistContext.jsx # Wishlist state management
 │   └── lib/                   # Utility functions and data
 │       ├── productDatabase.js # Product data
+│       ├── recentlyViewed.js  # Recently viewed products
 │       └── utils.js           # Helper functions
 ├── public/                    # Static assets
 ├── package.json
@@ -153,6 +215,14 @@ fluxfit/
 - `/product-list` - Complete product catalog with filtering
 - `/product-details/[id]` - Individual product details with related products
 - `/cart` - Shopping cart management
+- `/wishlist` - Wishlist page for saved products
+- `/checkout` - Multi-step checkout process
+  - Step 1: Delivery address selection
+  - Step 2: Payment method selection
+  - Step 3: Order review and confirmation
+- `/checkout/confirmation` - Order confirmation page with invoice download
+- `/orders` - Order management page (list all orders)
+- `/orders/[id]` - Order details page with tracking, cancel, return, and reorder
 - `/about` - About FluxFit, our story, services, and founders
 - `/contact` - Contact form and information
 
@@ -172,6 +242,26 @@ fluxfit/
 - Quantity management
 - Shopping cart with item management
 - Product reviews and ratings
+- Wishlist functionality
+- Recently viewed products
+
+### Checkout Experience
+
+- Streamlined 3-step checkout process
+- Address management with multiple saved addresses
+- Multiple payment gateway integrations
+- Real-time price calculations with tax and shipping
+- Coupon code application
+- Order confirmation with downloadable invoice
+
+### Order Management Experience
+
+- Complete order history with search and filters
+- Visual order status timeline
+- Easy order cancellation (when eligible)
+- Return and refund request system
+- One-click reorder functionality
+- Invoice generation and download
 
 ### About FluxFit
 
@@ -199,13 +289,15 @@ Together, they envision FluxFit becoming a global leader in custom clothing and 
 ## 🚧 Future Enhancements
 
 - User authentication and accounts
-- Order management system
-- Payment integration with Stripe
+- Payment integration with Stripe (backend integration)
 - Admin dashboard
 - Product image uploads via Cloudinary
-- Review and rating system
-- Wishlist functionality
-- Email notifications
+- Review and rating system (full implementation)
+- Email notifications for order updates
+- Real-time order tracking with shipping APIs
+- Advanced analytics and reporting
+- Multi-currency support
+- International shipping options
 
 ## 📝 License
 
