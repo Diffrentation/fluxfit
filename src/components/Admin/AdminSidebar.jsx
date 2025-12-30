@@ -16,6 +16,10 @@ import {
   IconFileText,
   IconMenu2,
   IconX,
+  IconTag,
+  IconTags,
+  IconCreditCard,
+  IconCurrencyRupee,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -37,22 +41,34 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       path: "/admin/products",
     },
     {
+      id: "categories",
+      label: "Categories & Brands",
+      icon: IconTags,
+      path: "/admin/categories",
+    },
+    {
       id: "orders",
       label: "Orders",
       icon: IconShoppingBag,
       path: "/admin/orders",
     },
     {
-      id: "customers",
-      label: "Customers",
+      id: "users",
+      label: "Users",
       icon: IconUsers,
-      path: "/admin/customers",
+      path: "/admin/users",
     },
     {
-      id: "reports",
-      label: "Reports",
-      icon: IconFileText,
-      path: "/admin/reports",
+      id: "coupons",
+      label: "Coupons & Offers",
+      icon: IconTag,
+      path: "/admin/coupons",
+    },
+    {
+      id: "payments",
+      label: "Payments & Finance",
+      icon: IconCreditCard,
+      path: "/admin/payments",
     },
     {
       id: "analytics",
@@ -61,22 +77,28 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       path: "/admin",
     },
     {
+      id: "reports",
+      label: "Reports",
+      icon: IconFileText,
+      path: "/admin/reports",
+    },
+    {
       id: "notifications",
       label: "Notifications",
       icon: IconBell,
       path: "/admin/notifications",
     },
     {
-      id: "help",
-      label: "Help",
-      icon: IconHelp,
-      path: "/admin/help",
-    },
-    {
       id: "settings",
       label: "Settings",
       icon: IconSettings,
       path: "/admin/settings",
+    },
+    {
+      id: "help",
+      label: "Help",
+      icon: IconHelp,
+      path: "/admin/help",
     },
   ];
 
