@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Table, Tag, Button, Modal, Form, Input, Select, message, Card, Pagination } from "antd";
-import { IconCheck, IconX, IconEye } from "@tabler/icons-react";
+import { IconCheck, IconX, IconEye, IconSearch } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
 
@@ -17,6 +17,8 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
   const [pageSize, setPageSize] = useState(10);
   const [selectedRefundDetails, setSelectedRefundDetails] = useState(null);
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const getStatusColor = (status) => {
     const colors = {
@@ -66,10 +68,30 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
     setIsDetailsModalVisible(true);
   }, []);
 
+  // Filter refunds
+  const filteredRefunds = useMemo(() => {
+    let filtered = [...refunds];
+
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (refund) =>
+          refund.id?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+          refund.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          refund.customer?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((refund) => refund.status === statusFilter);
+    }
+
+    return filtered;
+  }, [refunds, searchQuery, statusFilter]);
+
   // Pagination
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const paginatedRefunds = refunds.slice(startIndex, endIndex);
+  const paginatedRefunds = filteredRefunds.slice(startIndex, endIndex);
 
   const renderRefundCard = (refund) => (
     <motion.div
@@ -79,7 +101,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
       transition={{ duration: 0.2 }}
     >
       <Card
-        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 w-full min-w-0"
         bodyStyle={{ padding: "12px" }}
       >
         <div className="space-y-3">
@@ -110,9 +132,9 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
                 ₹{formatPrice(refund.amount)}
               </span>
             </div>
-            <div className="flex items-start justify-between">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Reason</span>
-              <span className="text-xs text-gray-600 dark:text-gray-300 text-right max-w-[60%]">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Reason</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300 text-right break-words min-w-0 flex-1">
                 {refund.reason}
               </span>
             </div>
@@ -267,42 +289,97 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      className="space-y-3 sm:space-y-4"
     >
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex-1 min-w-0">
+          <Input
+            placeholder="Search by refund ID, order ID, or customer"
+            allowClear
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            prefix={<IconSearch className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
+            size="large"
+            className="w-full"
+          />
+        </div>
+        <Select
+          placeholder="All Status"
+          value={statusFilter}
+          onChange={(value) => {
+            setStatusFilter(value);
+            setCurrentPage(1);
+          }}
+          className="w-full sm:w-auto sm:min-w-[150px]"
+          size="large"
+        >
+          <Option value="all">All Status</Option>
+          <Option value="pending">Pending</Option>
+          <Option value="approved">Approved</Option>
+          <Option value="rejected">Rejected</Option>
+          <Option value="processed">Processed</Option>
+        </Select>
+      </div>
+
       {/* Desktop Table View */}
       <div className="hidden lg:block">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <Table
-            dataSource={refunds.map((r) => ({ ...r, key: r.id }))}
+            dataSource={paginatedRefunds.map((r) => ({ ...r, key: r.id }))}
             columns={columns}
             pagination={{
-              pageSize: 10,
+              current: currentPage,
+              pageSize: pageSize,
+              total: filteredRefunds.length,
               showSizeChanger: true,
               showTotal: (total) => `Total ${total} refund requests`,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              },
+              onShowSizeChange: (current, size) => {
+                setCurrentPage(1);
+                setPageSize(size);
+              },
             }}
             scroll={{ x: 1000 }}
           />
         </div>
       </div>
 
-      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols */}
+      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols, md: 2 cols */}
       <div className="lg:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 w-full">
           <AnimatePresence mode="popLayout">
-            {paginatedRefunds.map((refund) => renderRefundCard(refund))}
+            {paginatedRefunds.length > 0 ? (
+              paginatedRefunds.map((refund) => renderRefundCard(refund))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500 dark:text-gray-400">
+                No refunds found matching your filters
+              </div>
+            )}
           </AnimatePresence>
         </div>
 
-        {refunds.length > pageSize && (
+        {filteredRefunds.length > pageSize && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Showing {startIndex + 1} to {Math.min(endIndex, refunds.length)} of {refunds.length} refunds
+              Showing {startIndex + 1} to {Math.min(endIndex, filteredRefunds.length)} of {filteredRefunds.length} refunds
             </div>
             <Pagination
               current={currentPage}
               pageSize={pageSize}
-              total={refunds.length}
+              total={filteredRefunds.length}
               onChange={(page, size) => {
                 setCurrentPage(page);
+                setPageSize(size);
+              }}
+              onShowSizeChange={(current, size) => {
+                setCurrentPage(1);
                 setPageSize(size);
               }}
               showSizeChanger

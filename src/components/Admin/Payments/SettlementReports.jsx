@@ -88,7 +88,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
       transition={{ duration: 0.2 }}
     >
       <Card
-        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 w-full min-w-0"
         bodyStyle={{ padding: "12px" }}
       >
         <div className="space-y-3">
@@ -285,8 +285,8 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
       className="space-y-3 sm:space-y-4"
     >
       {/* Statistics Cards - Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 w-full">
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
           <Statistic
             title="Pending Settlements"
             value={totalPending}
@@ -295,7 +295,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
             valueStyle={{ color: "#fa8c16" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
           <Statistic
             title="Processed This Month"
             value={totalProcessed}
@@ -304,7 +304,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
             valueStyle={{ color: "#52c41a" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 sm:col-span-2 lg:col-span-1">
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 sm:col-span-2 lg:col-span-1 w-full min-w-0">
           <Statistic
             title="Total Vendors"
             value={uniqueVendors.length}
@@ -322,7 +322,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
             setVendorFilter(value);
             setCurrentPage(1);
           }}
-          style={{ width: "100%", minWidth: 150 }}
+          className="w-full sm:w-auto sm:min-w-[150px]"
           size="large"
         >
           <Option value="all">All Vendors</Option>
@@ -339,7 +339,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
             setStatusFilter(value);
             setCurrentPage(1);
           }}
-          style={{ width: "100%", minWidth: 150 }}
+          className="w-full sm:w-auto sm:min-w-[150px]"
           size="large"
         >
           <Option value="all">All Status</Option>
@@ -363,23 +363,39 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
       <div className="hidden lg:block">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <Table
-            dataSource={filteredSettlements.map((s) => ({ ...s, key: s.id }))}
+            dataSource={paginatedSettlements.map((s) => ({ ...s, key: s.id }))}
             columns={columns}
             pagination={{
-              pageSize: 10,
+              current: currentPage,
+              pageSize: pageSize,
+              total: filteredSettlements.length,
               showSizeChanger: true,
               showTotal: (total) => `Total ${total} settlements`,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              },
+              onShowSizeChange: (current, size) => {
+                setCurrentPage(1);
+                setPageSize(size);
+              },
             }}
             scroll={{ x: 1200 }}
           />
         </div>
       </div>
 
-      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols */}
+      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols, md: 2 cols */}
       <div className="lg:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 w-full">
           <AnimatePresence mode="popLayout">
-            {paginatedSettlements.map((settlement) => renderSettlementCard(settlement))}
+            {paginatedSettlements.length > 0 ? (
+              paginatedSettlements.map((settlement) => renderSettlementCard(settlement))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500 dark:text-gray-400">
+                No settlements found matching your filters
+              </div>
+            )}
           </AnimatePresence>
         </div>
 
@@ -394,6 +410,10 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
               total={filteredSettlements.length}
               onChange={(page, size) => {
                 setCurrentPage(page);
+                setPageSize(size);
+              }}
+              onShowSizeChange={(current, size) => {
+                setCurrentPage(1);
                 setPageSize(size);
               }}
               showSizeChanger

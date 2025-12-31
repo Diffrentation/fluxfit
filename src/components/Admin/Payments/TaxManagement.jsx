@@ -66,7 +66,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
       transition={{ duration: 0.2 }}
     >
       <Card
-        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 w-full min-w-0"
         bodyStyle={{ padding: "12px" }}
       >
         <div className="space-y-3">
@@ -200,8 +200,8 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
       className="space-y-3 sm:space-y-4"
     >
       {/* Statistics Cards - Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 w-full">
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
           <Statistic
             title="Total CGST"
             value={totalCGST}
@@ -210,7 +210,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
             valueStyle={{ color: "#1890ff" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
           <Statistic
             title="Total SGST"
             value={totalSGST}
@@ -219,7 +219,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
             valueStyle={{ color: "#52c41a" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
           <Statistic
             title="Total IGST"
             value={totalIGST}
@@ -228,7 +228,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
             valueStyle={{ color: "#fa8c16" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
           <Statistic
             title="Total Tax Collected"
             value={totalTax}
@@ -248,7 +248,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
             setStateFilter(value);
             setCurrentPage(1);
           }}
-          style={{ width: "100%", minWidth: 150 }}
+          className="w-full sm:w-auto sm:min-w-[150px]"
           size="large"
         >
           <Option value="all">All States</Option>
@@ -283,23 +283,39 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
       <div className="hidden lg:block">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <Table
-            dataSource={filteredTaxData.map((t) => ({ ...t, key: t.id }))}
+            dataSource={paginatedTaxData.map((t) => ({ ...t, key: t.id }))}
             columns={columns}
             pagination={{
-              pageSize: 10,
+              current: currentPage,
+              pageSize: pageSize,
+              total: filteredTaxData.length,
               showSizeChanger: true,
               showTotal: (total) => `Total ${total} transactions`,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              },
+              onShowSizeChange: (current, size) => {
+                setCurrentPage(1);
+                setPageSize(size);
+              },
             }}
             scroll={{ x: 1200 }}
           />
         </div>
       </div>
 
-      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols */}
+      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols, md: 2 cols */}
       <div className="lg:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 w-full">
           <AnimatePresence mode="popLayout">
-            {paginatedTaxData.map((tax) => renderTaxCard(tax))}
+            {paginatedTaxData.length > 0 ? (
+              paginatedTaxData.map((tax) => renderTaxCard(tax))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500 dark:text-gray-400">
+                No tax records found matching your filters
+              </div>
+            )}
           </AnimatePresence>
         </div>
 
@@ -314,6 +330,10 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
               total={filteredTaxData.length}
               onChange={(page, size) => {
                 setCurrentPage(page);
+                setPageSize(size);
+              }}
+              onShowSizeChange={(current, size) => {
+                setCurrentPage(1);
                 setPageSize(size);
               }}
               showSizeChanger

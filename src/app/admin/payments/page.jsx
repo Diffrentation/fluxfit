@@ -171,45 +171,37 @@ const PaymentManagementPage = () => {
 
   // Save payments to localStorage whenever payments state changes
   useEffect(() => {
-    if (payments.length > 0) {
-      try {
-        localStorage.setItem("adminPayments", JSON.stringify(payments));
-      } catch (error) {
-        console.error("Error saving payments:", error);
-      }
+    try {
+      localStorage.setItem("adminPayments", JSON.stringify(payments));
+    } catch (error) {
+      console.error("Error saving payments:", error);
     }
   }, [payments]);
 
   // Save refunds to localStorage whenever refunds state changes
   useEffect(() => {
-    if (refunds.length > 0) {
-      try {
-        localStorage.setItem("adminRefunds", JSON.stringify(refunds));
-      } catch (error) {
-        console.error("Error saving refunds:", error);
-      }
+    try {
+      localStorage.setItem("adminRefunds", JSON.stringify(refunds));
+    } catch (error) {
+      console.error("Error saving refunds:", error);
     }
   }, [refunds]);
 
   // Save settlements to localStorage whenever settlements state changes
   useEffect(() => {
-    if (settlements.length > 0) {
-      try {
-        localStorage.setItem("adminSettlements", JSON.stringify(settlements));
-      } catch (error) {
-        console.error("Error saving settlements:", error);
-      }
+    try {
+      localStorage.setItem("adminSettlements", JSON.stringify(settlements));
+    } catch (error) {
+      console.error("Error saving settlements:", error);
     }
   }, [settlements]);
 
   // Save tax data to localStorage whenever taxData state changes
   useEffect(() => {
-    if (taxData.length > 0) {
-      try {
-        localStorage.setItem("adminTaxData", JSON.stringify(taxData));
-      } catch (error) {
-        console.error("Error saving tax data:", error);
-      }
+    try {
+      localStorage.setItem("adminTaxData", JSON.stringify(taxData));
+    } catch (error) {
+      console.error("Error saving tax data:", error);
     }
   }, [taxData]);
 
@@ -257,8 +249,8 @@ const PaymentManagementPage = () => {
       <div className="flex">
         <AdminSidebar activeItem="payments" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16">
-          <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
+        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16 min-w-0">
+          <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -276,8 +268,8 @@ const PaymentManagementPage = () => {
               </div>
 
               {/* Statistics Cards - Responsive Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6">
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6 w-full">
+                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
                   <Statistic
                     title="Total Revenue"
                     value={stats.totalRevenue}
@@ -286,7 +278,7 @@ const PaymentManagementPage = () => {
                     valueStyle={{ color: "#3f8600" }}
                   />
                 </Card>
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
                   <Statistic
                     title="Total Refunds"
                     value={stats.totalRefunds}
@@ -295,7 +287,7 @@ const PaymentManagementPage = () => {
                     valueStyle={{ color: "#cf1322" }}
                   />
                 </Card>
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
                   <Statistic
                     title="Pending Settlements"
                     value={stats.pendingSettlements}
@@ -304,7 +296,7 @@ const PaymentManagementPage = () => {
                     valueStyle={{ color: "#1890ff" }}
                   />
                 </Card>
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
                   <Statistic
                     title="Tax Collected (GST)"
                     value={stats.taxCollected}

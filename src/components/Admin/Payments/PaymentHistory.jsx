@@ -95,14 +95,14 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
       transition={{ duration: 0.2 }}
     >
       <Card
-        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 w-full min-w-0"
         bodyStyle={{ padding: "12px" }}
       >
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-mono text-xs sm:text-sm text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-2 mb-1 min-w-0">
+                <span className="font-mono text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">
                   #{payment.transactionId}
                 </span>
                 {payment.fraudFlag && (
@@ -146,9 +146,9 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Customer</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Customer</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white truncate text-right">
                 {payment.customer}
               </span>
             </div>
@@ -293,7 +293,7 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
     >
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Search
             placeholder="Search by transaction ID or order ID"
             allowClear
@@ -314,7 +314,7 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
             setStatusFilter(value);
             setCurrentPage(1);
           }}
-          style={{ width: "100%", minWidth: 150 }}
+          className="w-full sm:w-auto sm:min-w-[150px]"
           size="large"
         >
           <Option value="all">All Status</Option>
@@ -339,7 +339,7 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
       <div className="hidden lg:block">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <Table
-            dataSource={filteredPayments.map((p) => ({ ...p, key: p.id }))}
+            dataSource={paginatedPayments.map((p) => ({ ...p, key: p.id }))}
             columns={columns}
             pagination={{
               current: currentPage,
@@ -351,17 +351,27 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
                 setCurrentPage(page);
                 setPageSize(size);
               },
+              onShowSizeChange: (current, size) => {
+                setCurrentPage(1);
+                setPageSize(size);
+              },
             }}
             scroll={{ x: 1000 }}
           />
         </div>
       </div>
 
-      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols */}
+      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols, md: 2 cols */}
       <div className="lg:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 w-full">
           <AnimatePresence mode="popLayout">
-            {paginatedPayments.map((payment) => renderPaymentCard(payment))}
+            {paginatedPayments.length > 0 ? (
+              paginatedPayments.map((payment) => renderPaymentCard(payment))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500 dark:text-gray-400">
+                No payments found matching your filters
+              </div>
+            )}
           </AnimatePresence>
         </div>
 
@@ -376,6 +386,10 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
               total={filteredPayments.length}
               onChange={(page, size) => {
                 setCurrentPage(page);
+                setPageSize(size);
+              }}
+              onShowSizeChange={(current, size) => {
+                setCurrentPage(1);
                 setPageSize(size);
               }}
               showSizeChanger
