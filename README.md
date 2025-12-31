@@ -90,6 +90,17 @@ FluxFit is your premier destination for custom clothing and printing services. W
 
 ### Admin Dashboard
 
+- **Modern Sidebar Navigation**:
+
+  - Glassmorphism/blur effect with smooth animations
+  - Collapsible sidebar with icon-only mode
+  - Hover to expand, hover-out to collapse
+  - Click outside to collapse functionality
+  - Smooth spring-based animations using Framer Motion
+  - Responsive content area that adjusts dynamically
+  - Persistent sidebar state using localStorage
+  - Centered icons when collapsed for better UX
+
 - **Dashboard & Analytics**:
 
   - Total sales, revenue, orders, and users statistics
@@ -166,9 +177,12 @@ FluxFit is your premier destination for custom clothing and printing services. W
 ### User Experience
 
 - **Responsive Design**: Fully responsive across all devices (mobile, tablet, desktop)
-- **Smooth Animations**: Powered by Framer Motion for engaging interactions
+- **Smooth Animations**: Powered by Framer Motion with spring physics for natural, fluid interactions
 - **Modern UI**: Built with Tailwind CSS and Ant Design for a clean, modern interface
+- **Glassmorphism Effects**: Beautiful blur effects and transparent backgrounds for modern aesthetics
+- **Interactive Sidebar**: Collapsible admin sidebar with hover interactions and smooth transitions
 - **Fast Performance**: Optimized Next.js application with React Compiler
+- **State Persistence**: Sidebar and user preferences saved to localStorage for seamless experience
 
 ## 🛠️ Tech Stack
 
@@ -287,7 +301,8 @@ fluxfit/
 │   │   │   ├── TopProducts.jsx         # Top products table
 │   │   │   ├── AbandonedCartStats.jsx  # Abandoned cart stats
 │   │   │   ├── UserRegistrations.jsx   # User registration chart
-│   │   │   ├── AdminSidebar.jsx        # Admin navigation
+│   │   │   ├── AdminSidebar.jsx        # Admin navigation with collapsible sidebar
+│   │   │   ├── AdminContent.js         # Dynamic content wrapper with responsive margins
 │   │   │   ├── Products/              # Product management components
 │   │   │   ├── Categories/            # Category & brand components
 │   │   │   ├── Orders/                # Admin order components
@@ -301,9 +316,10 @@ fluxfit/
 │   │   ├── Header/            # Navigation component
 │   │   ├── Home/              # Home page components
 │   │   └── ui/                # Reusable UI components
-│   ├── context/               # React Context providers
+│   ├── contexts/              # React Context providers
 │   │   ├── CartContext.jsx    # Shopping cart state management
-│   │   └── WishlistContext.jsx # Wishlist state management
+│   │   ├── WishlistContext.jsx # Wishlist state management
+│   │   └── SidebarContext.js   # Admin sidebar state management
 │   └── lib/                   # Utility functions and data
 │       ├── productDatabase.js # Product data
 │       ├── recentlyViewed.js  # Recently viewed products
@@ -386,6 +402,9 @@ fluxfit/
 
 ### Admin Dashboard Experience
 
+- **Intuitive Navigation**: Collapsible sidebar with smooth animations and hover interactions
+- **Glassmorphism Design**: Modern blur effects and transparent backgrounds
+- **Responsive Layout**: Content area automatically adjusts when sidebar expands/collapses
 - Comprehensive analytics with real-time statistics
 - Interactive charts and visualizations
 - Advanced product management with bulk operations
@@ -394,6 +413,7 @@ fluxfit/
 - Coupon and promotional campaign management
 - Financial tracking and reporting
 - Configurable system settings
+- Persistent sidebar state across page reloads
 
 ### About FluxFit
 
