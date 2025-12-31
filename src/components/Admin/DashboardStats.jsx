@@ -100,7 +100,7 @@ const DashboardStats = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
       {statCards.map((stat, index) => (
         <motion.div
           key={stat.title}
@@ -108,36 +108,36 @@ const DashboardStats = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
         >
-          <Card className="hover:shadow-lg transition-shadow h-full">
+          <Card className="hover:shadow-lg transition-shadow h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <Statistic
-              title={stat.title}
+              title={<span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{stat.title}</span>}
               value={stat.isCurrency ? formatPrice(stat.value) : stat.value.toLocaleString('en-IN')}
               prefix={
                 <span
                   className={
-                    stat.color === "green" ? "text-green-500" :
-                    stat.color === "blue" ? "text-blue-500" :
-                    stat.color === "purple" ? "text-purple-500" : "text-orange-500"
+                    stat.color === "green" ? "text-green-500 dark:text-green-400" :
+                    stat.color === "blue" ? "text-blue-500 dark:text-blue-400" :
+                    stat.color === "purple" ? "text-purple-500 dark:text-purple-400" : "text-orange-500 dark:text-orange-400"
                   }
                 >
                   {stat.prefix}
                 </span>
               }
-              suffix={stat.suffix}
+              suffix={<span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{stat.suffix}</span>}
               valueStyle={{
                 color: stat.color === "green" ? "#10b981" : 
                        stat.color === "blue" ? "#3b82f6" :
                        stat.color === "purple" ? "#a855f7" : "#f97316",
-                fontSize: "20px",
+                fontSize: "18px",
                 fontWeight: "bold",
               }}
             />
             <div className="mt-2 flex items-center gap-1 text-xs sm:text-sm">
-              <IconTrendingUp className="w-4 h-4 text-green-500" />
-              <span className="text-green-600 font-medium">
+              <IconTrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 dark:text-green-400" />
+              <span className="text-green-600 dark:text-green-400 font-medium">
                 +{stat.growth}%
               </span>
-              <span className="text-gray-500 hidden sm:inline">vs last period</span>
+              <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">vs last period</span>
             </div>
           </Card>
         </motion.div>

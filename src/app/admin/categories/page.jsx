@@ -212,23 +212,23 @@ const CategoryManagementPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
         <AdminSidebar activeItem="categories" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-20 lg:pt-16">
-          <div className="p-4 md:p-6 pb-8">
+        <div className="flex-1 ml-0 lg:ml-64 pt-16 sm:pt-20 lg:pt-16">
+          <div className="p-3 sm:p-4 md:p-6 pb-6 sm:pb-8">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
+              className="mb-4 sm:mb-6"
             >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                     Category & Brand Management
                   </h1>
-                  <p className="text-gray-600">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                     Manage product categories, subcategories, and brands
                   </p>
                 </div>
@@ -241,21 +241,24 @@ const CategoryManagementPage = () => {
                   {
                     key: "categories",
                     label: (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 text-sm sm:text-base">
                         <IconTag className="w-4 h-4" />
-                        Categories
+                        <span className="hidden sm:inline">Categories</span>
+                        <span className="sm:hidden">Cats</span>
                       </span>
                     ),
                     children: (
                       <div>
-                        <div className="flex justify-end mb-4">
+                        <div className="flex justify-end mb-3 sm:mb-4">
                           <Button
                             type="primary"
                             icon={<IconPlus className="w-4 h-4" />}
                             onClick={handleAddCategory}
                             size="large"
+                            className="w-full sm:w-auto"
                           >
-                            Add Category
+                            <span className="hidden sm:inline">Add Category</span>
+                            <span className="sm:hidden">Add</span>
                           </Button>
                         </div>
                         <CategoryTree
@@ -268,17 +271,23 @@ const CategoryManagementPage = () => {
                   },
                   {
                     key: "brands",
-                    label: "Brands",
+                    label: (
+                      <span className="text-sm sm:text-base">
+                        Brands
+                      </span>
+                    ),
                     children: (
                       <div>
-                        <div className="flex justify-end mb-4">
+                        <div className="flex justify-end mb-3 sm:mb-4">
                           <Button
                             type="primary"
                             icon={<IconPlus className="w-4 h-4" />}
                             onClick={handleAddBrand}
                             size="large"
+                            className="w-full sm:w-auto"
                           >
-                            Add Brand
+                            <span className="hidden sm:inline">Add Brand</span>
+                            <span className="sm:hidden">Add</span>
                           </Button>
                         </div>
                         <BrandList

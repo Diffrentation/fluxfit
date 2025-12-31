@@ -9,18 +9,19 @@ const BrandList = ({ brands, onEdit, onDelete }) => {
     {
       title: "Brand",
       key: "brand",
-      width: 250,
+      width: 200,
+      responsive: ["xs", "sm", "md", "lg"],
       render: (_, record) => (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Avatar
             src={record.logo}
-            size={48}
-            className="rounded-lg"
+            size={40}
+            className="rounded-lg shrink-0 sm:w-12 sm:h-12"
             icon={record.name?.[0]?.toUpperCase()}
           />
-          <div>
-            <div className="font-semibold text-gray-900">{record.name}</div>
-            <div className="text-xs text-gray-500">{record.slug}</div>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">{record.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{record.slug}</div>
           </div>
         </div>
       ),
@@ -29,20 +30,23 @@ const BrandList = ({ brands, onEdit, onDelete }) => {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      render: (text) => <span className="text-gray-600">{text || "-"}</span>,
+      responsive: ["md", "lg"],
+      render: (text) => <span className="text-sm sm:text-base text-gray-600 dark:text-gray-300">{text || "-"}</span>,
     },
     {
       title: "Sort Order",
       dataIndex: "sortOrder",
       key: "sortOrder",
-      width: 120,
-      render: (order) => <Tag color="blue">{order}</Tag>,
+      width: 100,
+      responsive: ["sm", "md", "lg"],
+      render: (order) => <Tag color="blue" className="text-xs sm:text-sm">{order}</Tag>,
     },
     {
       title: "Actions",
       key: "actions",
-      width: 100,
+      width: 80,
       fixed: "right",
+      responsive: ["xs", "sm", "md", "lg"],
       render: (_, record) => (
         <Dropdown
           menu={{
@@ -81,7 +85,7 @@ const BrandList = ({ brands, onEdit, onDelete }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
     >
       <Table
         dataSource={brands.map((b) => ({ ...b, key: b.id }))}
@@ -90,8 +94,10 @@ const BrandList = ({ brands, onEdit, onDelete }) => {
           pageSize: 10,
           showSizeChanger: true,
           showTotal: (total) => `Total ${total} brands`,
+          responsive: true,
         }}
-        scroll={{ x: 800 }}
+        scroll={{ x: 600 }}
+        size="small"
       />
     </motion.div>
   );

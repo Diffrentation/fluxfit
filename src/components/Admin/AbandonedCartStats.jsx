@@ -56,12 +56,13 @@ const AbandonedCartStats = () => {
       <Card
         title={
           <div className="flex items-center gap-2">
-            <IconShoppingCart className="w-5 h-5 text-red-600" />
-            <span className="font-semibold">Abandoned Cart Statistics</span>
+            <IconShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
+            <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Abandoned Cart Statistics</span>
           </div>
         }
+        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           <div>
             <Statistic
               title="Total Cart Sessions"
@@ -101,8 +102,8 @@ const AbandonedCartStats = () => {
             />
           </div>
         </div>
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-800">
+        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
             <strong>Tip:</strong> Send reminder emails to customers with abandoned carts to recover potential sales.
             Current recovery rate is {stats.recoveryRate}%.
           </p>

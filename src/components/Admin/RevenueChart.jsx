@@ -90,19 +90,19 @@ const RevenueChart = ({ reportType = "daily", dateRange }) => {
     >
       <Card
         title={
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <IconTrendingUp className="w-5 h-5 text-blue-600" />
-              <span className="font-semibold">Revenue Trend</span>
+              <IconTrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Revenue Trend</span>
             </div>
-            <div className="text-sm text-gray-600">
-              Total: <span className="font-bold text-green-600">₹{formatPrice(totalRevenue)}</span>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              Total: <span className="font-bold text-green-600 dark:text-green-400">₹{formatPrice(totalRevenue)}</span>
             </div>
           </div>
         }
-        className="h-full"
+        className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       >
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={250}>
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -110,15 +110,15 @@ const RevenueChart = ({ reportType = "daily", dateRange }) => {
                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
             <XAxis
               dataKey="date"
-              className="text-xs"
-              tick={{ fill: "#6b7280" }}
+              tick={{ fill: "#6b7280", fontSize: 10 }}
+              className="dark:text-gray-400"
             />
             <YAxis
-              className="text-xs"
-              tick={{ fill: "#6b7280" }}
+              tick={{ fill: "#6b7280", fontSize: 10 }}
+              className="dark:text-gray-400"
               tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
             />
             <Tooltip
@@ -139,16 +139,16 @@ const RevenueChart = ({ reportType = "daily", dateRange }) => {
             />
           </AreaChart>
         </ResponsiveContainer>
-        <div className="mt-4 flex items-center justify-between text-sm">
+        <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm">
           <div>
-            <span className="text-gray-600">Average Daily Revenue:</span>
-            <span className="ml-2 font-semibold text-gray-900">
+            <span className="text-gray-600 dark:text-gray-400">Average Daily Revenue:</span>
+            <span className="ml-2 font-semibold text-gray-900 dark:text-white">
               ₹{formatPrice(avgRevenue)}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span className="text-gray-600">Revenue</span>
+            <span className="text-gray-600 dark:text-gray-400">Revenue</span>
           </div>
         </div>
       </Card>

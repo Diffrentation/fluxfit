@@ -42,10 +42,11 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
     {
       title: "Product",
       key: "product",
-      width: 300,
+      width: 200,
+      responsive: ["xs", "sm", "md", "lg"],
       render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
             <Image
               src={record.images?.[0] || record.image || ""}
               alt={record.name}
@@ -56,10 +57,10 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-gray-900 truncate">
+            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">
               {record.name}
             </div>
-            <div className="text-xs text-gray-500">ID: {record.id}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">ID: {record.id}</div>
           </div>
         </div>
       ),
@@ -68,7 +69,8 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
       title: "Category",
       dataIndex: "category",
       key: "category",
-      width: 120,
+      width: 100,
+      responsive: ["sm", "md", "lg"],
       render: (category) => (
         <Tag color="blue" className="font-medium">
           {category}
@@ -79,9 +81,10 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
       title: "Price",
       dataIndex: "price",
       key: "price",
-      width: 120,
+      width: 100,
+      responsive: ["sm", "md", "lg"],
       render: (price) => (
-        <span className="font-semibold text-gray-900">
+        <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
           ₹{formatPrice(price)}
         </span>
       ),
@@ -90,15 +93,16 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
       title: "Stock",
       dataIndex: "stock",
       key: "stock",
-      width: 100,
+      width: 90,
+      responsive: ["md", "lg"],
       render: (stock) => (
         <span
-          className={`font-semibold ${
+          className={`font-semibold text-sm sm:text-base ${
             stock > 10
-              ? "text-green-600"
+              ? "text-green-600 dark:text-green-400"
               : stock > 0
-              ? "text-orange-600"
-              : "text-red-600"
+              ? "text-orange-600 dark:text-orange-400"
+              : "text-red-600 dark:text-red-400"
           }`}
         >
           {stock || 0} units
@@ -109,7 +113,8 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 120,
+      width: 100,
+      responsive: ["sm", "md", "lg"],
       render: (status) => (
         <Tag
           color={getStatusColor(status)}
@@ -123,8 +128,9 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
     {
       title: "Actions",
       key: "actions",
-      width: 100,
+      width: 80,
       fixed: "right",
+      responsive: ["xs", "sm", "md", "lg"],
       render: (_, record) => (
         <Dropdown
           menu={{
@@ -171,7 +177,7 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
     >
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <Table
           dataSource={products.map((p) => ({ ...p, key: p.id }))}
           columns={columns}
@@ -179,9 +185,11 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
             pageSize: 10,
             showSizeChanger: true,
             showTotal: (total) => `Total ${total} products`,
+            responsive: true,
           }}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 600 }}
           className="product-table"
+          size="small"
         />
       </div>
     </motion.div>

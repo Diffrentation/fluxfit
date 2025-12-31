@@ -89,29 +89,29 @@ const OrdersChart = ({ reportType = "daily", dateRange }) => {
     >
       <Card
         title={
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <IconShoppingCart className="w-5 h-5 text-purple-600" />
-              <span className="font-semibold">Orders Count</span>
+              <IconShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Orders Count</span>
             </div>
-            <div className="text-sm text-gray-600">
-              Total: <span className="font-bold text-purple-600">{totalOrders}</span>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              Total: <span className="font-bold text-purple-600 dark:text-purple-400">{totalOrders}</span>
             </div>
           </div>
         }
-        className="h-full"
+        className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       >
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={250}>
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
             <XAxis
               dataKey="date"
-              className="text-xs"
-              tick={{ fill: "#6b7280" }}
+              tick={{ fill: "#6b7280", fontSize: 10 }}
+              className="dark:text-gray-400"
             />
             <YAxis
-              className="text-xs"
-              tick={{ fill: "#6b7280" }}
+              tick={{ fill: "#6b7280", fontSize: 10 }}
+              className="dark:text-gray-400"
             />
             <Tooltip
               contentStyle={{
@@ -126,18 +126,18 @@ const OrdersChart = ({ reportType = "daily", dateRange }) => {
             <Bar dataKey="Cancelled" fill="#ef4444" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-        <div className="mt-4 flex items-center justify-center gap-6 text-sm">
+        <div className="mt-3 sm:mt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span className="text-gray-600">Confirmed</span>
+            <span className="text-gray-600 dark:text-gray-400">Confirmed</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-gray-600">Delivered</span>
+            <span className="text-gray-600 dark:text-gray-400">Delivered</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span className="text-gray-600">Cancelled</span>
+            <span className="text-gray-600 dark:text-gray-400">Cancelled</span>
           </div>
         </div>
       </Card>

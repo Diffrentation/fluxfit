@@ -49,15 +49,15 @@ const TopProducts = () => {
       key: "rank",
       width: 60,
       render: (rank) => (
-        <span className="font-bold text-lg text-gray-700">#{rank}</span>
+        <span className="font-bold text-base sm:text-lg text-gray-700 dark:text-gray-300">#{rank}</span>
       ),
     },
     {
       title: "Product",
       key: "product",
       render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
             <Image
               src={record.image || ""}
               alt={record.name}
@@ -65,9 +65,9 @@ const TopProducts = () => {
               className="object-cover"
             />
           </div>
-          <div>
-            <div className="font-semibold text-gray-900">{record.name}</div>
-            <div className="text-xs text-gray-500">
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">{record.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               {record.size && record.size !== "One Size" && `Size: ${record.size} • `}
               {record.color && `Color: ${record.color}`}
             </div>
@@ -81,7 +81,7 @@ const TopProducts = () => {
       key: "quantity",
       width: 120,
       render: (quantity) => (
-        <span className="font-semibold text-gray-900">{quantity} units</span>
+        <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">{quantity} units</span>
       ),
     },
     {
@@ -90,7 +90,7 @@ const TopProducts = () => {
       key: "revenue",
       width: 120,
       render: (revenue) => (
-        <span className="font-semibold text-green-600">
+        <span className="font-semibold text-sm sm:text-base text-green-600 dark:text-green-400">
           ₹{formatPrice(revenue)}
         </span>
       ),
@@ -122,25 +122,25 @@ const TopProducts = () => {
       <Card
         title={
           <div className="flex items-center gap-2">
-            <IconPackage className="w-5 h-5 text-orange-600" />
-            <span className="font-semibold">Top Selling Products</span>
+            <IconPackage className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400" />
+            <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Top Selling Products</span>
           </div>
         }
-        className="h-full"
+        className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       >
         {topProducts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm sm:text-base">
             No sales data available
           </div>
         ) : (
-          <div className="overflow-x-auto -mx-4 px-4">
+          <div className="overflow-x-auto -mx-2 sm:-mx-4 px-2 sm:px-4">
             <Table
               dataSource={dataSource}
               columns={columns}
               pagination={false}
-              size="middle"
-              className="mt-4"
-              scroll={{ x: 700 }}
+              size="small"
+              className="mt-3 sm:mt-4"
+              scroll={{ x: 600 }}
             />
           </div>
         )}

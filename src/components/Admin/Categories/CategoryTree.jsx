@@ -25,12 +25,12 @@ const CategoryTree = ({ categories, onEdit, onDelete }) => {
         const children = buildTreeData(categories, category.id);
         return {
           title: (
-            <div className="flex items-center justify-between group hover:bg-gray-50 p-2 rounded">
-              <div className="flex items-center gap-3 flex-1">
-                <span className="font-medium text-gray-900">{category.name}</span>
-                <Tag color="blue">{category.slug}</Tag>
+            <div className="flex items-center justify-between group hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <span className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">{category.name}</span>
+                <Tag color="blue" className="shrink-0 text-xs sm:text-sm">{category.slug}</Tag>
                 {category.children && category.children.length > 0 && (
-                  <Tag color="gray">{category.children.length} subcategories</Tag>
+                  <Tag color="gray" className="shrink-0 text-xs sm:text-sm hidden sm:inline-flex">{category.children.length} subcategories</Tag>
                 )}
               </div>
               <Dropdown
@@ -115,15 +115,15 @@ const CategoryTree = ({ categories, onEdit, onDelete }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
+      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4"
     >
       <Tree
         showLine
         switcherIcon={(props) =>
           props.expanded ? (
-            <IconChevronDown className="w-4 h-4" />
+            <IconChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           ) : (
-            <IconChevronRight className="w-4 h-4" />
+            <IconChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           )
         }
         expandedKeys={expandedKeys}

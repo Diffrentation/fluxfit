@@ -81,29 +81,29 @@ const UserRegistrations = ({ reportType = "daily", dateRange }) => {
     >
       <Card
         title={
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <IconUsers className="w-5 h-5 text-orange-600" />
-              <span className="font-semibold">User Registrations</span>
+              <IconUsers className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400" />
+              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">User Registrations</span>
             </div>
-            <div className="text-sm text-gray-600">
-              Total: <span className="font-bold text-orange-600">{totalUsers}</span>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              Total: <span className="font-bold text-orange-600 dark:text-orange-400">{totalUsers}</span>
             </div>
           </div>
         }
-        className="h-full"
+        className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       >
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={250}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
             <XAxis
               dataKey="date"
-              className="text-xs"
-              tick={{ fill: "#6b7280" }}
+              tick={{ fill: "#6b7280", fontSize: 10 }}
+              className="dark:text-gray-400"
             />
             <YAxis
-              className="text-xs"
-              tick={{ fill: "#6b7280" }}
+              tick={{ fill: "#6b7280", fontSize: 10 }}
+              className="dark:text-gray-400"
             />
             <Tooltip
               contentStyle={{
@@ -122,7 +122,7 @@ const UserRegistrations = ({ reportType = "daily", dateRange }) => {
             />
           </LineChart>
         </ResponsiveContainer>
-        <div className="mt-4 text-center text-sm text-gray-600">
+        <div className="mt-3 sm:mt-4 text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           New user registrations over time
         </div>
       </Card>

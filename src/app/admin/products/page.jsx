@@ -124,19 +124,19 @@ const ProductManagementPage = () => {
             Modal.warning({
               title: "Some products have errors",
               content: (
-                <div>
-                  <p>
+                <div className="dark:text-gray-300">
+                  <p className="text-sm sm:text-base">
                     {validation.valid.length} products are valid, {validation.invalid.length} have errors.
                   </p>
-                  <ul className="mt-2 max-h-40 overflow-y-auto">
+                  <ul className="mt-2 max-h-40 overflow-y-auto space-y-1">
                     {validation.invalid.slice(0, 5).map((item, idx) => (
-                      <li key={idx} className="text-sm">
+                      <li key={idx} className="text-xs sm:text-sm">
                         Row {item.index}: {item.errors.join(", ")}
                       </li>
                     ))}
                   </ul>
                   {validation.invalid.length > 5 && (
-                    <p className="text-sm mt-2">... and {validation.invalid.length - 5} more</p>
+                    <p className="text-xs sm:text-sm mt-2">... and {validation.invalid.length - 5} more</p>
                   )}
                 </div>
               ),
@@ -176,41 +176,43 @@ const ProductManagementPage = () => {
   const categories = ["All", "Women", "Men", "Bag", "Shoes", "Watches"];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
         {/* Sidebar */}
         <AdminSidebar activeItem="products" />
 
         {/* Main Content */}
-        <div className="flex-1 ml-0 lg:ml-64 pt-20 lg:pt-16">
-          <div className="p-4 md:p-6 pb-8">
+        <div className="flex-1 ml-0 lg:ml-64 pt-16 sm:pt-20 lg:pt-16">
+          <div className="p-3 sm:p-4 md:p-6 pb-6 sm:pb-8">
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
+              className="mb-4 sm:mb-6"
             >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                     Product Management
                   </h1>
-                  <p className="text-gray-600">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                     Manage your product catalog, inventory, and variants
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   <Button
                     icon={<IconUpload className="w-4 h-4" />}
                     onClick={() => setIsBulkUploadVisible(true)}
+                    className="w-full sm:w-auto"
                   >
-                    Bulk Upload
+                    <span className="hidden sm:inline">Bulk </span>Upload
                   </Button>
                   <Button
                     type="primary"
                     icon={<IconPlus className="w-4 h-4" />}
                     onClick={handleAddProduct}
                     size="large"
+                    className="w-full sm:w-auto"
                   >
                     Add Product
                   </Button>
@@ -218,22 +220,24 @@ const ProductManagementPage = () => {
               </div>
 
               {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex-1 w-full">
                   <Search
                     placeholder="Search products by name or ID"
                     allowClear
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    prefix={<IconSearch className="w-4 h-4 text-gray-400" />}
+                    prefix={<IconSearch className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
                     size="large"
+                    className="w-full"
                   />
                 </div>
                 <Select
                   value={categoryFilter}
                   onChange={setCategoryFilter}
-                  style={{ width: 150 }}
+                  style={{ width: "100%", minWidth: 150 }}
                   size="large"
+                  className="w-full sm:w-auto"
                 >
                   <Option value="all">All Categories</Option>
                   {categories.slice(1).map((cat) => (
@@ -245,8 +249,9 @@ const ProductManagementPage = () => {
                 <Select
                   value={statusFilter}
                   onChange={setStatusFilter}
-                  style={{ width: 150 }}
+                  style={{ width: "100%", minWidth: 150 }}
                   size="large"
+                  className="w-full sm:w-auto"
                 >
                   <Option value="all">All Status</Option>
                   <Option value="approved">Approved</Option>
@@ -288,7 +293,9 @@ const ProductManagementPage = () => {
         open={isBulkUploadVisible}
         onCancel={() => setIsBulkUploadVisible(false)}
         footer={null}
-        width={600}
+        width="90%"
+        style={{ maxWidth: 600 }}
+        className="dark:bg-gray-800"
       >
         <BulkUploadForm onUpload={handleBulkUpload} />
       </Modal>
@@ -300,10 +307,10 @@ const ProductManagementPage = () => {
 const BulkUploadForm = ({ onUpload }) => {
   return (
     <div className="mt-4">
-      <p className="text-gray-600 mb-4">
+      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-3 sm:mb-4">
         Upload a CSV file with product data. Download the template for the correct format.
       </p>
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <Button
           icon={<IconDownload className="w-4 h-4" />}
           onClick={() => {
@@ -319,6 +326,7 @@ Another Product,2000,2500,Men,Blue,L,5,Another description,https://example.com/i
             link.click();
             URL.revokeObjectURL(url);
           }}
+          className="w-full sm:w-auto"
         >
           Download CSV Template
         </Button>
@@ -331,10 +339,10 @@ Another Product,2000,2500,Men,Blue,L,5,Another description,https://example.com/i
                 onUpload(e.target.files[0]);
               }
             }}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800"
           />
         </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200">
           <strong>Note:</strong> Required fields: Product Name, Price, Category, Stock. All other fields are optional.
         </div>
       </div>
