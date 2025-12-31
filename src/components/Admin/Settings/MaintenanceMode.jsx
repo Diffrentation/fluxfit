@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -19,21 +19,63 @@ const MaintenanceMode = ({ onSave }) => {
   const [form] = Form.useForm();
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
 
-  const handleSubmit = (values) => {
+  // Load settings from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("adminMaintenanceSettings");
+      if (stored) {
+        const settings = JSON.parse(stored);
+        setIsMaintenanceMode(settings.isMaintenanceMode || false);
+        form.setFieldsValue(settings);
+      } else {
+        // Set default values
+        form.setFieldsValue({
+          isMaintenanceMode: false,
+          maintenanceTitle: "We'll be back soon!",
+          maintenanceMessage: "We're currently performing scheduled maintenance. We'll be back online shortly. Thank you for your patience.",
+          allowAdminAccess: true,
+          estimatedDuration: "2 hours",
+        });
+      }
+    } catch (error) {
+      console.error("Error loading maintenance settings:", error);
+    }
+  }, [form]);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      const formValues = form.getFieldsValue();
+      const settings = {
+        ...formValues,
+        isMaintenanceMode,
+      };
+      localStorage.setItem("adminMaintenanceSettings", JSON.stringify(settings));
+    } catch (error) {
+      console.error("Error saving maintenance settings:", error);
+    }
+  }, [isMaintenanceMode, form]);
+
+  const handleSubmit = useCallback((values) => {
     const settings = {
       ...values,
       isMaintenanceMode,
     };
-    console.log("Maintenance Mode Settings:", settings);
-    message.success("Maintenance mode settings saved successfully");
-    onSave();
-  };
+    try {
+      localStorage.setItem("adminMaintenanceSettings", JSON.stringify(settings));
+      message.success("Maintenance mode settings saved successfully");
+      onSave();
+    } catch (error) {
+      message.error("Failed to save settings");
+      console.error("Error saving maintenance settings:", error);
+    }
+  }, [isMaintenanceMode, onSave]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
+      className="space-y-3 sm:space-y-4"
     >
       {isMaintenanceMode && (
         <Alert
@@ -41,19 +83,13 @@ const MaintenanceMode = ({ onSave }) => {
           description="Your website is currently in maintenance mode. Only administrators can access the site."
           type="warning"
           showIcon
-          icon={<IconAlertTriangle className="w-5 h-5" />}
-          className="mb-4"
+          icon={<IconAlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />}
+          className="mb-3 sm:mb-4"
         />
       )}
 
-      <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{
-        isMaintenanceMode: false,
-        maintenanceTitle: "We'll be back soon!",
-        maintenanceMessage: "We're currently performing scheduled maintenance. We'll be back online shortly. Thank you for your patience.",
-        allowAdminAccess: true,
-        estimatedDuration: "2 hours",
-      }}>
-        <Card title="Maintenance Mode Settings" className="mb-4">
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Card title="Maintenance Mode Settings" className="mb-3 sm:mb-4 w-full min-w-0">
           <Form.Item
             name="isMaintenanceMode"
             label="Enable Maintenance Mode"
@@ -110,12 +146,12 @@ const MaintenanceMode = ({ onSave }) => {
           )}
         </Card>
 
-        <Card title="Scheduled Maintenance" className="mb-4">
-          <div className="text-gray-600 text-sm mb-4">
+        <Card title="Scheduled Maintenance" className="mb-3 sm:mb-4 w-full min-w-0">
+          <div className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4">
             Schedule maintenance windows to minimize disruption to your users.
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">
+          <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
               <strong>Note:</strong> Scheduled maintenance feature coming soon. For now, you can manually enable/disable maintenance mode.
             </p>
           </div>
@@ -128,6 +164,7 @@ const MaintenanceMode = ({ onSave }) => {
             icon={<IconDeviceFloppy className="w-4 h-4" />}
             size="large"
             danger={isMaintenanceMode}
+            className="w-full sm:w-auto"
           >
             {isMaintenanceMode ? "Save & Activate Maintenance Mode" : "Save Settings"}
           </Button>

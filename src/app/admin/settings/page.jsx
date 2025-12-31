@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import WebsiteSettings from "@/components/Admin/Settings/WebsiteSettings";
@@ -21,27 +21,27 @@ import {
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("website");
 
-  const handleSave = (section) => {
+  const handleSave = useCallback((section) => {
     message.success(`${section} settings saved successfully`);
-  };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
         <AdminSidebar activeItem="settings" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-20 lg:pt-16">
-          <div className="p-4 md:p-6 pb-8">
+        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16 min-w-0">
+          <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
+              className="mb-3 sm:mb-4 md:mb-6"
             >
-              <div className="mb-6">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+              <div className="mb-3 sm:mb-4 md:mb-6">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                   Settings & Configuration
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300">
                   Manage website settings, payment, shipping, and integrations
                 </p>
               </div>
@@ -49,66 +49,97 @@ const SettingsPage = () => {
               <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
+                className="settings-tabs"
                 items={[
                   {
                     key: "website",
                     label: (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 text-xs sm:text-sm md:text-base">
                         <IconSettings className="w-4 h-4" />
-                        Website Settings
+                        <span className="hidden sm:inline">Website Settings</span>
+                        <span className="sm:hidden">Website</span>
                       </span>
                     ),
-                    children: <WebsiteSettings onSave={() => handleSave("Website")} />,
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <WebsiteSettings onSave={() => handleSave("Website")} />
+                      </div>
+                    ),
                   },
                   {
                     key: "currency",
                     label: (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 text-xs sm:text-sm md:text-base">
                         <IconCurrencyRupee className="w-4 h-4" />
-                        Currency & Tax
+                        <span className="hidden sm:inline">Currency & Tax</span>
+                        <span className="sm:hidden">Tax</span>
                       </span>
                     ),
-                    children: <CurrencyTaxSettings onSave={() => handleSave("Currency & Tax")} />,
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <CurrencyTaxSettings onSave={() => handleSave("Currency & Tax")} />
+                      </div>
+                    ),
                   },
                   {
                     key: "shipping",
                     label: (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 text-xs sm:text-sm md:text-base">
                         <IconTruck className="w-4 h-4" />
-                        Shipping Rules
+                        <span className="hidden sm:inline">Shipping Rules</span>
+                        <span className="sm:hidden">Shipping</span>
                       </span>
                     ),
-                    children: <ShippingRules onSave={() => handleSave("Shipping")} />,
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <ShippingRules onSave={() => handleSave("Shipping")} />
+                      </div>
+                    ),
                   },
                   {
                     key: "templates",
                     label: (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 text-xs sm:text-sm md:text-base">
                         <IconMail className="w-4 h-4" />
-                        Email / SMS Templates
+                        <span className="hidden sm:inline">Email / SMS</span>
+                        <span className="sm:hidden">Templates</span>
                       </span>
                     ),
-                    children: <EmailSMSTemplates onSave={() => handleSave("Templates")} />,
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <EmailSMSTemplates onSave={() => handleSave("Templates")} />
+                      </div>
+                    ),
                   },
                   {
                     key: "api-keys",
                     label: (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 text-xs sm:text-sm md:text-base">
                         <IconKey className="w-4 h-4" />
-                        API Keys
+                        <span className="hidden sm:inline">API Keys</span>
+                        <span className="sm:hidden">API</span>
                       </span>
                     ),
-                    children: <APIKeysManagement onSave={() => handleSave("API Keys")} />,
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <APIKeysManagement onSave={() => handleSave("API Keys")} />
+                      </div>
+                    ),
                   },
                   {
                     key: "maintenance",
                     label: (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 text-xs sm:text-sm md:text-base">
                         <IconTools className="w-4 h-4" />
-                        Maintenance Mode
+                        <span className="hidden sm:inline">Maintenance</span>
+                        <span className="sm:hidden">Maint.</span>
                       </span>
                     ),
-                    children: <MaintenanceMode onSave={() => handleSave("Maintenance")} />,
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <MaintenanceMode onSave={() => handleSave("Maintenance")} />
+                      </div>
+                    ),
                   },
                 ]}
               />

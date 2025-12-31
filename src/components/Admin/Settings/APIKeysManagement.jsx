@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -19,40 +19,67 @@ import { IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy } from "@t
 
 const { Option } = Select;
 
+const defaultApiKeys = [
+  {
+    id: 1,
+    name: "Stripe Payment",
+    key: "sk_live_51H...",
+    type: "payment",
+    status: "active",
+    createdAt: "2024-01-15",
+    lastUsed: "2024-05-20",
+  },
+  {
+    id: 2,
+    name: "Cloudinary Upload",
+    key: "cloudinary://123...",
+    type: "storage",
+    status: "active",
+    createdAt: "2024-02-01",
+    lastUsed: "2024-05-19",
+  },
+  {
+    id: 3,
+    name: "SMS Gateway",
+    key: "sms_api_key_...",
+    type: "sms",
+    status: "inactive",
+    createdAt: "2024-03-10",
+    lastUsed: "2024-04-15",
+  },
+];
+
 const APIKeysManagement = ({ onSave }) => {
-  const [apiKeys, setApiKeys] = useState([
-    {
-      id: 1,
-      name: "Stripe Payment",
-      key: "sk_live_51H...",
-      type: "payment",
-      status: "active",
-      createdAt: "2024-01-15",
-      lastUsed: "2024-05-20",
-    },
-    {
-      id: 2,
-      name: "Cloudinary Upload",
-      key: "cloudinary://123...",
-      type: "storage",
-      status: "active",
-      createdAt: "2024-02-01",
-      lastUsed: "2024-05-19",
-    },
-    {
-      id: 3,
-      name: "SMS Gateway",
-      key: "sms_api_key_...",
-      type: "sms",
-      status: "inactive",
-      createdAt: "2024-03-10",
-      lastUsed: "2024-04-15",
-    },
-  ]);
+  const [apiKeys, setApiKeys] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedKey, setSelectedKey] = useState(null);
   const [form] = Form.useForm();
   const [visibleKeys, setVisibleKeys] = useState({});
+
+  // Load API keys from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("adminAPIKeys");
+      if (stored) {
+        const keys = JSON.parse(stored);
+        setApiKeys(keys);
+      } else {
+        setApiKeys(defaultApiKeys);
+      }
+    } catch (error) {
+      console.error("Error loading API keys:", error);
+      setApiKeys(defaultApiKeys);
+    }
+  }, []);
+
+  // Save to localStorage whenever apiKeys changes
+  useEffect(() => {
+    try {
+      localStorage.setItem("adminAPIKeys", JSON.stringify(apiKeys));
+    } catch (error) {
+      console.error("Error saving API keys:", error);
+    }
+  }, [apiKeys]);
 
   const handleAdd = () => {
     setSelectedKey(null);
@@ -76,7 +103,7 @@ const APIKeysManagement = ({ onSave }) => {
     message.success("API key deleted successfully");
   };
 
-  const handleSave = (values) => {
+  const handleSave = useCallback((values) => {
     if (selectedKey) {
       setApiKeys(
         apiKeys.map((k) => (k.id === selectedKey.id ? { ...values, id: selectedKey.id, createdAt: selectedKey.createdAt } : k))
@@ -88,8 +115,8 @@ const APIKeysManagement = ({ onSave }) => {
         {
           ...values,
           id: Date.now(),
-          createdAt: new Date().toISOString(),
-          lastUsed: new Date().toISOString(),
+          createdAt: new Date().toISOString().split('T')[0],
+          lastUsed: new Date().toISOString().split('T')[0],
         },
       ]);
       message.success("API key added successfully");
@@ -97,7 +124,7 @@ const APIKeysManagement = ({ onSave }) => {
     setIsModalVisible(false);
     form.resetFields();
     onSave();
-  };
+  }, [selectedKey, apiKeys, form, onSave]);
 
   const toggleVisibility = (id) => {
     setVisibleKeys((prev) => ({
@@ -204,14 +231,14 @@ const APIKeysManagement = ({ onSave }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
+      className="space-y-3 sm:space-y-4"
     >
       <Alert
         message="Security Warning"
         description="Keep your API keys secure. Never share them publicly or commit them to version control."
         type="warning"
         showIcon
-        className="mb-4"
+        className="mb-3 sm:mb-4"
       />
 
       <Card
@@ -221,16 +248,23 @@ const APIKeysManagement = ({ onSave }) => {
             type="primary"
             icon={<IconPlus className="w-4 h-4" />}
             onClick={handleAdd}
+            className="w-full sm:w-auto"
+            size="small sm:default"
           >
-            Add API Key
+            <span className="hidden sm:inline">Add API Key</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         }
+        className="w-full min-w-0"
       >
-        <Table
-          dataSource={apiKeys.map((k) => ({ ...k, key: k.id }))}
-          columns={columns}
-          pagination={false}
-        />
+        <div className="overflow-x-auto">
+          <Table
+            dataSource={apiKeys.map((k) => ({ ...k, key: k.id }))}
+            columns={columns}
+            pagination={false}
+            scroll={{ x: 800 }}
+          />
+        </div>
       </Card>
 
       <Modal
@@ -241,6 +275,10 @@ const APIKeysManagement = ({ onSave }) => {
           form.resetFields();
         }}
         footer={null}
+        width="95%"
+        style={{ maxWidth: 600 }}
+        className="dark:bg-gray-800"
+        centered
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Form.Item

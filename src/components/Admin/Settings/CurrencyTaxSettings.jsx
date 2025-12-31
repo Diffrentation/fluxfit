@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -20,26 +20,74 @@ import { IconPlus, IconTrash, IconDeviceFloppy, IconEdit } from "@tabler/icons-r
 const { Option } = Select;
 const { TextArea } = Input;
 
+const defaultTaxRates = [
+  { id: 1, name: "GST 5%", rate: 5, type: "gst", applicableTo: "Essential Goods" },
+  { id: 2, name: "GST 12%", rate: 12, type: "gst", applicableTo: "Standard Goods" },
+  { id: 3, name: "GST 18%", rate: 18, type: "gst", applicableTo: "Premium Goods" },
+  { id: 4, name: "GST 28%", rate: 28, type: "gst", applicableTo: "Luxury Goods" },
+];
+
 const CurrencyTaxSettings = ({ onSave }) => {
   const [form] = Form.useForm();
-  const [taxRates, setTaxRates] = useState([
-    { id: 1, name: "GST 5%", rate: 5, type: "gst", applicableTo: "Essential Goods" },
-    { id: 2, name: "GST 12%", rate: 12, type: "gst", applicableTo: "Standard Goods" },
-    { id: 3, name: "GST 18%", rate: 18, type: "gst", applicableTo: "Premium Goods" },
-    { id: 4, name: "GST 28%", rate: 28, type: "gst", applicableTo: "Luxury Goods" },
-  ]);
+  const [taxRates, setTaxRates] = useState([]);
   const [isTaxModalVisible, setIsTaxModalVisible] = useState(false);
   const [selectedTax, setSelectedTax] = useState(null);
   const [taxForm] = Form.useForm();
 
-  const handleSubmit = (values) => {
+  // Load settings from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("adminCurrencyTaxSettings");
+      if (stored) {
+        const settings = JSON.parse(stored);
+        setTaxRates(settings.taxRates || defaultTaxRates);
+        form.setFieldsValue(settings);
+      } else {
+        setTaxRates(defaultTaxRates);
+        form.setFieldsValue({
+          currency: "INR",
+          currencySymbol: "₹",
+          currencyPosition: "before",
+          defaultTaxRate: 18,
+          enableGST: true,
+          gstNumber: "27AAAAA0000A1Z5",
+          hsnCode: "6109",
+        });
+      }
+    } catch (error) {
+      console.error("Error loading currency tax settings:", error);
+      setTaxRates(defaultTaxRates);
+    }
+  }, [form]);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      const formValues = form.getFieldsValue();
+      const settings = {
+        ...formValues,
+        taxRates,
+      };
+      localStorage.setItem("adminCurrencyTaxSettings", JSON.stringify(settings));
+    } catch (error) {
+      console.error("Error saving currency tax settings:", error);
+    }
+  }, [taxRates, form]);
+
+  const handleSubmit = useCallback((values) => {
     const settings = {
       ...values,
       taxRates,
     };
-    console.log("Currency & Tax Settings:", settings);
-    onSave();
-  };
+    try {
+      localStorage.setItem("adminCurrencyTaxSettings", JSON.stringify(settings));
+      message.success("Currency & Tax settings saved successfully");
+      onSave();
+    } catch (error) {
+      message.error("Failed to save settings");
+      console.error("Error saving currency tax settings:", error);
+    }
+  }, [taxRates, onSave]);
 
   const handleAddTax = () => {
     setSelectedTax(null);
@@ -58,7 +106,7 @@ const CurrencyTaxSettings = ({ onSave }) => {
     message.success("Tax rate deleted successfully");
   };
 
-  const handleSaveTax = (values) => {
+  const handleSaveTax = useCallback((values) => {
     if (selectedTax) {
       setTaxRates(taxRates.map((t) => (t.id === selectedTax.id ? { ...values, id: selectedTax.id } : t)));
       message.success("Tax rate updated successfully");
@@ -68,7 +116,7 @@ const CurrencyTaxSettings = ({ onSave }) => {
     }
     setIsTaxModalVisible(false);
     taxForm.resetFields();
-  };
+  }, [selectedTax, taxRates, taxForm]);
 
   const taxColumns = [
     {
@@ -119,19 +167,11 @@ const CurrencyTaxSettings = ({ onSave }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
+      className="space-y-3 sm:space-y-4"
     >
-      <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{
-        currency: "INR",
-        currencySymbol: "₹",
-        currencyPosition: "before",
-        defaultTaxRate: 18,
-        enableGST: true,
-        gstNumber: "27AAAAA0000A1Z5",
-        hsnCode: "6109",
-      }}>
-        <Card title="Currency Settings" className="mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Card title="Currency Settings" className="mb-3 sm:mb-4 w-full min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Form.Item
               name="currency"
               label="Default Currency"
@@ -164,8 +204,8 @@ const CurrencyTaxSettings = ({ onSave }) => {
           </Form.Item>
         </Card>
 
-        <Card title="Tax Settings" className="mb-4">
-          <div className="space-y-4">
+        <Card title="Tax Settings" className="mb-3 sm:mb-4 w-full min-w-0">
+          <div className="space-y-3 sm:space-y-4">
             <Form.Item
               name="enableGST"
               label="Enable GST"
@@ -174,7 +214,7 @@ const CurrencyTaxSettings = ({ onSave }) => {
               <Switch />
             </Form.Item>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Form.Item
                 name="gstNumber"
                 label="GST Number"
@@ -212,17 +252,23 @@ const CurrencyTaxSettings = ({ onSave }) => {
               type="primary"
               icon={<IconPlus className="w-4 h-4" />}
               onClick={handleAddTax}
+              className="w-full sm:w-auto"
+              size="small sm:default"
             >
-              Add Tax Rate
+              <span className="hidden sm:inline">Add Tax Rate</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           }
-          className="mb-4"
+          className="mb-3 sm:mb-4 w-full min-w-0"
         >
-          <Table
-            dataSource={taxRates.map((t) => ({ ...t, key: t.id }))}
-            columns={taxColumns}
-            pagination={false}
-          />
+          <div className="overflow-x-auto">
+            <Table
+              dataSource={taxRates.map((t) => ({ ...t, key: t.id }))}
+              columns={taxColumns}
+              pagination={false}
+              scroll={{ x: 800 }}
+            />
+          </div>
         </Card>
 
         <div className="flex justify-end">
@@ -231,6 +277,7 @@ const CurrencyTaxSettings = ({ onSave }) => {
             htmlType="submit"
             icon={<IconDeviceFloppy className="w-4 h-4" />}
             size="large"
+            className="w-full sm:w-auto"
           >
             Save Settings
           </Button>
@@ -245,6 +292,10 @@ const CurrencyTaxSettings = ({ onSave }) => {
           taxForm.resetFields();
         }}
         footer={null}
+        width="95%"
+        style={{ maxWidth: 600 }}
+        className="dark:bg-gray-800"
+        centered
       >
         <Form form={taxForm} layout="vertical" onFinish={handleSaveTax}>
           <Form.Item

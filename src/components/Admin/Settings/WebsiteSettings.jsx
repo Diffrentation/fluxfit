@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -24,15 +24,63 @@ const WebsiteSettings = ({ onSave }) => {
   const [logo, setLogo] = useState("");
   const [favicon, setFavicon] = useState("");
 
-  const handleSubmit = (values) => {
+  // Load settings from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("adminWebsiteSettings");
+      if (stored) {
+        const settings = JSON.parse(stored);
+        setLogo(settings.logo || "");
+        setFavicon(settings.favicon || "");
+        form.setFieldsValue(settings);
+      } else {
+        form.setFieldsValue({
+          siteName: "FluxFit",
+          siteDescription: "Your one-stop fashion destination",
+          siteUrl: "https://fluxfit.com",
+          contactEmail: "support@fluxfit.com",
+          contactPhone: "+91 1234567890",
+          enableRegistration: true,
+          enableReviews: true,
+          enableWishlist: true,
+          itemsPerPage: 20,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading website settings:", error);
+    }
+  }, [form]);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      const formValues = form.getFieldsValue();
+      const settings = {
+        ...formValues,
+        logo,
+        favicon,
+      };
+      localStorage.setItem("adminWebsiteSettings", JSON.stringify(settings));
+    } catch (error) {
+      console.error("Error saving website settings:", error);
+    }
+  }, [logo, favicon, form]);
+
+  const handleSubmit = useCallback((values) => {
     const settings = {
       ...values,
       logo,
       favicon,
     };
-    console.log("Website Settings:", settings);
-    onSave();
-  };
+    try {
+      localStorage.setItem("adminWebsiteSettings", JSON.stringify(settings));
+      message.success("Website settings saved successfully");
+      onSave();
+    } catch (error) {
+      message.error("Failed to save settings");
+      console.error("Error saving website settings:", error);
+    }
+  }, [logo, favicon, onSave]);
 
   const handleLogoUpload = async (info) => {
     if (info.file.status === "uploading") return;
@@ -66,21 +114,11 @@ const WebsiteSettings = ({ onSave }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
+      className="space-y-3 sm:space-y-4"
     >
-      <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{
-        siteName: "FluxFit",
-        siteDescription: "Your one-stop fashion destination",
-        siteUrl: "https://fluxfit.com",
-        contactEmail: "support@fluxfit.com",
-        contactPhone: "+91 1234567890",
-        enableRegistration: true,
-        enableReviews: true,
-        enableWishlist: true,
-        itemsPerPage: 20,
-      }}>
-        <Card title="General Settings" className="mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Card title="General Settings" className="mb-3 sm:mb-4 w-full min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Form.Item
               name="siteName"
               label="Site Name"
@@ -109,7 +147,7 @@ const WebsiteSettings = ({ onSave }) => {
             <TextArea rows={3} placeholder="Enter site description for SEO" />
           </Form.Item>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Form.Item
               name="contactEmail"
               label="Contact Email"
@@ -131,8 +169,8 @@ const WebsiteSettings = ({ onSave }) => {
           </div>
         </Card>
 
-        <Card title="Branding" className="mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card title="Branding" className="mb-3 sm:mb-4 w-full min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Site Logo
@@ -191,8 +229,8 @@ const WebsiteSettings = ({ onSave }) => {
           </div>
         </Card>
 
-        <Card title="Features" className="mb-4">
-          <div className="space-y-4">
+        <Card title="Features" className="mb-3 sm:mb-4 w-full min-w-0">
+          <div className="space-y-3 sm:space-y-4">
             <Form.Item
               name="enableRegistration"
               label="User Registration"
@@ -219,7 +257,7 @@ const WebsiteSettings = ({ onSave }) => {
           </div>
         </Card>
 
-        <Card title="Display Settings" className="mb-4">
+        <Card title="Display Settings" className="mb-3 sm:mb-4 w-full min-w-0">
           <Form.Item
             name="itemsPerPage"
             label="Items Per Page"
@@ -259,6 +297,7 @@ const WebsiteSettings = ({ onSave }) => {
             htmlType="submit"
             icon={<IconDeviceFloppy className="w-4 h-4" />}
             size="large"
+            className="w-full sm:w-auto"
           >
             Save Settings
           </Button>

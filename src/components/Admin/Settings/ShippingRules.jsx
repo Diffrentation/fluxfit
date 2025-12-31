@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -21,52 +21,97 @@ import { formatPrice } from "@/lib/formatPrice";
 const { Option } = Select;
 const { TextArea } = Input;
 
+const defaultShippingRules = [
+  {
+    id: 1,
+    name: "Free Shipping",
+    minOrder: 2000,
+    maxOrder: null,
+    cost: 0,
+    estimatedDays: "5-7",
+    applicableRegions: ["All"],
+    isActive: true,
+  },
+  {
+    id: 2,
+    name: "Standard Shipping",
+    minOrder: 0,
+    maxOrder: 2000,
+    cost: 50,
+    estimatedDays: "3-5",
+    applicableRegions: ["All"],
+    isActive: true,
+  },
+  {
+    id: 3,
+    name: "Express Shipping",
+    minOrder: 0,
+    maxOrder: null,
+    cost: 150,
+    estimatedDays: "1-2",
+    applicableRegions: ["Metro Cities"],
+    isActive: true,
+  },
+];
+
 const ShippingRules = ({ onSave }) => {
   const [form] = Form.useForm();
-  const [shippingRules, setShippingRules] = useState([
-    {
-      id: 1,
-      name: "Free Shipping",
-      minOrder: 2000,
-      maxOrder: null,
-      cost: 0,
-      estimatedDays: "5-7",
-      applicableRegions: ["All"],
-      isActive: true,
-    },
-    {
-      id: 2,
-      name: "Standard Shipping",
-      minOrder: 0,
-      maxOrder: 2000,
-      cost: 50,
-      estimatedDays: "3-5",
-      applicableRegions: ["All"],
-      isActive: true,
-    },
-    {
-      id: 3,
-      name: "Express Shipping",
-      minOrder: 0,
-      maxOrder: null,
-      cost: 150,
-      estimatedDays: "1-2",
-      applicableRegions: ["Metro Cities"],
-      isActive: true,
-    },
-  ]);
+  const [shippingRules, setShippingRules] = useState([]);
   const [isRuleModalVisible, setIsRuleModalVisible] = useState(false);
   const [selectedRule, setSelectedRule] = useState(null);
   const [ruleForm] = Form.useForm();
 
-  const handleSubmit = (values) => {
+  // Load settings from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("adminShippingSettings");
+      if (stored) {
+        const settings = JSON.parse(stored);
+        setShippingRules(settings.shippingRules || defaultShippingRules);
+        form.setFieldsValue(settings);
+      } else {
+        setShippingRules(defaultShippingRules);
+        form.setFieldsValue({
+          defaultShippingMethod: "standard",
+          enableFreeShipping: true,
+          freeShippingThreshold: 2000,
+          enableInternationalShipping: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading shipping settings:", error);
+      setShippingRules(defaultShippingRules);
+    }
+  }, [form]);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      const formValues = form.getFieldsValue();
+      const settings = {
+        ...formValues,
+        shippingRules,
+      };
+      localStorage.setItem("adminShippingSettings", JSON.stringify(settings));
+    } catch (error) {
+      console.error("Error saving shipping settings:", error);
+    }
+  }, [shippingRules, form]);
+
+  const handleSubmit = useCallback((values) => {
     const settings = {
       ...values,
       shippingRules,
     };
-    console.log("Shipping Rules:", settings);
-    onSave();
-  };
+    try {
+      localStorage.setItem("adminShippingSettings", JSON.stringify(settings));
+      message.success("Shipping rules saved successfully");
+      onSave();
+    } catch (error) {
+      message.error("Failed to save settings");
+      console.error("Error saving shipping settings:", error);
+    }
+  }, [shippingRules, onSave]);
 
   const handleAddRule = () => {
     setSelectedRule(null);
@@ -85,7 +130,7 @@ const ShippingRules = ({ onSave }) => {
     message.success("Shipping rule deleted successfully");
   };
 
-  const handleSaveRule = (values) => {
+  const handleSaveRule = useCallback((values) => {
     if (selectedRule) {
       setShippingRules(
         shippingRules.map((r) => (r.id === selectedRule.id ? { ...values, id: selectedRule.id } : r))
@@ -97,7 +142,7 @@ const ShippingRules = ({ onSave }) => {
     }
     setIsRuleModalVisible(false);
     ruleForm.resetFields();
-  };
+  }, [selectedRule, shippingRules, ruleForm]);
 
   const ruleColumns = [
     {
@@ -163,15 +208,10 @@ const ShippingRules = ({ onSave }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
+      className="space-y-3 sm:space-y-4"
     >
-      <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{
-        defaultShippingMethod: "standard",
-        enableFreeShipping: true,
-        freeShippingThreshold: 2000,
-        enableInternationalShipping: false,
-      }}>
-        <Card title="General Shipping Settings" className="mb-4">
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Card title="General Shipping Settings" className="mb-3 sm:mb-4 w-full min-w-0">
           <div className="space-y-4">
             <Form.Item
               name="defaultShippingMethod"
@@ -217,17 +257,23 @@ const ShippingRules = ({ onSave }) => {
               type="primary"
               icon={<IconPlus className="w-4 h-4" />}
               onClick={handleAddRule}
+              className="w-full sm:w-auto"
+              size="small sm:default"
             >
-              Add Shipping Rule
+              <span className="hidden sm:inline">Add Shipping Rule</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           }
-          className="mb-4"
+          className="mb-3 sm:mb-4 w-full min-w-0"
         >
-          <Table
-            dataSource={shippingRules.map((r) => ({ ...r, key: r.id }))}
-            columns={ruleColumns}
-            pagination={false}
-          />
+          <div className="overflow-x-auto">
+            <Table
+              dataSource={shippingRules.map((r) => ({ ...r, key: r.id }))}
+              columns={ruleColumns}
+              pagination={false}
+              scroll={{ x: 800 }}
+            />
+          </div>
         </Card>
 
         <div className="flex justify-end">
@@ -236,6 +282,7 @@ const ShippingRules = ({ onSave }) => {
             htmlType="submit"
             icon={<IconDeviceFloppy className="w-4 h-4" />}
             size="large"
+            className="w-full sm:w-auto"
           >
             Save Settings
           </Button>
@@ -250,7 +297,10 @@ const ShippingRules = ({ onSave }) => {
           ruleForm.resetFields();
         }}
         footer={null}
-        width={600}
+        width="95%"
+        style={{ maxWidth: 600 }}
+        className="dark:bg-gray-800"
+        centered
       >
         <Form form={ruleForm} layout="vertical" onFinish={handleSaveRule}>
           <Form.Item
@@ -261,7 +311,7 @@ const ShippingRules = ({ onSave }) => {
             <Input placeholder="Free Shipping" />
           </Form.Item>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Form.Item
               name="minOrder"
               label="Minimum Order (₹)"
@@ -279,7 +329,7 @@ const ShippingRules = ({ onSave }) => {
             </Form.Item>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Form.Item
               name="cost"
               label="Shipping Cost (₹)"
