@@ -37,11 +37,11 @@ const sortOptions = [
 
 const priceOptions = [
   { value: "all", label: "All" },
-  { value: "0-50", label: "$0.00 - $50.00" },
-  { value: "50-100", label: "$50.00 - $100.00" },
-  { value: "100-150", label: "$100.00 - $150.00" },
-  { value: "150-200", label: "$150.00 - $200.00" },
-  { value: "200+", label: "$200.00+" },
+  { value: "0-50", label: "₹0.00 - ₹50.00" },
+  { value: "50-100", label: "₹50.00 - ₹100.00" },
+  { value: "100-150", label: "₹100.00 - ₹150.00" },
+  { value: "150-200", label: "₹150.00 - ₹200.00" },
+  { value: "200+", label: "₹200.00+" },
 ];
 
 // Extract unique colors from products
@@ -195,16 +195,16 @@ function ProductListPage() {
   }, [filteredProducts, sortBy]);
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-10">
-      <div className="container mx-auto px-4 py-8">
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pt-10 transition-colors duration-300">
+      <div className="w-full px-0 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">
+        <div className="mb-6 sm:mb-8 px-3 sm:px-0">
+          <h1 className="text-2xl sm:text-3xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
             PRODUCT LIST
           </h1>
 
           {/* Category Navigation and Search/Filter */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4 px-3 sm:px-0">
             <CategoryNav
               categories={categories}
               activeCategory={activeCategory}
@@ -215,7 +215,7 @@ function ProductListPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-900 dark:text-white"
               >
                 <motion.div
                   animate={{ rotate: showFilters ? 90 : 0 }}
@@ -234,13 +234,13 @@ function ProductListPage() {
                 whileFocus={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
               >
-                <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 w-full"
+                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition-all duration-200 w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </motion.div>
             </div>
@@ -255,7 +255,7 @@ function ProductListPage() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="bg-white rounded-lg p-6 mb-8 overflow-hidden shadow-sm"
+              className="bg-white dark:bg-gray-800 rounded-none sm:rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 overflow-hidden shadow-sm border-0 sm:border border-gray-200 dark:border-gray-700 mx-0 sm:mx-0"
             >
               <motion.div
                 initial={{ y: -20 }}
@@ -263,8 +263,8 @@ function ProductListPage() {
                 exit={{ y: -20 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
               >
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                     Filters
                   </h2>
                   <Button
@@ -276,7 +276,7 @@ function ProductListPage() {
                     Reset Filters
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                   <SortByFilter
                     value={sortBy}
                     onChange={setSortBy}
@@ -304,20 +304,17 @@ function ProductListPage() {
         </AnimatePresence>
 
         {/* Products Count */}
-        <div className="mb-6 text-sm text-gray-600">
+        <div className="mb-4 sm:mb-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400 px-3 sm:px-0">
           Showing {sortedProducts.length} of {allProducts.length} products
         </div>
 
         {/* Products Grid */}
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
+        <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 3xl:grid-cols-5 gap-0 sm:gap-4 md:gap-5 lg:gap-6">
           <AnimatePresence mode="popLayout">
             {sortedProducts.map((product, index) => (
               <motion.div
                 key={product.id}
-                layout
+                layout={false}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
@@ -341,9 +338,9 @@ function ProductListPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.3 }}
-              className="text-center py-12"
+              className="text-center py-8 sm:py-12"
             >
-              <p className="text-gray-500 text-lg mb-4">
+              <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg mb-4">
                 No products found matching your filters.
               </p>
               <Button onClick={resetFilters} type="primary">

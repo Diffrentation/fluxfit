@@ -86,10 +86,10 @@ function WishlistPreview() {
               <IconHeart className="w-5 h-5 sm:w-6 sm:h-6 md:w-6 md:h-6 text-red-600 dark:text-red-400 fill-red-600 dark:fill-red-400" />
             </motion.div>
             <div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
                 My Wishlist
               </h2>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5">
+              <p className="text-xs sm:text-sm md:text-sm text-gray-600 dark:text-gray-300 mt-0.5">
                 {wishlistCount} {wishlistCount === 1 ? "item" : "items"} saved
               </p>
             </div>
@@ -108,7 +108,7 @@ function WishlistPreview() {
         </motion.div>
 
         {/* Wishlist Items Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
           <AnimatePresence mode="popLayout">
             {displayItems.map((item, index) => {
               const product = getProductDetails(item);
@@ -131,7 +131,7 @@ function WishlistPreview() {
                   className="relative group bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 border border-gray-200 dark:border-gray-700"
                 >
                   {/* Product Image */}
-                  <div className="relative w-full h-[200px] sm:h-[240px] md:h-[280px] bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                  <div className="relative w-full h-[200px] sm:h-[240px] md:h-[260px] lg:h-[280px] bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     <motion.div
                       whileHover={{ scale: 1.1 }}
                       transition={{ duration: 0.4 }}
@@ -160,16 +160,16 @@ function WishlistPreview() {
                   </div>
 
                   {/* Product Info */}
-                  <div className="p-3 sm:p-4 pb-16 sm:pb-20">
-                    <h3 className="text-gray-900 dark:text-white font-semibold text-sm sm:text-base mb-1.5 line-clamp-2 min-h-10">
+                  <div className="p-3 sm:p-4 md:p-4 pb-20 sm:pb-24 md:pb-24">
+                    <h3 className="text-gray-900 dark:text-white font-semibold text-sm sm:text-base md:text-base mb-1.5 line-clamp-2 min-h-10">
                       {item.name}
                     </h3>
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                      <span className="text-lg sm:text-xl md:text-xl font-bold text-gray-900 dark:text-white">
                         ₹{formatPrice(price)}
                       </span>
                       {originalPrice && (
-                        <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-through">
+                        <span className="text-xs sm:text-sm md:text-sm text-gray-500 dark:text-gray-400 line-through">
                           ₹{formatPrice(originalPrice)}
                         </span>
                       )}
@@ -177,22 +177,22 @@ function WishlistPreview() {
                   </div>
 
                   {/* Quick View and Add to Cart Buttons at Bottom */}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex gap-2 z-20 shadow-lg">
+                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex gap-2 z-20 shadow-lg">
                     <Button
                       type="default"
-                      size="small"
-                      icon={<IconEye className="w-3.5 h-3.5" />}
+                      size="large"
+                      icon={<IconEye className="w-4 h-4" />}
                       onClick={() => handleQuickView(item.id)}
-                      className="flex-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-xs sm:text-sm"
+                      className="flex-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-xs sm:text-sm md:text-sm h-12 sm:h-14 md:h-14"
                     >
                       Quick View
                     </Button>
                     <Button
                       type="primary"
-                      size="small"
-                      icon={<IconShoppingCart className="w-3.5 h-3.5" />}
+                      size="large"
+                      icon={<IconShoppingCart className="w-4 h-4" />}
                       onClick={() => handleAddToCart(product || item)}
-                      className="flex-1 bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800 border-none text-xs sm:text-sm"
+                      className="flex-1 bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800 border-none text-xs sm:text-sm md:text-sm h-12 sm:h-14 md:h-14"
                     >
                       Add to Cart
                     </Button>
