@@ -143,12 +143,12 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
     }
   };
 
-  // Don't auto-collapse on leave - only collapse on outside click
-  // const handleSidebarLeave = () => {
-  //   if (window.innerWidth >= 1024) {
-  //     setIsCollapsed(true);
-  //   }
-  // };
+  // Handle sidebar hover out to collapse
+  const handleSidebarLeave = () => {
+    if (window.innerWidth >= 1024) {
+      setIsCollapsed(true);
+    }
+  };
 
   return (
     <>
@@ -168,6 +168,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       <motion.aside
         ref={sidebarRef}
         onMouseEnter={handleSidebarEnter}
+        onMouseLeave={handleSidebarLeave}
         initial={false}
         animate={{
           width: isCollapsed ? 80 : 256,
