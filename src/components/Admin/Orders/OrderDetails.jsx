@@ -37,6 +37,7 @@ const OrderDetails = ({
   onCancel,
   onPartialCancel,
   onGenerateInvoice,
+  onClose,
 }) => {
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [isDeliveryModalVisible, setIsDeliveryModalVisible] = useState(false);
@@ -65,7 +66,7 @@ const OrderDetails = ({
   ];
 
   const handleStatusUpdate = (values) => {
-    onStatusChange(order.orderId, values.status);
+    onStatusChange(order.orderId, values.status, values.note);
     setIsStatusModalVisible(false);
     statusForm.resetFields();
   };
@@ -86,37 +87,31 @@ const OrderDetails = ({
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="sticky top-4"
+      className="sticky top-4 lg:block"
     >
       <Card
         title={
-          <div className="flex items-center justify-between">
-            <span>Order #{order.orderId}</span>
-            <Tag color={getStatusColor(order.status)} className="capitalize">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <span className="text-sm sm:text-base font-semibold">Order #{order.orderId}</span>
+            <Tag color={getStatusColor(order.status)} className="capitalize text-xs sm:text-sm">
               {order.status}
             </Tag>
           </div>
         }
-        extra={
-          <Button
-            type="text"
-            icon={<IconX className="w-4 h-4" />}
-            onClick={() => {}}
-          />
-        }
-        className="shadow-sm"
+        className="shadow-sm dark:bg-gray-800"
+        bodyStyle={{ padding: "16px" }}
       >
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Customer Info */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <IconUser className="w-4 h-4 text-gray-500" />
-              <span className="font-semibold text-gray-900">Customer</span>
+              <IconUser className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Customer</span>
             </div>
             <div className="pl-6">
-              <div className="font-medium">{order.address?.name}</div>
-              <div className="text-sm text-gray-600">{order.address?.phone}</div>
-              <div className="text-sm text-gray-600">{order.address?.email}</div>
+              <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">{order.address?.name}</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{order.address?.phone}</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{order.address?.email}</div>
             </div>
           </div>
 
@@ -125,10 +120,10 @@ const OrderDetails = ({
           {/* Delivery Address */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <IconMapPin className="w-4 h-4 text-gray-500" />
-              <span className="font-semibold text-gray-900">Delivery Address</span>
+              <IconMapPin className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Delivery Address</span>
             </div>
-            <div className="pl-6 text-sm text-gray-600">
+            <div className="pl-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               {order.address?.address}, {order.address?.city}, {order.address?.state} - {order.address?.pincode}
             </div>
           </div>
@@ -137,17 +132,17 @@ const OrderDetails = ({
 
           {/* Order Items */}
           <div>
-            <div className="font-semibold text-gray-900 mb-2">Order Items</div>
+            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">Order Items</div>
             <div className="space-y-2">
               {order.items?.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{item.name}</div>
-                    <div className="text-xs text-gray-500">
+                <div key={index} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-gray-700/50 rounded">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-xs sm:text-sm text-gray-900 dark:text-white truncate">{item.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       {item.size} • {item.color} • Qty: {item.quantity}
                     </div>
                   </div>
-                  <div className="font-semibold text-sm">
+                  <div className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white ml-2 shrink-0">
                     ₹{formatPrice(item.price * item.quantity)}
                   </div>
                 </div>
@@ -159,24 +154,24 @@ const OrderDetails = ({
 
           {/* Order Summary */}
           <div>
-            <div className="font-semibold text-gray-900 mb-2">Order Summary</div>
-            <div className="space-y-1 text-sm">
+            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">Order Summary</div>
+            <div className="space-y-1 text-xs sm:text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span>₹{formatPrice(order.orderSummary?.subtotal || 0)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                <span className="text-gray-900 dark:text-white">₹{formatPrice(order.orderSummary?.subtotal || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Discount</span>
-                <span className="text-green-600">-₹{formatPrice(order.orderSummary?.discount || 0)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Discount</span>
+                <span className="text-green-600 dark:text-green-400">-₹{formatPrice(order.orderSummary?.discount || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Tax</span>
-                <span>₹{formatPrice(order.orderSummary?.tax || 0)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                <span className="text-gray-900 dark:text-white">₹{formatPrice(order.orderSummary?.tax || 0)}</span>
               </div>
               <Divider className="my-2" />
-              <div className="flex justify-between font-semibold text-lg">
-                <span>Total</span>
-                <span>₹{formatPrice(order.orderSummary?.grandTotal || 0)}</span>
+              <div className="flex justify-between font-semibold text-base sm:text-lg">
+                <span className="text-gray-900 dark:text-white">Total</span>
+                <span className="text-gray-900 dark:text-white">₹{formatPrice(order.orderSummary?.grandTotal || 0)}</span>
               </div>
             </div>
           </div>
@@ -186,16 +181,21 @@ const OrderDetails = ({
           {/* Status Timeline */}
           {order.statusHistory && order.statusHistory.length > 0 && (
             <div>
-              <div className="font-semibold text-gray-900 mb-2">Status Timeline</div>
+              <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">Status Timeline</div>
               <Timeline
                 items={order.statusHistory.map((history) => ({
                   color: getStatusColor(history.status),
                   children: (
                     <div>
-                      <div className="font-medium capitalize">{history.status}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="font-medium text-xs sm:text-sm capitalize text-gray-900 dark:text-white">{history.status}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         {format(new Date(history.timestamp), "MMM dd, yyyy HH:mm")}
                       </div>
+                      {history.note && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
+                          {history.note}
+                        </div>
+                      )}
                     </div>
                   ),
                 }))}
@@ -212,6 +212,8 @@ const OrderDetails = ({
               block
               icon={<IconCheck className="w-4 h-4" />}
               onClick={() => setIsStatusModalVisible(true)}
+              size="large"
+              className="text-xs sm:text-sm"
             >
               Change Status
             </Button>
@@ -219,6 +221,8 @@ const OrderDetails = ({
               block
               icon={<IconTruck className="w-4 h-4" />}
               onClick={() => setIsDeliveryModalVisible(true)}
+              size="large"
+              className="text-xs sm:text-sm"
             >
               Assign Delivery Partner
             </Button>
@@ -226,6 +230,8 @@ const OrderDetails = ({
               block
               icon={<IconDownload className="w-4 h-4" />}
               onClick={onGenerateInvoice}
+              size="large"
+              className="text-xs sm:text-sm"
             >
               Generate Invoice
             </Button>
@@ -235,6 +241,8 @@ const OrderDetails = ({
                 block
                 icon={<IconX className="w-4 h-4" />}
                 onClick={() => setIsCancelModalVisible(true)}
+                size="large"
+                className="text-xs sm:text-sm"
               >
                 Cancel Order
               </Button>
@@ -247,6 +255,8 @@ const OrderDetails = ({
                   // Handle return/refund
                   message.info("Return/Refund functionality");
                 }}
+                size="large"
+                className="text-xs sm:text-sm"
               >
                 Handle Return/Refund
               </Button>

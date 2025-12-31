@@ -79,9 +79,8 @@ const CouponManagementPage = () => {
     let filtered = [...coupons];
 
     if (searchQuery) {
-      filtered = filtered.filter(
-        (coupon) =>
-          coupon.code.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter((coupon) =>
+        coupon.code.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -109,7 +108,9 @@ const CouponManagementPage = () => {
 
   const handleSaveCoupon = (couponData) => {
     message.success(
-      selectedCoupon ? "Coupon updated successfully" : "Coupon created successfully"
+      selectedCoupon
+        ? "Coupon updated successfully"
+        : "Coupon created successfully"
     );
     setIsFormVisible(false);
     setSelectedCoupon(null);
@@ -160,7 +161,9 @@ const CouponManagementPage = () => {
                               allowClear
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
-                              prefix={<IconSearch className="w-4 h-4 text-gray-400" />}
+                              prefix={
+                                <IconSearch className="w-4 h-4 text-gray-400" />
+                              }
                               size="large"
                             />
                           </div>
@@ -218,4 +221,3 @@ const CouponManagementPage = () => {
 };
 
 export default CouponManagementPage;
-

@@ -1,15 +1,13 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import CategoryTree from "@/components/Admin/Categories/CategoryTree";
 import BrandList from "@/components/Admin/Categories/BrandList";
 import CategoryForm from "@/components/Admin/Categories/CategoryForm";
 import BrandForm from "@/components/Admin/Categories/BrandForm";
-import { Button, Tabs, message } from "antd";
+import { Button, Tabs, message, Modal } from "antd";
 import { IconPlus, IconTag } from "@tabler/icons-react";
-
-const { TabPane } = Tabs;
 
 const CategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);
@@ -20,12 +18,7 @@ const CategoryManagementPage = () => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [activeTab, setActiveTab] = useState("categories");
 
-  useEffect(() => {
-    loadCategories();
-    loadBrands();
-  }, []);
-
-  const loadCategories = () => {
+  const loadCategories = useCallback(() => {
     // Mock data - in production, fetch from API
     const mockCategories = [
       {
@@ -120,9 +113,9 @@ const CategoryManagementPage = () => {
       },
     ];
     setCategories(mockCategories);
-  };
+  }, []);
 
-  const loadBrands = () => {
+  const loadBrands = useCallback(() => {
     // Mock data - in production, fetch from API
     const mockBrands = [
       {
@@ -159,10 +152,16 @@ const CategoryManagementPage = () => {
       },
     ];
     setBrands(mockBrands);
-  };
+  }, []);
 
-  const handleAddCategory = () => {
-    setSelectedCategory(null);
+  useEffect(() => {
+    loadCategories();
+    loadBrands();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAddCategory = (parentId = null) => {
+    setSelectedCategory(parentId ? { parentId } : null);
     setIsCategoryFormVisible(true);
   };
 
@@ -172,19 +171,238 @@ const CategoryManagementPage = () => {
   };
 
   const handleDeleteCategory = (categoryId) => {
-    message.success("Category deleted successfully");
-    loadCategories();
+    // Check if category has children
+    const hasChildren = (cats, id) => {
+      for (const cat of cats) {
+        if (cat.id === id) {
+          return cat.children && cat.children.length > 0;
+        }
+        if (cat.children && cat.children.length > 0) {
+          if (hasChildren(cat.children, id)) return true;
+        }
+      }
+      return false;
+    };
+
+    if (hasChildren(categories, categoryId)) {
+      message.warning("Cannot delete category with subcategories");
+      return;
+    }
+
+    Modal.confirm({
+      title: "Delete Category",
+      content:
+        "Are you sure you want to delete this category? This action cannot be undone.",
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk: () => {
+        const deleteCategory = (cats, id) => {
+          return cats
+            .filter((cat) => cat.id !== id)
+            .map((cat) => {
+              if (cat.children && cat.children.length > 0) {
+                return {
+                  ...cat,
+                  children: deleteCategory(cat.children, id),
+                };
+              }
+              return cat;
+            });
+        };
+
+        setCategories((prev) => deleteCategory(prev, categoryId));
+        message.success("Category deleted successfully");
+      },
+    });
   };
 
   const handleSaveCategory = (categoryData) => {
-    message.success(
-      selectedCategory
-        ? "Category updated successfully"
-        : "Category added successfully"
-    );
+    if (selectedCategory && selectedCategory.id) {
+      // Update existing category
+      const updateCategory = (cats, updatedCategory) => {
+        return cats.map((cat) => {
+          if (cat.id === updatedCategory.id) {
+            const updated = {
+              ...cat,
+              ...updatedCategory,
+              children: cat.children || [],
+            };
+            return updated;
+          }
+          if (cat.children && cat.children.length > 0) {
+            return {
+              ...cat,
+              children: updateCategory(cat.children, updatedCategory),
+            };
+          }
+          return cat;
+        });
+      };
+
+      setCategories((prev) => updateCategory(prev, categoryData));
+      message.success("Category updated successfully");
+    } else {
+      // Add new category
+      const getMaxId = (cats) => {
+        let maxId = 0;
+        const traverse = (items) => {
+          items.forEach((item) => {
+            if (item.id > maxId) maxId = item.id;
+            if (item.children && item.children.length > 0) {
+              traverse(item.children);
+            }
+          });
+        };
+        traverse(cats);
+        return maxId;
+      };
+
+      const getNextSortOrder = (cats, parentId) => {
+        const findSiblings = (items, pid) => {
+          if (pid === null) {
+            return items.filter((cat) => !cat.parentId);
+          }
+          for (const item of items) {
+            if (item.id === pid) {
+              return item.children || [];
+            }
+            if (item.children && item.children.length > 0) {
+              const result = findSiblings(item.children, pid);
+              if (result !== null) return result;
+            }
+          }
+          return [];
+        };
+
+        const siblings = findSiblings(cats, parentId);
+        if (siblings.length === 0) return 1;
+        return Math.max(...siblings.map((s) => s.sortOrder || 0)) + 1;
+      };
+
+      const newCategory = {
+        ...categoryData,
+        id: getMaxId(categories) + 1,
+        children: [],
+        sortOrder:
+          categoryData.sortOrder ||
+          getNextSortOrder(categories, categoryData.parentId || null),
+      };
+
+      if (
+        categoryData.parentId ||
+        (selectedCategory && selectedCategory.parentId)
+      ) {
+        // Add as subcategory
+        const parentId = categoryData.parentId || selectedCategory?.parentId;
+        const addSubcategory = (cats, pid, newCat) => {
+          return cats.map((cat) => {
+            if (cat.id === pid) {
+              return {
+                ...cat,
+                children: [...(cat.children || []), newCat].sort(
+                  (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+                ),
+              };
+            }
+            if (cat.children && cat.children.length > 0) {
+              return {
+                ...cat,
+                children: addSubcategory(cat.children, pid, newCat),
+              };
+            }
+            return cat;
+          });
+        };
+
+        setCategories((prev) => addSubcategory(prev, parentId, newCategory));
+      } else {
+        // Add as top-level category
+        setCategories((prev) =>
+          [...prev, newCategory].sort(
+            (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+          )
+        );
+      }
+      message.success("Category added successfully");
+    }
+
     setIsCategoryFormVisible(false);
     setSelectedCategory(null);
-    loadCategories();
+  };
+
+  const handleMoveCategory = (categoryId, direction) => {
+    const findCategoryAndSiblings = (cats, id, parentId = null) => {
+      for (let i = 0; i < cats.length; i++) {
+        const cat = cats[i];
+        if (cat.id === id) {
+          return {
+            category: cat,
+            siblings: cats,
+            index: i,
+            parentId,
+          };
+        }
+        if (cat.children && cat.children.length > 0) {
+          const result = findCategoryAndSiblings(cat.children, id, cat.id);
+          if (result) return result;
+        }
+      }
+      return null;
+    };
+
+    const result = findCategoryAndSiblings(categories, categoryId);
+    if (!result) return;
+
+    const { siblings, index } = result;
+
+    if (
+      (direction === "up" && index === 0) ||
+      (direction === "down" && index === siblings.length - 1)
+    ) {
+      message.warning("Cannot move category further in this direction");
+      return;
+    }
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    const reorderedSiblings = [...siblings];
+    [reorderedSiblings[index], reorderedSiblings[newIndex]] = [
+      reorderedSiblings[newIndex],
+      reorderedSiblings[index],
+    ];
+
+    // Update sort orders
+    reorderedSiblings.forEach((cat, idx) => {
+      cat.sortOrder = idx + 1;
+    });
+
+    const updateSiblingsInTree = (cats, parentId, newSiblings) => {
+      if (parentId === null) {
+        // Top level - replace the entire array
+        return newSiblings;
+      }
+      return cats.map((cat) => {
+        if (cat.id === parentId) {
+          return { ...cat, children: newSiblings };
+        }
+        if (cat.children && cat.children.length > 0) {
+          return {
+            ...cat,
+            children: updateSiblingsInTree(cat.children, parentId, newSiblings),
+          };
+        }
+        return cat;
+      });
+    };
+
+    const updated = updateSiblingsInTree(
+      categories,
+      result.parentId,
+      reorderedSiblings
+    );
+
+    setCategories(updated);
+    message.success(`Category moved ${direction}`);
   };
 
   const handleAddBrand = () => {
@@ -198,17 +416,58 @@ const CategoryManagementPage = () => {
   };
 
   const handleDeleteBrand = (brandId) => {
-    message.success("Brand deleted successfully");
-    loadBrands();
+    Modal.confirm({
+      title: "Delete Brand",
+      content:
+        "Are you sure you want to delete this brand? This action cannot be undone.",
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk: () => {
+        setBrands((prev) => prev.filter((brand) => brand.id !== brandId));
+        message.success("Brand deleted successfully");
+      },
+    });
   };
 
   const handleSaveBrand = (brandData) => {
-    message.success(
-      selectedBrand ? "Brand updated successfully" : "Brand added successfully"
-    );
+    if (selectedBrand && selectedBrand.id) {
+      // Update existing brand
+      setBrands((prev) =>
+        prev.map((brand) =>
+          brand.id === selectedBrand.id ? { ...brand, ...brandData } : brand
+        )
+      );
+      message.success("Brand updated successfully");
+    } else {
+      // Add new brand
+      const getMaxId = (brandsList) => {
+        return brandsList.length > 0
+          ? Math.max(...brandsList.map((b) => b.id || 0))
+          : 0;
+      };
+
+      const getNextSortOrder = (brandsList) => {
+        return brandsList.length > 0
+          ? Math.max(...brandsList.map((b) => b.sortOrder || 0)) + 1
+          : 1;
+      };
+
+      const newBrand = {
+        ...brandData,
+        id: getMaxId(brands) + 1,
+        sortOrder: brandData.sortOrder || getNextSortOrder(brands),
+      };
+      setBrands((prev) =>
+        [...prev, newBrand].sort(
+          (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+        )
+      );
+      message.success("Brand added successfully");
+    }
+
     setIsBrandFormVisible(false);
     setSelectedBrand(null);
-    loadBrands();
   };
 
   return (
@@ -216,19 +475,19 @@ const CategoryManagementPage = () => {
       <div className="flex">
         <AdminSidebar activeItem="categories" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-16 sm:pt-20 lg:pt-16">
-          <div className="p-3 sm:p-4 md:p-6 pb-6 sm:pb-8">
+        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16">
+          <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-4 sm:mb-6"
+              className="mb-3 sm:mb-4 md:mb-6"
             >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                     Category & Brand Management
                   </h1>
-                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                  <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300">
                     Manage product categories, subcategories, and brands
                   </p>
                 </div>
@@ -237,19 +496,20 @@ const CategoryManagementPage = () => {
               <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
+                className="category-tabs"
                 items={[
                   {
                     key: "categories",
                     label: (
-                      <span className="flex items-center gap-2 text-sm sm:text-base">
-                        <IconTag className="w-4 h-4" />
+                      <span className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm md:text-base">
+                        <IconTag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden sm:inline">Categories</span>
                         <span className="sm:hidden">Cats</span>
                       </span>
                     ),
                     children: (
-                      <div>
-                        <div className="flex justify-end mb-3 sm:mb-4">
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <div className="flex justify-end mb-2 sm:mb-3 md:mb-4">
                           <Button
                             type="primary"
                             icon={<IconPlus className="w-4 h-4" />}
@@ -257,7 +517,9 @@ const CategoryManagementPage = () => {
                             size="large"
                             className="w-full sm:w-auto"
                           >
-                            <span className="hidden sm:inline">Add Category</span>
+                            <span className="hidden sm:inline">
+                              Add Category
+                            </span>
                             <span className="sm:hidden">Add</span>
                           </Button>
                         </div>
@@ -265,6 +527,13 @@ const CategoryManagementPage = () => {
                           categories={categories}
                           onEdit={handleEditCategory}
                           onDelete={handleDeleteCategory}
+                          onAddSubcategory={handleAddCategory}
+                          onMoveUp={(categoryId) =>
+                            handleMoveCategory(categoryId, "up")
+                          }
+                          onMoveDown={(categoryId) =>
+                            handleMoveCategory(categoryId, "down")
+                          }
                         />
                       </div>
                     ),
@@ -272,13 +541,13 @@ const CategoryManagementPage = () => {
                   {
                     key: "brands",
                     label: (
-                      <span className="text-sm sm:text-base">
+                      <span className="text-xs sm:text-sm md:text-base">
                         Brands
                       </span>
                     ),
                     children: (
-                      <div>
-                        <div className="flex justify-end mb-3 sm:mb-4">
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <div className="flex justify-end mb-2 sm:mb-3 md:mb-4">
                           <Button
                             type="primary"
                             icon={<IconPlus className="w-4 h-4" />}

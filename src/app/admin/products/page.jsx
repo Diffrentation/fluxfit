@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import ProductList from "@/components/Admin/Products/ProductList";
 import ProductForm from "@/components/Admin/Products/ProductForm";
@@ -27,16 +27,23 @@ const ProductManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [uploadKey, setUploadKey] = useState(0);
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
+  const loadProducts = useCallback(() => {
+    // Try to load from localStorage first, then fallback to productDatabase
+    try {
+      const savedProducts = localStorage.getItem("adminProducts");
+      if (savedProducts) {
+        const parsed = JSON.parse(savedProducts);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setProducts(parsed);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error loading products from localStorage:", error);
+    }
 
-  useEffect(() => {
-    filterProducts();
-  }, [products, searchQuery, statusFilter, categoryFilter]);
-
-  const loadProducts = () => {
     // Convert productDatabase object to array
     const productsArray = Object.values(productDatabase).map((product) => ({
       ...product,
@@ -46,9 +53,25 @@ const ProductManagementPage = () => {
       slug: product.slug || product.name.toLowerCase().replace(/\s+/g, "-"),
     }));
     setProducts(productsArray);
-  };
+  }, []);
 
-  const filterProducts = () => {
+  // Save products to localStorage whenever products state changes
+  useEffect(() => {
+    if (products.length > 0) {
+      try {
+        localStorage.setItem("adminProducts", JSON.stringify(products));
+      } catch (error) {
+        console.error("Error saving products to localStorage:", error);
+      }
+    }
+  }, [products]);
+
+  useEffect(() => {
+    loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     let filtered = [...products];
 
     // Search filter
@@ -67,11 +90,13 @@ const ProductManagementPage = () => {
 
     // Category filter
     if (categoryFilter !== "all") {
-      filtered = filtered.filter((product) => product.category === categoryFilter);
+      filtered = filtered.filter(
+        (product) => product.category === categoryFilter
+      );
     }
 
     setFilteredProducts(filtered);
-  };
+  }, [products, searchQuery, statusFilter, categoryFilter]);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -86,38 +111,83 @@ const ProductManagementPage = () => {
   const handleDeleteProduct = (productId) => {
     Modal.confirm({
       title: "Delete Product",
-      content: "Are you sure you want to delete this product? This action cannot be undone.",
+      content:
+        "Are you sure you want to delete this product? This action cannot be undone.",
       okText: "Delete",
       okType: "danger",
       onOk: () => {
-        // In a real app, this would call an API
-        // For now, we'll just show a message
+        // Update state by removing the product
+        setProducts((prevProducts) =>
+          prevProducts.filter((product) => product.id !== productId)
+        );
         message.success("Product deleted successfully");
-        loadProducts();
       },
     });
   };
 
   const handleSaveProduct = (productData) => {
-    // In a real app, this would save to database
-    message.success(
-      selectedProduct ? "Product updated successfully" : "Product added successfully"
-    );
-    setIsFormVisible(false);
-    setSelectedProduct(null);
-    loadProducts();
+    try {
+      if (selectedProduct) {
+        // Update existing product
+        setProducts((prevProducts) => {
+          const updated = prevProducts.map((product) =>
+            product.id === selectedProduct.id
+              ? {
+                  ...productData,
+                  id: selectedProduct.id,
+                  createdAt: product.createdAt || new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  // Preserve existing fields that might not be in productData
+                  images: productData.images || product.images || [],
+                  image: productData.images?.[0] || product.image || "",
+                  variants: productData.variants || product.variants || [],
+                  colors: productData.colors || product.colors || [],
+                  sizes: productData.sizes || product.sizes || [],
+                }
+              : product
+          );
+          return updated;
+        });
+        message.success("Product updated successfully");
+      } else {
+        // Add new product
+        const newProduct = {
+          ...productData,
+          id: Date.now(), // Generate unique ID
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          status: productData.status || "draft",
+          stock: productData.stock || 0,
+          inStock: productData.inStock !== false,
+          images: productData.images || [],
+          image: productData.images?.[0] || "",
+          variants: productData.variants || [],
+          colors: productData.colors || [],
+          sizes: productData.sizes || [],
+          rating: productData.rating || 0,
+          reviews: productData.reviews || 0,
+        };
+        setProducts((prevProducts) => [...prevProducts, newProduct]);
+        message.success("Product added successfully");
+      }
+      setIsFormVisible(false);
+      setSelectedProduct(null);
+    } catch (error) {
+      message.error("Failed to save product. Please try again.");
+      console.error("Error saving product:", error);
+    }
   };
 
   const handleBulkUpload = async (file) => {
     try {
       message.loading("Processing bulk upload...", 0);
-      
+
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
           const csvText = e.target.result;
-          const products = parseCSV(csvText);
-          const validation = validateBulkProducts(products);
+          const parsedProducts = parseCSV(csvText);
+          const validation = validateBulkProducts(parsedProducts);
 
           if (validation.invalid.length > 0) {
             message.destroy();
@@ -126,7 +196,8 @@ const ProductManagementPage = () => {
               content: (
                 <div className="dark:text-gray-300">
                   <p className="text-sm sm:text-base">
-                    {validation.valid.length} products are valid, {validation.invalid.length} have errors.
+                    {validation.valid.length} products are valid,{" "}
+                    {validation.invalid.length} have errors.
                   </p>
                   <ul className="mt-2 max-h-40 overflow-y-auto space-y-1">
                     {validation.invalid.slice(0, 5).map((item, idx) => (
@@ -136,26 +207,69 @@ const ProductManagementPage = () => {
                     ))}
                   </ul>
                   {validation.invalid.length > 5 && (
-                    <p className="text-xs sm:text-sm mt-2">... and {validation.invalid.length - 5} more</p>
+                    <p className="text-xs sm:text-sm mt-2">
+                      ... and {validation.invalid.length - 5} more
+                    </p>
                   )}
                 </div>
               ),
-              okText: validation.valid.length > 0 ? "Upload Valid Only" : "Cancel",
+              okText:
+                validation.valid.length > 0 ? "Upload Valid Only" : "Cancel",
               onOk: () => {
                 if (validation.valid.length > 0) {
-                  // In a real app, save valid products to database
-                  message.success(`${validation.valid.length} products uploaded successfully`);
+                  // Add valid products to state
+                  const newProducts = validation.valid.map(
+                    (product, index) => ({
+                      ...product,
+                      id: Date.now() + index, // Generate unique IDs
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                      status: product.status || "draft",
+                      stock: product.stock || 0,
+                      inStock: product.inStock !== false,
+                      images: product.image ? [product.image] : [],
+                      image: product.image || "",
+                      metaTitle: product.metaTitle || product.name,
+                      slug:
+                        product.slug ||
+                        product.name.toLowerCase().replace(/\s+/g, "-"),
+                    })
+                  );
+                  setProducts((prevProducts) => [
+                    ...prevProducts,
+                    ...newProducts,
+                  ]);
+                  message.success(
+                    `${validation.valid.length} products uploaded successfully`
+                  );
                   setIsBulkUploadVisible(false);
-                  loadProducts();
+                  setUploadKey((prev) => prev + 1); // Reset file input
                 }
               },
             });
           } else {
             message.destroy();
-            // In a real app, save products to database
-            message.success(`${validation.valid.length} products uploaded successfully`);
+            // Add all valid products to state
+            const newProducts = validation.valid.map((product, index) => ({
+              ...product,
+              id: Date.now() + index, // Generate unique IDs
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              status: product.status || "draft",
+              stock: product.stock || 0,
+              inStock: product.inStock !== false,
+              images: product.image ? [product.image] : [],
+              image: product.image || "",
+              metaTitle: product.metaTitle || product.name,
+              slug:
+                product.slug || product.name.toLowerCase().replace(/\s+/g, "-"),
+            }));
+            setProducts((prevProducts) => [...prevProducts, ...newProducts]);
+            message.success(
+              `${validation.valid.length} products uploaded successfully`
+            );
             setIsBulkUploadVisible(false);
-            loadProducts();
+            setUploadKey((prev) => prev + 1); // Reset file input
           }
         } catch (error) {
           message.destroy();
@@ -182,28 +296,29 @@ const ProductManagementPage = () => {
         <AdminSidebar activeItem="products" />
 
         {/* Main Content */}
-        <div className="flex-1 ml-0 lg:ml-64 pt-16 sm:pt-20 lg:pt-16">
-          <div className="p-3 sm:p-4 md:p-6 pb-6 sm:pb-8">
+        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16">
+          <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-4 sm:mb-6"
+              className="mb-3 sm:mb-4 md:mb-6"
             >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                     Product Management
                   </h1>
-                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                  <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300">
                     Manage your product catalog, inventory, and variants
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2 sm:gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <Button
                     icon={<IconUpload className="w-4 h-4" />}
                     onClick={() => setIsBulkUploadVisible(true)}
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto flex-1 sm:flex-none"
+                    size="large"
                   >
                     <span className="hidden sm:inline">Bulk </span>Upload
                   </Button>
@@ -212,7 +327,7 @@ const ProductManagementPage = () => {
                     icon={<IconPlus className="w-4 h-4" />}
                     onClick={handleAddProduct}
                     size="large"
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto flex-1 sm:flex-none"
                   >
                     Add Product
                   </Button>
@@ -220,45 +335,49 @@ const ProductManagementPage = () => {
               </div>
 
               {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex-1 w-full">
-                  <Search
-                    placeholder="Search products by name or ID"
-                    allowClear
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    prefix={<IconSearch className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
+              <div className="bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                  <div className="sm:col-span-2 lg:col-span-1">
+                    <Search
+                      placeholder="Search products..."
+                      allowClear
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      prefix={
+                        <IconSearch className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      }
+                      size="large"
+                      className="w-full"
+                    />
+                  </div>
+                  <Select
+                    value={categoryFilter}
+                    onChange={setCategoryFilter}
+                    style={{ width: "100%" }}
                     size="large"
                     className="w-full"
-                  />
+                  >
+                    <Option value="all">All Categories</Option>
+                    {categories.slice(1).map((cat) => (
+                      <Option key={cat} value={cat}>
+                        {cat}
+                      </Option>
+                    ))}
+                  </Select>
+                  <Select
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    style={{ width: "100%" }}
+                    size="large"
+                    className="w-full"
+                  >
+                    <Option value="all">All Status</Option>
+                    <Option value="approved">Approved</Option>
+                    <Option value="pending">Pending</Option>
+                    <Option value="rejected">Rejected</Option>
+                    <Option value="draft">Draft</Option>
+                  </Select>
                 </div>
-                <Select
-                  value={categoryFilter}
-                  onChange={setCategoryFilter}
-                  style={{ width: "100%", minWidth: 150 }}
-                  size="large"
-                  className="w-full sm:w-auto"
-                >
-                  <Option value="all">All Categories</Option>
-                  {categories.slice(1).map((cat) => (
-                    <Option key={cat} value={cat}>
-                      {cat}
-                    </Option>
-                  ))}
-                </Select>
-                <Select
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  style={{ width: "100%", minWidth: 150 }}
-                  size="large"
-                  className="w-full sm:w-auto"
-                >
-                  <Option value="all">All Status</Option>
-                  <Option value="approved">Approved</Option>
-                  <Option value="pending">Pending</Option>
-                  <Option value="rejected">Rejected</Option>
-                  <Option value="draft">Draft</Option>
-                </Select>
               </div>
             </motion.div>
 
@@ -293,22 +412,38 @@ const ProductManagementPage = () => {
         open={isBulkUploadVisible}
         onCancel={() => setIsBulkUploadVisible(false)}
         footer={null}
-        width="90%"
+        width="95%"
         style={{ maxWidth: 600 }}
         className="dark:bg-gray-800"
+        centered
       >
-        <BulkUploadForm onUpload={handleBulkUpload} />
+        <BulkUploadForm onUpload={handleBulkUpload} uploadKey={uploadKey} />
       </Modal>
     </div>
   );
 };
 
 // Bulk Upload Component
-const BulkUploadForm = ({ onUpload }) => {
+const BulkUploadForm = ({ onUpload, uploadKey }) => {
+  const fileInputRef = React.useRef(null);
+
+  const handleFileChange = (e) => {
+    if (e.target.files[0]) {
+      onUpload(e.target.files[0]);
+      // Reset file input after processing
+      setTimeout(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }, 100);
+    }
+  };
+
   return (
     <div className="mt-4">
       <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-3 sm:mb-4">
-        Upload a CSV file with product data. Download the template for the correct format.
+        Upload a CSV file with product data. Download the template for the
+        correct format.
       </p>
       <div className="space-y-3 sm:space-y-4">
         <Button
@@ -318,7 +453,9 @@ const BulkUploadForm = ({ onUpload }) => {
             const template = `Product Name,Price,Original Price,Category,Color,Size,Stock,Description,Image URL,Meta Title,Slug
 Example Product,1000,1200,Women,Red,M,10,Product description here,https://example.com/image.jpg,Example Product Meta Title,example-product
 Another Product,2000,2500,Men,Blue,L,5,Another description,https://example.com/image2.jpg,Another Product,another-product`;
-            const blob = new Blob([template], { type: "text/csv;charset=utf-8;" });
+            const blob = new Blob([template], {
+              type: "text/csv;charset=utf-8;",
+            });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
@@ -326,24 +463,24 @@ Another Product,2000,2500,Men,Blue,L,5,Another description,https://example.com/i
             link.click();
             URL.revokeObjectURL(url);
           }}
-          className="w-full sm:w-auto"
+          className="w-full"
+          size="large"
         >
           Download CSV Template
         </Button>
         <div>
           <input
+            key={uploadKey}
+            ref={fileInputRef}
             type="file"
             accept=".csv"
-            onChange={(e) => {
-              if (e.target.files[0]) {
-                onUpload(e.target.files[0]);
-              }
-            }}
+            onChange={handleFileChange}
             className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800"
           />
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200">
-          <strong>Note:</strong> Required fields: Product Name, Price, Category, Stock. All other fields are optional.
+          <strong>Note:</strong> Required fields: Product Name, Price, Category,
+          Stock. All other fields are optional.
         </div>
       </div>
     </div>

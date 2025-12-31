@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/Header/Nav";
-import Footer from "@/components/Footer/Footer";
+import ConditionalFooter from "@/components/ConditionalFooter";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -46,7 +46,7 @@ export default function RootLayout({ children }) {
             <WishlistProvider>
               <Nav />
               {children}
-              <Footer />
+              <ConditionalFooter />
             </WishlistProvider>
           </CartProvider>
         </ThemeProvider>

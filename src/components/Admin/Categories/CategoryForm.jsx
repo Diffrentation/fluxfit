@@ -14,15 +14,29 @@ const CategoryForm = ({ visible, category, categories, onClose, onSave }) => {
 
   useEffect(() => {
     if (category) {
-      form.setFieldsValue({
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        parentId: category.parentId || null,
-        sortOrder: category.sortOrder || 0,
-      });
-      setImageList(category.image ? [category.image] : []);
-      setBannerList(category.banner ? [category.banner] : []);
+      // Check if this is a new subcategory (only has parentId)
+      if (category.parentId && !category.id) {
+        form.setFieldsValue({
+          name: "",
+          slug: "",
+          description: "",
+          parentId: category.parentId,
+          sortOrder: 0,
+        });
+        setImageList([]);
+        setBannerList([]);
+      } else {
+        // Existing category or new top-level category
+        form.setFieldsValue({
+          name: category.name || "",
+          slug: category.slug || "",
+          description: category.description || "",
+          parentId: category.parentId || null,
+          sortOrder: category.sortOrder || 0,
+        });
+        setImageList(category.image ? [category.image] : []);
+        setBannerList(category.banner ? [category.banner] : []);
+      }
     } else {
       form.resetFields();
       setImageList([]);

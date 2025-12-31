@@ -1,7 +1,7 @@
 "use client";
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { Table, Tag, Button, Select, DatePicker, Card, Statistic, Row, Col } from "antd";
+import React, { useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Table, Tag, Button, Select, DatePicker, Card, Statistic, Row, Col, Pagination, message } from "antd";
 import { IconDownload, IconCurrencyRupee } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
@@ -9,34 +9,12 @@ import { format } from "date-fns";
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-const SettlementReports = () => {
-  const [settlements] = useState([
-    {
-      id: 1,
-      vendorId: "V001",
-      vendorName: "Vendor A",
-      period: "2024-05",
-      totalSales: 50000,
-      commission: 5000,
-      tax: 9000,
-      settlement: 36000,
-      status: "pending",
-      dueDate: "2024-06-05",
-    },
-    {
-      id: 2,
-      vendorId: "V002",
-      vendorName: "Vendor B",
-      period: "2024-05",
-      totalSales: 30000,
-      commission: 3000,
-      tax: 5400,
-      settlement: 21600,
-      status: "processed",
-      dueDate: "2024-06-05",
-      processedDate: "2024-06-01",
-    },
-  ]);
+const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
+  const [vendorFilter, setVendorFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateRange, setDateRange] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -46,6 +24,154 @@ const SettlementReports = () => {
     };
     return colors[status] || "default";
   };
+
+  // Filter settlements
+  const filteredSettlements = useMemo(() => {
+    let filtered = [...settlements];
+
+    if (vendorFilter !== "all") {
+      filtered = filtered.filter((s) => s.vendorId === vendorFilter);
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((s) => s.status === statusFilter);
+    }
+
+    if (dateRange && dateRange.length === 2) {
+      filtered = filtered.filter((s) => {
+        const periodDate = new Date(s.period + "-01");
+        return periodDate >= dateRange[0] && periodDate <= dateRange[1];
+      });
+    }
+
+    return filtered;
+  }, [settlements, vendorFilter, statusFilter, dateRange]);
+
+  // Pagination
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedSettlements = filteredSettlements.slice(startIndex, endIndex);
+
+  const handleProcessSettlement = useCallback((settlement) => {
+    if (onUpdateSettlements) {
+      const updatedSettlements = settlements.map((s) =>
+        s.id === settlement.id
+          ? { ...s, status: "processed", processedDate: new Date().toISOString().split('T')[0] }
+          : s
+      );
+      onUpdateSettlements(updatedSettlements);
+      message.success("Settlement processed successfully");
+    }
+  }, [settlements, onUpdateSettlements]);
+
+  const handleExport = useCallback((settlement) => {
+    message.success("Settlement report exported successfully");
+  }, []);
+
+  const totalPending = useMemo(() => {
+    return filteredSettlements
+      .filter((s) => s.status === "pending")
+      .reduce((sum, s) => sum + s.settlement, 0);
+  }, [filteredSettlements]);
+
+  const totalProcessed = useMemo(() => {
+    return filteredSettlements
+      .filter((s) => s.status === "processed")
+      .reduce((sum, s) => sum + s.settlement, 0);
+  }, [filteredSettlements]);
+
+  const renderSettlementCard = (settlement) => (
+    <motion.div
+      key={settlement.id}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <Card
+        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+        bodyStyle={{ padding: "12px" }}
+      >
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="font-mono text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                {settlement.vendorName}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                ID: #{settlement.vendorId} | Period: {settlement.period}
+              </div>
+            </div>
+            <Tag color={getStatusColor(settlement.status)} className="capitalize text-xs shrink-0">
+              {settlement.status}
+            </Tag>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Total Sales</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                ₹{formatPrice(settlement.totalSales)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Commission (10%)</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300">
+                ₹{formatPrice(settlement.commission)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Tax (GST)</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300">
+                ₹{formatPrice(settlement.tax)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Settlement</span>
+              <span className="text-base font-bold text-green-600 dark:text-green-400">
+                ₹{formatPrice(settlement.settlement)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Due Date</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300">
+                {format(new Date(settlement.dueDate), "MMM dd, yyyy")}
+              </span>
+            </div>
+            {settlement.processedDate && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Processed</span>
+                <span className="text-xs text-gray-600 dark:text-gray-300">
+                  {format(new Date(settlement.processedDate), "MMM dd, yyyy")}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            {settlement.status === "pending" && (
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => handleProcessSettlement(settlement)}
+                className="flex-1"
+              >
+                Process
+              </Button>
+            )}
+            <Button
+              type="text"
+              size="small"
+              icon={<IconDownload className="w-3 h-3" />}
+              onClick={() => handleExport(settlement)}
+              className="flex-1"
+            >
+              Export
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  );
 
   const columns = [
     {
@@ -118,99 +244,169 @@ const SettlementReports = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 100,
+      width: 150,
       fixed: "right",
       render: (_, record) => (
-        <Button
-          type="text"
-          icon={<IconDownload className="w-4 h-4" />}
-          onClick={() => {
-            // Export settlement report
-            console.log("Export settlement", record);
-          }}
-        >
-          Export
-        </Button>
+        <div className="flex gap-2">
+          {record.status === "pending" && (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => handleProcessSettlement(record)}
+            >
+              Process
+            </Button>
+          )}
+          <Button
+            type="text"
+            size="small"
+            icon={<IconDownload className="w-4 h-4" />}
+            onClick={() => handleExport(record)}
+          >
+            Export
+          </Button>
+        </div>
       ),
     },
   ];
 
-  const totalPending = settlements
-    .filter((s) => s.status === "pending")
-    .reduce((sum, s) => sum + s.settlement, 0);
-  const totalProcessed = settlements
-    .filter((s) => s.status === "processed")
-    .reduce((sum, s) => sum + s.settlement, 0);
+  const uniqueVendors = useMemo(() => {
+    const vendors = new Set(settlements.map((s) => s.vendorId));
+    return Array.from(vendors).map((id) => {
+      const settlement = settlements.find((s) => s.vendorId === id);
+      return { id, name: settlement?.vendorName || id };
+    });
+  }, [settlements]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
+      className="space-y-3 sm:space-y-4"
     >
-      <Row gutter={[16, 16]} className="mb-4">
-        <Col xs={24} sm={12} lg={8}>
-          <Card>
-            <Statistic
-              title="Pending Settlements"
-              value={totalPending}
-              prefix={<IconCurrencyRupee className="w-4 h-4" />}
-              formatter={(value) => `₹${formatPrice(value)}`}
-              valueStyle={{ color: "#fa8c16" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card>
-            <Statistic
-              title="Processed This Month"
-              value={totalProcessed}
-              prefix={<IconCurrencyRupee className="w-4 h-4" />}
-              formatter={(value) => `₹${formatPrice(value)}`}
-              valueStyle={{ color: "#52c41a" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card>
-            <Statistic
-              title="Total Vendors"
-              value={settlements.length}
-              valueStyle={{ color: "#1890ff" }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {/* Statistics Cards - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Statistic
+            title="Pending Settlements"
+            value={totalPending}
+            prefix={<IconCurrencyRupee className="w-4 h-4" />}
+            formatter={(value) => `₹${formatPrice(value)}`}
+            valueStyle={{ color: "#fa8c16" }}
+          />
+        </Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Statistic
+            title="Processed This Month"
+            value={totalProcessed}
+            prefix={<IconCurrencyRupee className="w-4 h-4" />}
+            formatter={(value) => `₹${formatPrice(value)}`}
+            valueStyle={{ color: "#52c41a" }}
+          />
+        </Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 sm:col-span-2 lg:col-span-1">
+          <Statistic
+            title="Total Vendors"
+            value={uniqueVendors.length}
+            valueStyle={{ color: "#1890ff" }}
+          />
+        </Card>
+      </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
-        <Select placeholder="All Vendors" style={{ width: 200 }} size="large">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-3 sm:mb-4">
+        <Select
+          placeholder="All Vendors"
+          value={vendorFilter}
+          onChange={(value) => {
+            setVendorFilter(value);
+            setCurrentPage(1);
+          }}
+          style={{ width: "100%", minWidth: 150 }}
+          size="large"
+        >
           <Option value="all">All Vendors</Option>
-          <Option value="V001">Vendor A</Option>
-          <Option value="V002">Vendor B</Option>
+          {uniqueVendors.map((vendor) => (
+            <Option key={vendor.id} value={vendor.id}>
+              {vendor.name}
+            </Option>
+          ))}
         </Select>
-        <Select placeholder="All Status" style={{ width: 150 }} size="large">
+        <Select
+          placeholder="All Status"
+          value={statusFilter}
+          onChange={(value) => {
+            setStatusFilter(value);
+            setCurrentPage(1);
+          }}
+          style={{ width: "100%", minWidth: 150 }}
+          size="large"
+        >
           <Option value="all">All Status</Option>
           <Option value="pending">Pending</Option>
           <Option value="processed">Processed</Option>
+          <Option value="failed">Failed</Option>
         </Select>
-        <RangePicker size="large" format="YYYY-MM-DD" />
+        <RangePicker
+          size="large"
+          format="YYYY-MM-DD"
+          value={dateRange}
+          onChange={(dates) => {
+            setDateRange(dates);
+            setCurrentPage(1);
+          }}
+          className="w-full sm:w-auto"
+        />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <Table
-          dataSource={settlements.map((s) => ({ ...s, key: s.id }))}
-          columns={columns}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} settlements`,
-          }}
-          scroll={{ x: 1200 }}
-        />
+      {/* Desktop Table View */}
+      <div className="hidden lg:block">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <Table
+            dataSource={filteredSettlements.map((s) => ({ ...s, key: s.id }))}
+            columns={columns}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `Total ${total} settlements`,
+            }}
+            scroll={{ x: 1200 }}
+          />
+        </div>
+      </div>
+
+      {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols */}
+      <div className="lg:hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4">
+          <AnimatePresence mode="popLayout">
+            {paginatedSettlements.map((settlement) => renderSettlementCard(settlement))}
+          </AnimatePresence>
+        </div>
+
+        {filteredSettlements.length > pageSize && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              Showing {startIndex + 1} to {Math.min(endIndex, filteredSettlements.length)} of {filteredSettlements.length} settlements
+            </div>
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={filteredSettlements.length}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+              showSizeChanger
+              showQuickJumper={false}
+              showTotal={(total) => `Total ${total}`}
+              size="small"
+              className="flex justify-center sm:justify-end"
+            />
+          </div>
+        )}
       </div>
     </motion.div>
   );
 };
 
 export default SettlementReports;
-

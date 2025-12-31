@@ -1,10 +1,10 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import OrderList from "@/components/Admin/Orders/OrderList";
 import OrderDetails from "@/components/Admin/Orders/OrderDetails";
-import { Input, Select, DatePicker, message } from "antd";
+import { Input, Select, DatePicker, message, Modal } from "antd";
 import { IconSearch } from "@tabler/icons-react";
 
 const { Search } = Input;
@@ -13,37 +13,55 @@ const { Option } = Select;
 
 const OrderManagementPage = () => {
   const [orders, setOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
+  const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
 
+  // Load orders on mount
   useEffect(() => {
-    loadOrders();
+    // Load orders from localStorage
+    try {
+      const storedOrders = localStorage.getItem("orders");
+      if (storedOrders) {
+        const parsedOrders = JSON.parse(storedOrders);
+        setOrders(parsedOrders);
+      }
+    } catch (error) {
+      console.error("Error loading orders:", error);
+      message.error("Failed to load orders");
+    }
   }, []);
 
+  // Update selected order when orders change
   useEffect(() => {
-    filterOrders();
-  }, [orders, searchQuery, statusFilter, dateRange]);
-
-  const loadOrders = () => {
-    // Load orders from localStorage
-    const storedOrders = localStorage.getItem("orders");
-    if (storedOrders) {
-      const parsedOrders = JSON.parse(storedOrders);
-      setOrders(parsedOrders);
+    if (selectedOrder) {
+      const updatedOrder = orders.find(
+        (o) => o.orderId === selectedOrder.orderId
+      );
+      if (
+        updatedOrder &&
+        JSON.stringify(updatedOrder) !== JSON.stringify(selectedOrder)
+      ) {
+        setSelectedOrder(updatedOrder);
+      }
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
 
-  const filterOrders = () => {
+  // Filter orders using useMemo for better performance
+  const filteredOrders = useMemo(() => {
     let filtered = [...orders];
 
     if (searchQuery) {
       filtered = filtered.filter(
         (order) =>
-          order.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.address?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+          order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.address?.name
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          order.address?.phone?.includes(searchQuery)
       );
     }
 
@@ -58,115 +76,177 @@ const OrderManagementPage = () => {
       });
     }
 
-    setFilteredOrders(filtered);
-  };
+    return filtered;
+  }, [orders, searchQuery, statusFilter, dateRange]);
 
-  const handleStatusChange = (orderId, newStatus) => {
-    const updatedOrders = orders.map((order) =>
-      order.orderId === orderId
-        ? {
+  const handleStatusChange = useCallback((orderId, newStatus, note) => {
+    setOrders((prevOrders) => {
+      const updatedOrders = prevOrders.map((order) =>
+        order.orderId === orderId
+          ? {
+              ...order,
+              status: newStatus,
+              statusHistory: [
+                ...(order.statusHistory || []),
+                {
+                  status: newStatus,
+                  timestamp: new Date().toISOString(),
+                  note: note || `Status changed to ${newStatus}`,
+                },
+              ],
+            }
+          : order
+      );
+      try {
+        localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      } catch (error) {
+        console.error("Error saving orders:", error);
+      }
+      return updatedOrders;
+    });
+    message.success("Order status updated successfully");
+  }, []);
+
+  const handleAssignDeliveryPartner = useCallback((orderId, partnerId) => {
+    setOrders((prevOrders) => {
+      const updatedOrders = prevOrders.map((order) =>
+        order.orderId === orderId
+          ? { ...order, deliveryPartner: partnerId }
+          : order
+      );
+      try {
+        localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      } catch (error) {
+        console.error("Error saving orders:", error);
+      }
+      return updatedOrders;
+    });
+    message.success("Delivery partner assigned successfully");
+  }, []);
+
+  const handleCancelOrder = useCallback(
+    (orderId, reason) => {
+      handleStatusChange(orderId, "cancelled", reason || "Order cancelled");
+      message.success("Order cancelled successfully");
+    },
+    [handleStatusChange]
+  );
+
+  const handlePartialCancel = useCallback((orderId, itemsToCancel) => {
+    setOrders((prevOrders) => {
+      const updatedOrders = prevOrders.map((order) => {
+        if (order.orderId === orderId) {
+          const updatedItems = order.items.filter(
+            (item) => !itemsToCancel.includes(item.id || item.name)
+          );
+          return {
             ...order,
-            status: newStatus,
+            items: updatedItems,
             statusHistory: [
               ...(order.statusHistory || []),
               {
-                status: newStatus,
+                status: order.status,
                 timestamp: new Date().toISOString(),
-                note: `Status changed to ${newStatus}`,
+                note: `Partial cancellation: ${itemsToCancel.length} item(s) cancelled`,
               },
             ],
-          }
-        : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    message.success("Order status updated successfully");
-    loadOrders();
-  };
-
-  const handleAssignDeliveryPartner = (orderId, partnerId) => {
-    const updatedOrders = orders.map((order) =>
-      order.orderId === orderId
-        ? { ...order, deliveryPartner: partnerId }
-        : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    message.success("Delivery partner assigned successfully");
-    loadOrders();
-  };
-
-  const handleCancelOrder = (orderId, reason) => {
-    handleStatusChange(orderId, "cancelled");
-    message.success("Order cancelled successfully");
-  };
-
-  const handlePartialCancel = (orderId, itemsToCancel) => {
+          };
+        }
+        return order;
+      });
+      try {
+        localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      } catch (error) {
+        console.error("Error saving orders:", error);
+      }
+      return updatedOrders;
+    });
     message.success("Partial order cancellation processed");
-    loadOrders();
-  };
+  }, []);
+
+  const handleSelectOrder = useCallback((order) => {
+    setSelectedOrder(order);
+    // Show modal on mobile/tablet
+    if (window.innerWidth < 1024) {
+      setIsDetailsModalVisible(true);
+    }
+  }, []);
+
+  const handleCloseDetails = useCallback(() => {
+    setIsDetailsModalVisible(false);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
         <AdminSidebar activeItem="orders" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-20 lg:pt-16">
-          <div className="p-4 md:p-6 pb-8">
+        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16">
+          <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
+              className="mb-3 sm:mb-4 md:mb-6"
             >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                     Order Management
                   </h1>
-                  <p className="text-gray-600">
+                  <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300">
                     View and manage all customer orders
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
-                <div className="flex-1">
-                  <Search
-                    placeholder="Search by order ID or customer name"
-                    allowClear
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    prefix={<IconSearch className="w-4 h-4 text-gray-400" />}
+              {/* Filters */}
+              <div className="bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-3 sm:mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                  <div className="sm:col-span-2 lg:col-span-1">
+                    <Search
+                      placeholder="Search orders..."
+                      allowClear
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      prefix={
+                        <IconSearch className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      }
+                      size="large"
+                      className="w-full"
+                    />
+                  </div>
+                  <Select
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    style={{ width: "100%" }}
                     size="large"
+                    className="w-full"
+                  >
+                    <Option value="all">All Status</Option>
+                    <Option value="pending">Pending</Option>
+                    <Option value="confirmed">Confirmed</Option>
+                    <Option value="processing">Processing</Option>
+                    <Option value="shipped">Shipped</Option>
+                    <Option value="delivered">Delivered</Option>
+                    <Option value="cancelled">Cancelled</Option>
+                    <Option value="returned">Returned</Option>
+                  </Select>
+                  <RangePicker
+                    size="large"
+                    onChange={setDateRange}
+                    format="YYYY-MM-DD"
+                    className="w-full"
+                    placeholder={["Start Date", "End Date"]}
                   />
                 </div>
-                <Select
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  style={{ width: 180 }}
-                  size="large"
-                >
-                  <Option value="all">All Status</Option>
-                  <Option value="pending">Pending</Option>
-                  <Option value="confirmed">Confirmed</Option>
-                  <Option value="processing">Processing</Option>
-                  <Option value="shipped">Shipped</Option>
-                  <Option value="delivered">Delivered</Option>
-                  <Option value="cancelled">Cancelled</Option>
-                  <Option value="returned">Returned</Option>
-                </Select>
-                <RangePicker
-                  size="large"
-                  onChange={setDateRange}
-                  format="YYYY-MM-DD"
-                />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Desktop Layout: Side by side */}
+              <div className="hidden lg:grid lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
                   <OrderList
                     orders={filteredOrders}
-                    onSelect={(order) => setSelectedOrder(order)}
+                    onSelect={handleSelectOrder}
                     selectedOrderId={selectedOrder?.orderId}
                     onStatusChange={handleStatusChange}
                   />
@@ -180,24 +260,68 @@ const OrderManagementPage = () => {
                       onCancel={handleCancelOrder}
                       onPartialCancel={handlePartialCancel}
                       onGenerateInvoice={() => {
-                        // Invoice generation logic
                         message.success("Invoice generated successfully");
                       }}
                     />
                   ) : (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
                       Select an order to view details
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Mobile/Tablet Layout: Full width list */}
+              <div className="lg:hidden">
+                <OrderList
+                  orders={filteredOrders}
+                  onSelect={handleSelectOrder}
+                  selectedOrderId={selectedOrder?.orderId}
+                  onStatusChange={handleStatusChange}
+                />
+              </div>
             </motion.div>
           </div>
         </div>
       </div>
+
+      {/* Mobile/Tablet Order Details Modal */}
+      <Modal
+        title={
+          selectedOrder ? `Order #${selectedOrder.orderId}` : "Order Details"
+        }
+        open={isDetailsModalVisible}
+        onCancel={handleCloseDetails}
+        footer={null}
+        width="95%"
+        style={{ maxWidth: 600 }}
+        className="dark:bg-gray-800"
+        centered
+      >
+        {selectedOrder && (
+          <OrderDetails
+            order={selectedOrder}
+            onStatusChange={(orderId, status, note) => {
+              handleStatusChange(orderId, status, note);
+            }}
+            onAssignDeliveryPartner={(orderId, partnerId) => {
+              handleAssignDeliveryPartner(orderId, partnerId);
+            }}
+            onCancel={(orderId, reason) => {
+              handleCancelOrder(orderId, reason);
+            }}
+            onPartialCancel={(orderId, items) => {
+              handlePartialCancel(orderId, items);
+            }}
+            onGenerateInvoice={() => {
+              message.success("Invoice generated successfully");
+            }}
+            onClose={handleCloseDetails}
+          />
+        )}
+      </Modal>
     </div>
   );
 };
 
 export default OrderManagementPage;
-
