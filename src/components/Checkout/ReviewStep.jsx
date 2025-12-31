@@ -96,19 +96,19 @@ const ReviewStep = ({
 
   if (!address || !paymentMethod) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-        <p className="text-gray-600 mb-4">Please complete previous steps</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 text-center">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-4">Please complete previous steps</p>
         <Button onClick={onBack}>Go Back</Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Order Items */}
-      <Card className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Order Items</h2>
-        <div className="space-y-4">
+      <Card className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">Order Items</h2>
+        <div className="space-y-3 sm:space-y-4">
           {cartItems.map((item, index) => {
             const product = getProductDetails(item);
             const itemPrice = parseFloat(item.price);
@@ -120,9 +120,9 @@ const ReviewStep = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex gap-4 p-4 bg-gray-50 rounded-lg"
+                className="flex gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
               >
-                <div className="relative w-20 h-20 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-gray-100 dark:bg-gray-600 rounded-lg overflow-hidden">
                   <Image
                     src={item.image || product?.images?.[0] || ""}
                     alt={item.name}
@@ -130,11 +130,11 @@ const ReviewStep = ({
                     className="object-cover"
                   />
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1">
                     {item.name}
                   </h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-2">
                     {item.size && item.size !== "One Size" && (
                       <span>Size: {item.size}</span>
                     )}
@@ -143,7 +143,7 @@ const ReviewStep = ({
                     )}
                     <span>Qty: {item.quantity}</span>
                   </div>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                     ₹{formatPrice(itemTotal)}
                   </p>
                 </div>
@@ -154,22 +154,22 @@ const ReviewStep = ({
       </Card>
 
       {/* Delivery Address */}
-      <Card className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
-          <IconMapPin className="w-5 h-5 text-blue-600" />
-          <h2 className="text-xl font-bold text-gray-900">Delivery Address</h2>
+      <Card className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+          <IconMapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Delivery Address</h2>
         </div>
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <p className="font-semibold text-gray-900 mb-1">{address.name}</p>
-          <p className="text-gray-700 text-sm mb-1">{address.phone}</p>
-          <p className="text-gray-700 text-sm">
+        <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1">{address.name}</p>
+          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mb-1">{address.phone}</p>
+          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
             {address.addressLine1}, {address.addressLine2}
           </p>
-          <p className="text-gray-700 text-sm">
+          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
             {address.city}, {address.state} - {address.pincode}
           </p>
           {address.landmark && (
-            <p className="text-gray-600 text-xs mt-1">
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               Landmark: {address.landmark}
             </p>
           )}
@@ -177,54 +177,54 @@ const ReviewStep = ({
       </Card>
 
       {/* Payment Method */}
-      <Card className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
-          <IconCreditCard className="w-5 h-5 text-blue-600" />
-          <h2 className="text-xl font-bold text-gray-900">Payment Method</h2>
+      <Card className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+          <IconCreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Payment Method</h2>
         </div>
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <p className="font-semibold text-gray-900 mb-1">
+        <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1">
             {getPaymentMethodName(paymentMethod)}
           </p>
           {paymentMethod === "card" && paymentDetails.cardDetails && (
-            <p className="text-gray-600 text-sm">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
               Card ending in {paymentDetails.cardDetails.cardNumber.slice(-4)}
             </p>
           )}
           {paymentMethod === "upi" && paymentDetails.upiId && (
-            <p className="text-gray-600 text-sm">{paymentDetails.upiId}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{paymentDetails.upiId}</p>
           )}
           {paymentMethod === "netbanking" && paymentDetails.bank && (
-            <p className="text-gray-600 text-sm">{paymentDetails.bank}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{paymentDetails.bank}</p>
           )}
         </div>
       </Card>
 
       {/* Order Summary */}
-      <Card className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
-        <div className="space-y-3">
-          <div className="flex justify-between text-gray-700">
+      <Card className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">Order Summary</h2>
+        <div className="space-y-2 sm:space-y-3">
+          <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <span>Subtotal ({cartItems.length} items)</span>
             <span>₹{formatPrice(orderSummary.subtotal)}</span>
           </div>
           {orderSummary.discount > 0 && (
-            <div className="flex justify-between text-green-600">
+            <div className="flex justify-between text-sm sm:text-base text-green-600 dark:text-green-400">
               <span>Discount</span>
               <span>-₹{formatPrice(orderSummary.discount)}</span>
             </div>
           )}
-          <div className="flex justify-between text-gray-700">
+          <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <span>Shipping</span>
             <span>₹{orderSummary.shipping}</span>
           </div>
-          <div className="flex justify-between text-gray-700">
+          <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
             <span>Tax (GST 18%)</span>
             <span>₹{formatPrice(orderSummary.tax)}</span>
           </div>
-          <div className="border-t border-gray-200 pt-3 flex justify-between">
-            <span className="text-lg font-bold text-gray-900">Total</span>
-            <span className="text-xl font-bold text-blue-600">
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-2 sm:pt-3 flex justify-between">
+            <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Total</span>
+            <span className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">
               ₹{formatPrice(orderSummary.grandTotal)}
             </span>
           </div>
@@ -232,19 +232,19 @@ const ReviewStep = ({
       </Card>
 
       {/* Terms and Conditions */}
-      <Card className="bg-blue-50 border-blue-200">
+      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
         <Checkbox
           checked={agreeToTerms}
           onChange={(e) => setAgreeToTerms(e.target.checked)}
           className="w-full"
         >
-          <span className="text-sm text-gray-700">
+          <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
             I agree to the{" "}
-            <a href="#" className="text-blue-600 hover:underline">
+            <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
               Terms and Conditions
             </a>{" "}
             and{" "}
-            <a href="#" className="text-blue-600 hover:underline">
+            <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
               Privacy Policy
             </a>
           </span>
@@ -252,7 +252,7 @@ const ReviewStep = ({
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <Button
           size="large"
           icon={<IconArrowLeft className="w-4 h-4" />}

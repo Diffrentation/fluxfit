@@ -160,13 +160,14 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Delivery Address</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Delivery Address</h2>
         <Button
           type="primary"
           icon={<IconPlus className="w-4 h-4" />}
           onClick={handleAddAddress}
+          className="w-full sm:w-auto"
         >
           Add New Address
         </Button>
@@ -180,7 +181,7 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
         }}
         className="w-full"
       >
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <AnimatePresence>
             {addresses.map((address, index) => (
               <motion.div
@@ -192,54 +193,54 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
               >
                 <Radio value={address.id} className="w-full">
                   <div
-                    className={`w-full p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    className={`w-full p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${
                       selectedAddress?.id === address.id
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-0">
+                      <div className="flex items-start gap-2 sm:gap-3 flex-1 w-full">
                         <div
-                          className={`p-2 rounded-lg ${
+                          className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${
                             selectedAddress?.id === address.id
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-100 text-gray-600"
+                              ? "bg-blue-600 dark:bg-blue-500 text-white"
+                              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                           }`}
                         >
                           {getAddressIcon(address.type)}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold text-gray-900">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                            <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
                               {address.name}
                             </span>
-                            <span className="text-gray-500">
+                            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                               {address.phone}
                             </span>
                             {address.isDefault && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
+                              <span className="px-1.5 sm:px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded">
                                 Default
                               </span>
                             )}
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded capitalize">
+                            <span className="px-1.5 sm:px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded capitalize">
                               {address.type}
                             </span>
                           </div>
-                          <p className="text-gray-700 text-sm">
+                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                             {address.addressLine1}, {address.addressLine2}
                           </p>
-                          <p className="text-gray-700 text-sm">
+                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                             {address.city}, {address.state} - {address.pincode}
                           </p>
                           {address.landmark && (
-                            <p className="text-gray-500 text-xs mt-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               Landmark: {address.landmark}
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
+                      <div className="flex items-center gap-1.5 sm:gap-2 ml-0 sm:ml-4 w-full sm:w-auto justify-end sm:justify-start">
                         {!address.isDefault && (
                           <Button
                             type="text"
@@ -283,12 +284,12 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
 
       {/* Continue Button */}
       {selectedAddress && (
-        <div className="mt-6 flex justify-end">
+        <div className="mt-4 sm:mt-6 flex justify-end">
           <Button
             type="primary"
             size="large"
             onClick={() => onAddressSelect(selectedAddress, true)}
-            className="min-w-[150px]"
+            className="w-full sm:w-auto min-w-[150px]"
           >
             Continue to Payment
             <IconChevronRight className="w-4 h-4 ml-2" />
@@ -305,7 +306,8 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
           form.resetFields();
         }}
         footer={null}
-        width={600}
+        width="90%"
+        style={{ maxWidth: 600 }}
       >
         <Form
           form={form}
@@ -325,7 +327,7 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
             </Select>
           </Form.Item>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Form.Item
               name="name"
               label="Full Name"
@@ -362,7 +364,7 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
             <Input placeholder="Street, Area, Colony" />
           </Form.Item>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Form.Item
               name="city"
               label="City"

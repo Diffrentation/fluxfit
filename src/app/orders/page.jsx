@@ -111,27 +111,29 @@ const OrdersPage = () => {
 
   // Format price helper - prices are already in INR
   const formatPrice = (price) => {
-    return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return parseFloat(price).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
   if (orders.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 sm:pt-24 pb-8 sm:pb-12 transition-colors duration-300">
+        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
               My Orders
             </h1>
-            <p className="text-gray-600">Track and manage your orders</p>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+              Track and manage your orders
+            </p>
           </div>
           <Empty
             description="No orders found"
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           >
-            <Button
-              type="primary"
-              onClick={() => router.push("/product-list")}
-            >
+            <Button type="primary" onClick={() => router.push("/product-list")}>
               Start Shopping
             </Button>
           </Empty>
@@ -141,18 +143,20 @@ const OrdersPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 sm:pt-24 pb-8 sm:pb-12 transition-colors duration-300">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
             My Orders
           </h1>
-          <p className="text-gray-600">Track and manage your orders</p>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+            Track and manage your orders
+          </p>
         </motion.div>
 
         {/* Filters */}
@@ -160,22 +164,25 @@ const OrdersPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4"
+          className="mb-4 sm:mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4"
         >
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex-1 min-w-0">
               <Search
                 placeholder="Search by order ID or product name"
                 allowClear
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                prefix={<IconSearch className="w-4 h-4 text-gray-400" />}
+                prefix={
+                  <IconSearch className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                }
+                className="w-full"
               />
             </div>
             <Select
               value={statusFilter}
               onChange={setStatusFilter}
-              style={{ width: 200 }}
+              className="w-full sm:w-[180px] md:w-[200px]"
               prefixIcon={<IconFilter className="w-4 h-4" />}
             >
               <Option value="all">All Status</Option>
@@ -190,6 +197,7 @@ const OrdersPage = () => {
             <Button
               icon={<IconRefresh className="w-4 h-4" />}
               onClick={loadOrders}
+              className="w-full sm:w-auto"
             >
               Refresh
             </Button>
@@ -197,9 +205,9 @@ const OrdersPage = () => {
         </motion.div>
 
         {/* Orders List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredOrders.length === 0 ? (
-            <Card>
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
               <Empty
                 description="No orders match your filters"
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -214,16 +222,16 @@ const OrdersPage = () => {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  className="hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700"
                   onClick={() => router.push(`/orders/${order.orderId}`)}
                 >
                   <div className="flex flex-col md:flex-row gap-4">
                     {/* Order Info */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-bold text-gray-900">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-3 sm:mb-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                               Order #{order.orderId}
                             </h3>
                             <Badge
@@ -234,12 +242,15 @@ const OrdersPage = () => {
                               {getStatusIcon(order.status)}
                             </Badge>
                           </div>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                             Placed on{" "}
-                            {format(new Date(order.orderDate), "MMM dd, yyyy 'at' hh:mm a")}
+                            {format(
+                              new Date(order.orderDate),
+                              "MMM dd, yyyy 'at' hh:mm a"
+                            )}
                           </p>
                         </div>
-                        <IconChevronRight className="w-5 h-5 text-gray-400 hidden md:block" />
+                        <IconChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 hidden md:block shrink-0" />
                       </div>
 
                       {/* Order Items Preview */}
@@ -247,9 +258,9 @@ const OrdersPage = () => {
                         {order.items.slice(0, 3).map((item, idx) => (
                           <div
                             key={`${item.id}-${item.size}-${item.color}-${idx}`}
-                            className="flex items-center gap-3"
+                            className="flex items-center gap-2 sm:gap-3"
                           >
-                            <div className="relative w-12 h-12 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                            <div className="relative w-10 h-10 sm:w-12 sm:h-12 shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
                               <Image
                                 src={item.image || ""}
                                 alt={item.name}
@@ -258,10 +269,10 @@ const OrdersPage = () => {
                               />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                                 {item.name}
                               </p>
-                              <p className="text-xs text-gray-600">
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
                                 {item.size && item.size !== "One Size"
                                   ? `Size: ${item.size} • `
                                   : ""}
@@ -269,13 +280,16 @@ const OrdersPage = () => {
                                 Qty: {item.quantity}
                               </p>
                             </div>
-                            <p className="text-sm font-semibold text-gray-900">
-                              ₹{formatPrice(parseFloat(item.price) * item.quantity)}
+                            <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white shrink-0">
+                              ₹
+                              {formatPrice(
+                                parseFloat(item.price) * item.quantity
+                              )}
                             </p>
                           </div>
                         ))}
                         {order.items.length > 3 && (
-                          <p className="text-sm text-gray-600 mt-2">
+                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
                             +{order.items.length - 3} more item(s)
                           </p>
                         )}
@@ -283,22 +297,33 @@ const OrdersPage = () => {
                     </div>
 
                     {/* Order Summary */}
-                    <div className="md:w-48 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-4">
+                    <div className="md:w-48 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 pt-3 sm:pt-4 md:pt-0 md:pl-4">
                       <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Items:</span>
-                          <span className="font-medium">{order.items.length}</span>
+                        <div className="flex justify-between text-xs sm:text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Items:
+                          </span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {order.items.length}
+                          </span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Total:</span>
-                          <span className="font-bold text-lg text-blue-600">
-                            ₹{order.orderSummary?.grandTotal || "0.00"}
+                        <div className="flex justify-between text-xs sm:text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Total:
+                          </span>
+                          <span className="font-bold text-base sm:text-lg text-blue-600 dark:text-blue-400">
+                            ₹
+                            {formatPrice(
+                              parseFloat(
+                                order.orderSummary?.grandTotal || "0.00"
+                              )
+                            )}
                           </span>
                         </div>
                         <Button
                           type="primary"
                           block
-                          className="mt-4"
+                          className="mt-3 sm:mt-4"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/orders/${order.orderId}`);
@@ -320,4 +345,3 @@ const OrdersPage = () => {
 };
 
 export default OrdersPage;
-

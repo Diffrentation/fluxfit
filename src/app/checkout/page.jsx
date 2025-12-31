@@ -95,26 +95,26 @@ const CheckoutPage = () => {
   ).toFixed(2);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 sm:pt-24 pb-8 sm:pb-12 transition-colors duration-300">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
           <Button
             type="text"
             icon={<IconArrowLeft className="w-4 h-4" />}
             onClick={handleBack}
-            className="mb-4"
+            className="mb-3 sm:mb-4"
           >
             Back to Cart
           </Button>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
             Checkout
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
             Complete your purchase in a few simple steps
           </p>
         </motion.div>
@@ -124,7 +124,7 @@ const CheckoutPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8 bg-white rounded-lg shadow-sm p-6 border border-gray-200"
+          className="mb-6 sm:mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
         >
           <Steps
             current={currentStep}
@@ -140,27 +140,29 @@ const CheckoutPage = () => {
               <div
                 key={index}
                 className={`flex flex-col items-center flex-1 ${
-                  index < steps.length - 1 ? "border-r border-gray-200" : ""
+                  index < steps.length - 1
+                    ? "border-r border-gray-200 dark:border-gray-700"
+                    : ""
                 }`}
               >
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 sm:mb-2 ${
                     index <= currentStep
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-500"
+                      ? "bg-blue-600 dark:bg-blue-500 text-white"
+                      : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                   }`}
                 >
                   {index < currentStep ? (
-                    <IconCheck className="w-5 h-5" />
+                    <IconCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    step.icon
+                    <div className="w-4 h-4 sm:w-5 sm:h-5">{step.icon}</div>
                   )}
                 </div>
                 <span
                   className={`text-xs text-center ${
                     index <= currentStep
-                      ? "text-blue-600 font-semibold"
-                      : "text-gray-500"
+                      ? "text-blue-600 dark:text-blue-400 font-semibold"
+                      : "text-gray-500 dark:text-gray-400"
                   }`}
                 >
                   {step.title}
@@ -171,9 +173,9 @@ const CheckoutPage = () => {
         </motion.div>
 
         {/* Step Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             <AnimatePresence mode="wait">
               {currentStep === 0 && (
                 <motion.div
@@ -235,18 +237,18 @@ const CheckoutPage = () => {
           </div>
 
           {/* Order Summary Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 w-full">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
-              className="sticky top-24 bg-white rounded-lg shadow-lg border border-gray-200 p-6"
+              className="sticky top-20 sm:top-24 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
             >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
                 Order Summary
               </h2>
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between text-gray-700">
+              <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
+                <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
                   <span>Subtotal ({cartItems.length} items)</span>
                   <span>
                     ₹
@@ -257,7 +259,7 @@ const CheckoutPage = () => {
                   </span>
                 </div>
                 {parseFloat(discount) > 0 && (
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-sm sm:text-base text-green-600 dark:text-green-400">
                     <span>Discount</span>
                     <span>
                       -₹
@@ -268,17 +270,19 @@ const CheckoutPage = () => {
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-700">
+                <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
                   <span>Shipping</span>
                   <span>₹{shipping}</span>
                 </div>
-                <div className="flex justify-between text-gray-700">
+                <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
                   <span>Tax (GST 18%)</span>
                   <span>₹{tax}</span>
                 </div>
-                <div className="border-t border-gray-200 pt-3 flex justify-between">
-                  <span className="text-lg font-bold text-gray-900">Total</span>
-                  <span className="text-xl font-bold text-blue-600">
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-2 sm:pt-3 flex justify-between">
+                  <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    Total
+                  </span>
+                  <span className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">
                     ₹
                     {parseFloat(grandTotal).toLocaleString("en-IN", {
                       minimumFractionDigits: 2,
