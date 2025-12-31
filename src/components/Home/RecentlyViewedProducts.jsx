@@ -84,31 +84,31 @@ function RecentlyViewedProducts() {
   };
 
   return (
-    <section className="w-full bg-gray-50 py-12 md:py-16 lg:py-20">
-      <div className="container mx-auto px-4">
+    <section className="w-full bg-gray-50 dark:bg-gray-800 py-8 sm:py-10 md:py-12 lg:py-14 transition-colors duration-300">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="flex items-center justify-between mb-8 md:mb-12"
+          className="flex items-center justify-between mb-6 sm:mb-8"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <motion.div
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: 0.2 }}
-              className="p-2 bg-blue-100 rounded-lg"
+              className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg"
             >
-              <IconClock className="w-6 h-6 md:w-7 md:h-7 text-blue-600" />
+              <IconClock className="w-5 h-5 sm:w-6 sm:h-6 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
             </motion.div>
             <div>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
                 Recently Viewed Products
               </h2>
-              <p className="text-sm md:text-base text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5">
                 Continue browsing your favorite items
               </p>
             </div>
@@ -122,14 +122,14 @@ function RecentlyViewedProducts() {
                 disabled={currentIndex === 0}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className={`p-2 rounded-full transition-all duration-200 ${
+                className={`p-1.5 sm:p-2 rounded-full transition-all duration-200 ${
                   currentIndex === 0
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 shadow-md"
+                    ? "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 shadow-md"
                 }`}
                 aria-label="Previous products"
               >
-                <IconChevronLeft className="w-5 h-5" />
+                <IconChevronLeft className="w-4 h-4" />
               </motion.button>
               <motion.button
                 onClick={nextSlide}
@@ -138,12 +138,12 @@ function RecentlyViewedProducts() {
                 whileTap={{ scale: 0.9 }}
                 className={`p-2 rounded-full transition-all duration-200 ${
                   currentIndex >= maxIndex
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 shadow-md"
+                    ? "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 shadow-md"
                 }`}
                 aria-label="Next products"
               >
-                <IconChevronRight className="w-5 h-5" />
+                <IconChevronRight className="w-4 h-4" />
               </motion.button>
             </div>
           )}
@@ -162,7 +162,7 @@ function RecentlyViewedProducts() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.4 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5"
             >
               {recentProducts
                 .slice(currentIndex, currentIndex + productsPerView)
@@ -193,14 +193,14 @@ function RecentlyViewedProducts() {
                 onClick={prevSlide}
                 disabled={currentIndex === 0}
                 whileTap={{ scale: 0.9 }}
-                className={`p-2 rounded-full ${
+                className={`p-1.5 sm:p-2 rounded-full ${
                   currentIndex === 0
-                    ? "bg-gray-200 text-gray-400"
-                    : "bg-white text-gray-700 shadow-md"
+                    ? "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-md"
                 }`}
                 aria-label="Previous products"
               >
-                <IconChevronLeft className="w-5 h-5" />
+                <IconChevronLeft className="w-4 h-4" />
               </motion.button>
 
               {/* Dots Indicator */}
@@ -211,8 +211,8 @@ function RecentlyViewedProducts() {
                     onClick={() => setCurrentIndex(idx)}
                     className={`h-2 rounded-full transition-all duration-300 ${
                       idx === currentIndex
-                        ? "w-8 bg-blue-600"
-                        : "w-2 bg-gray-300 hover:bg-gray-400"
+                        ? "w-8 bg-blue-600 dark:bg-blue-500"
+                        : "w-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
                     }`}
                     aria-label={`Go to slide ${idx + 1}`}
                   />
@@ -225,12 +225,12 @@ function RecentlyViewedProducts() {
                 whileTap={{ scale: 0.9 }}
                 className={`p-2 rounded-full ${
                   currentIndex >= maxIndex
-                    ? "bg-gray-200 text-gray-400"
-                    : "bg-white text-gray-700 shadow-md"
+                    ? "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-md"
                 }`}
                 aria-label="Next products"
               >
-                <IconChevronRight className="w-5 h-5" />
+                <IconChevronRight className="w-4 h-4" />
               </motion.button>
             </div>
           )}
@@ -249,7 +249,7 @@ function RecentlyViewedProducts() {
               onClick={() => router.push("/product-list")}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
+              className="px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-600 dark:bg-blue-700 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors shadow-lg hover:shadow-xl"
             >
               View All Products
             </motion.button>

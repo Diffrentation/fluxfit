@@ -7,7 +7,7 @@ import GetInTouch from "@/components/GetInTouch/GetInTouch";
 
 function page() {
   return (
-    <div className="pt-15">
+    <div className="pt-15 bg-white dark:bg-gray-900 transition-colors duration-300 min-h-screen">
       <Herobanner />
       <RecentlyViewedProducts />
       <WishlistPreview />

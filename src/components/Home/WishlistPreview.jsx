@@ -17,7 +17,10 @@ import { Button, message } from "antd";
 
 // Format price helper - prices are already in INR
 const formatPrice = (price) => {
-  return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return parseFloat(price).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 };
 
 function WishlistPreview() {
@@ -62,31 +65,31 @@ function WishlistPreview() {
   const wishlistCount = getWishlistCount();
 
   return (
-    <section className="w-full bg-white py-12 md:py-16 lg:py-20">
-      <div className="container mx-auto px-4">
+    <section className="w-full bg-white dark:bg-gray-900 py-8 sm:py-10 md:py-12 lg:py-14 transition-colors duration-300">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="flex items-center justify-between mb-8 md:mb-12"
+          className="flex items-center justify-between mb-6 sm:mb-8"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <motion.div
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: 0.2 }}
-              className="p-2 bg-red-100 rounded-lg"
+              className="p-1.5 sm:p-2 bg-red-100 dark:bg-red-900/30 rounded-lg"
             >
-              <IconHeart className="w-6 h-6 md:w-7 md:h-7 text-red-600 fill-red-600" />
+              <IconHeart className="w-5 h-5 sm:w-6 sm:h-6 md:w-6 md:h-6 text-red-600 dark:text-red-400 fill-red-600 dark:fill-red-400" />
             </motion.div>
             <div>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
                 My Wishlist
               </h2>
-              <p className="text-sm md:text-base text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5">
                 {wishlistCount} {wishlistCount === 1 ? "item" : "items"} saved
               </p>
             </div>
@@ -97,15 +100,15 @@ function WishlistPreview() {
             onClick={() => router.push("/wishlist")}
             whileHover={{ scale: 1.05, x: 5 }}
             whileTap={{ scale: 0.95 }}
-            className="hidden md:flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
+            className="hidden md:flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 bg-red-600 dark:bg-red-700 text-white rounded-lg text-sm font-semibold hover:bg-red-700 dark:hover:bg-red-800 transition-colors shadow-lg hover:shadow-xl"
           >
             View All
-            <IconArrowRight className="w-5 h-5" />
+            <IconArrowRight className="w-4 h-4" />
           </motion.button>
         </motion.div>
 
         {/* Wishlist Items Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
           <AnimatePresence mode="popLayout">
             {displayItems.map((item, index) => {
               const product = getProductDetails(item);
@@ -125,10 +128,10 @@ function WishlistPreview() {
                     delay: index * 0.1,
                     ease: "easeOut",
                   }}
-                  className="relative group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 border border-gray-200"
+                  className="relative group bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 border border-gray-200 dark:border-gray-700"
                 >
                   {/* Product Image */}
-                  <div className="relative w-full h-[250px] md:h-[300px] bg-gray-100 overflow-hidden">
+                  <div className="relative w-full h-[200px] sm:h-[240px] md:h-[280px] bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     <motion.div
                       whileHover={{ scale: 1.1 }}
                       transition={{ duration: 0.4 }}
@@ -149,24 +152,24 @@ function WishlistPreview() {
                       }
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="absolute top-3 right-3 z-10 p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
+                      className="absolute top-2 right-2 z-10 p-1.5 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                       aria-label="Remove from wishlist"
                     >
-                      <IconX className="w-5 h-5 text-red-600" />
+                      <IconX className="w-4 h-4 text-red-600 dark:text-red-400" />
                     </motion.button>
                   </div>
 
                   {/* Product Info */}
-                  <div className="p-4 pb-20">
-                    <h3 className="text-gray-900 font-semibold text-base mb-2 line-clamp-2 min-h-12">
+                  <div className="p-3 sm:p-4 pb-16 sm:pb-20">
+                    <h3 className="text-gray-900 dark:text-white font-semibold text-sm sm:text-base mb-1.5 line-clamp-2 min-h-10">
                       {item.name}
                     </h3>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl font-bold text-gray-900">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
                         ₹{formatPrice(price)}
                       </span>
                       {originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">
+                        <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-through">
                           ₹{formatPrice(originalPrice)}
                         </span>
                       )}
@@ -174,22 +177,22 @@ function WishlistPreview() {
                   </div>
 
                   {/* Quick View and Add to Cart Buttons at Bottom */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 flex gap-2 z-20 shadow-lg">
+                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex gap-2 z-20 shadow-lg">
                     <Button
                       type="default"
-                      size="large"
-                      icon={<IconEye className="w-4 h-4" />}
+                      size="small"
+                      icon={<IconEye className="w-3.5 h-3.5" />}
                       onClick={() => handleQuickView(item.id)}
-                      className="flex-1 bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
+                      className="flex-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-xs sm:text-sm"
                     >
                       Quick View
                     </Button>
                     <Button
                       type="primary"
-                      size="large"
-                      icon={<IconShoppingCart className="w-4 h-4" />}
+                      size="small"
+                      icon={<IconShoppingCart className="w-3.5 h-3.5" />}
                       onClick={() => handleAddToCart(product || item)}
-                      className="flex-1 bg-red-600 text-white hover:bg-red-700 border-none"
+                      className="flex-1 bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800 border-none text-xs sm:text-sm"
                     >
                       Add to Cart
                     </Button>
@@ -213,10 +216,10 @@ function WishlistPreview() {
               onClick={() => router.push("/wishlist")}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
+              className="flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 bg-red-600 dark:bg-red-700 text-white rounded-lg text-sm font-semibold hover:bg-red-700 dark:hover:bg-red-800 transition-colors shadow-lg hover:shadow-xl"
             >
               View All {wishlistCount} Items
-              <IconArrowRight className="w-5 h-5" />
+              <IconArrowRight className="w-4 h-4" />
             </motion.button>
           </motion.div>
         )}
@@ -237,7 +240,7 @@ function WishlistPreview() {
               className="flex items-center gap-2 px-8 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
             >
               View All {wishlistCount} Items
-              <IconArrowRight className="w-5 h-5" />
+              <IconArrowRight className="w-4 h-4" />
             </motion.button>
           </motion.div>
         )}

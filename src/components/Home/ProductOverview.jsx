@@ -216,51 +216,53 @@ function ProductOverview() {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-4 sm:py-6 md:py-8 lg:py-10 bg-white dark:bg-gray-900 transition-colors duration-300">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
           PRODUCT OVERVIEW
         </h1>
 
         {/* Category Navigation and Search/Filter */}
-        <div className="flex items-center justify-between mb-6">
-          <CategoryNav
-            categories={categories}
-            activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
-          />
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div className="w-full sm:flex-1">
+            <CategoryNav
+              categories={categories}
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+            />
+          </div>
+          <div className="flex items-center gap-2 sm:gap-4">
             <motion.button
               onClick={() => setShowFilters(!showFilters)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-xs font-medium transition-colors text-gray-900 dark:text-gray-100"
             >
               <motion.div
                 animate={{ rotate: showFilters ? 90 : 0 }}
                 transition={{ duration: 0.3 }}
               >
                 {showFilters ? (
-                  <IconX className="w-4 h-4" />
+                  <IconX className="w-3 h-3 sm:w-4 sm:h-4" />
                 ) : (
-                  <IconFilter className="w-4 h-4" />
+                  <IconFilter className="w-3 h-3 sm:w-4 sm:h-4" />
                 )}
               </motion.div>
-              <span>Filter</span>
+              <span className="hidden sm:inline">Filter</span>
             </motion.button>
             <motion.div
-              className="relative"
+              className="relative flex-1 sm:flex-none"
               whileFocus={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
             >
-              <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <IconSearch className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                className="w-full sm:w-auto pl-7 sm:pl-8 pr-2.5 sm:pr-3 py-1.5 sm:py-2 border border-gray-300 dark:border-gray-700 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </motion.div>
           </div>
@@ -275,7 +277,7 @@ function ProductOverview() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="bg-gray-50 rounded-lg p-6 mb-8 overflow-hidden"
+            className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 sm:p-5 mb-6 overflow-hidden"
           >
             <motion.div
               initial={{ y: -20 }}
@@ -283,8 +285,10 @@ function ProductOverview() {
               exit={{ y: -20 }}
               transition={{ duration: 0.3, delay: 0.1 }}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                  Filters
+                </h2>
                 <Button
                   size="small"
                   onClick={resetFilters}
@@ -294,7 +298,7 @@ function ProductOverview() {
                   Reset Filters
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 <SortByFilter
                   value={sortBy}
                   onChange={setSortBy}
@@ -324,7 +328,7 @@ function ProductOverview() {
       {/* Products Grid */}
       <motion.div
         layout
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
       >
         <AnimatePresence mode="popLayout">
           {sortedProducts.map((product, index) => (
@@ -353,9 +357,9 @@ function ProductOverview() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="text-center py-12"
+            className="text-center py-8 sm:py-10"
           >
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">
               No products found matching your filters.
             </p>
           </motion.div>
