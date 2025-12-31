@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminContent from "@/components/Admin/AdminContent";
 import CouponList from "@/components/Admin/Coupons/CouponList";
 import CouponForm from "@/components/Admin/Coupons/CouponForm";
 import FlashSaleManager from "@/components/Admin/Coupons/FlashSaleManager";
@@ -122,7 +123,7 @@ const CouponManagementPage = () => {
       <div className="flex">
         <AdminSidebar activeItem="coupons" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-20 lg:pt-16">
+        <AdminContent className="pt-20 lg:pt-16">
           <div className="p-4 md:p-6 pb-8">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -204,7 +205,7 @@ const CouponManagementPage = () => {
               />
             </motion.div>
           </div>
-        </div>
+        </AdminContent>
       </div>
 
       <CouponForm

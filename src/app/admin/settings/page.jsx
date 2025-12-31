@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminContent from "@/components/Admin/AdminContent";
 import WebsiteSettings from "@/components/Admin/Settings/WebsiteSettings";
 import CurrencyTaxSettings from "@/components/Admin/Settings/CurrencyTaxSettings";
 import ShippingRules from "@/components/Admin/Settings/ShippingRules";
@@ -30,7 +31,7 @@ const SettingsPage = () => {
       <div className="flex">
         <AdminSidebar activeItem="settings" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16 min-w-0">
+        <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -145,7 +146,7 @@ const SettingsPage = () => {
               />
             </motion.div>
           </div>
-        </div>
+        </AdminContent>
       </div>
     </div>
   );

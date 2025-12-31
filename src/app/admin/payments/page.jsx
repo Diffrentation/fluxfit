@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminContent from "@/components/Admin/AdminContent";
 import PaymentHistory from "@/components/Admin/Payments/PaymentHistory";
 import RefundManagement from "@/components/Admin/Payments/RefundManagement";
 import SettlementReports from "@/components/Admin/Payments/SettlementReports";
@@ -249,7 +250,7 @@ const PaymentManagementPage = () => {
       <div className="flex">
         <AdminSidebar activeItem="payments" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16 min-w-0">
+        <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -397,7 +398,7 @@ const PaymentManagementPage = () => {
               />
             </motion.div>
           </div>
-        </div>
+        </AdminContent>
       </div>
     </div>
   );

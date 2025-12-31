@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import ProductList from "@/components/Admin/Products/ProductList";
 import ProductForm from "@/components/Admin/Products/ProductForm";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminContent from "@/components/Admin/AdminContent";
 import {
   IconPlus,
   IconUpload,
@@ -296,7 +297,7 @@ const ProductManagementPage = () => {
         <AdminSidebar activeItem="products" />
 
         {/* Main Content */}
-        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16">
+        <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
             {/* Header */}
             <motion.div
@@ -392,7 +393,7 @@ const ProductManagementPage = () => {
               }}
             />
           </div>
-        </div>
+        </AdminContent>
       </div>
 
       {/* Product Form Modal */}

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminContent from "@/components/Admin/AdminContent";
 import CategoryTree from "@/components/Admin/Categories/CategoryTree";
 import BrandList from "@/components/Admin/Categories/BrandList";
 import CategoryForm from "@/components/Admin/Categories/CategoryForm";
@@ -475,7 +476,7 @@ const CategoryManagementPage = () => {
       <div className="flex">
         <AdminSidebar activeItem="categories" />
 
-        <div className="flex-1 ml-0 lg:ml-64 pt-14 sm:pt-16 lg:pt-16">
+        <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -571,7 +572,7 @@ const CategoryManagementPage = () => {
               />
             </motion.div>
           </div>
-        </div>
+        </AdminContent>
       </div>
 
       <CategoryForm

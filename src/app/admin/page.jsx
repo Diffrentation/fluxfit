@@ -19,6 +19,7 @@ import TopProducts from "@/components/Admin/TopProducts";
 import AbandonedCartStats from "@/components/Admin/AbandonedCartStats";
 import UserRegistrations from "@/components/Admin/UserRegistrations";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminContent from "@/components/Admin/AdminContent";
 import { format } from "date-fns";
 import {
   exportToCSV,
@@ -114,7 +115,7 @@ const AdminDashboard = () => {
         <AdminSidebar activeItem="dashboard" />
 
         {/* Main Content */}
-        <div className="flex-1 ml-0 lg:ml-64 pt-16 sm:pt-20 lg:pt-16">
+        <AdminContent className="pt-16 sm:pt-20 lg:pt-16">
           <div className="p-3 sm:p-4 md:p-6 pb-6 sm:pb-8">
             {/* Header */}
             <motion.div
@@ -210,7 +211,7 @@ const AdminDashboard = () => {
             {/* Abandoned Cart Stats */}
             <AbandonedCartStats />
           </div>
-        </div>
+        </AdminContent>
       </div>
     </div>
   );
