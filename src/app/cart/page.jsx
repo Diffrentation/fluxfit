@@ -138,17 +138,17 @@ const CartPage = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-24 pb-12 transition-colors duration-300">
+        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-20"
+            className="text-center py-12 sm:py-16 md:py-20"
           >
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
               Your cart is empty
             </h1>
-            <p className="text-gray-600 mb-8">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-6 sm:mb-8">
               Looks like you haven&apos;t added anything to your cart yet.
             </p>
             <Button
@@ -166,24 +166,26 @@ const CartPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 sm:pt-24 pb-8 sm:pb-12 transition-colors duration-300">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="mb-4 sm:mb-6"
         >
-          <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+            Shopping Cart
+          </h1>
         </motion.div>
 
-        <div className="border-b border-gray-300 mb-6"></div>
+        <div className="border-b border-gray-300 dark:border-gray-700 mb-4 sm:mb-6"></div>
 
         {/* Main Content Layout */}
-        <div className="flex gap-6 relative">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 relative">
           {/* Cart Items - Scrollable */}
-          <div className="flex-1">
-            <div className="space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="flex-1 min-w-0">
+            <div className="space-y-4 sm:space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto pr-0 sm:pr-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
               <AnimatePresence>
                 {cartItems.map((item, index) => {
                   const product = getProductDetails(item);
@@ -201,11 +203,11 @@ const CartPage = () => {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="bg-white rounded-lg shadow-sm p-6 border border-gray-200"
+                      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
                     >
-                      <div className="flex flex-col md:flex-row gap-6">
+                      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                         {/* Product Image */}
-                        <div className="relative w-full md:w-48 h-64 md:h-48 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                        <div className="relative w-full sm:w-40 md:w-48 h-48 sm:h-40 md:h-48 shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
                           <Image
                             src={item.image || product?.images?.[0] || ""}
                             alt={item.name}
@@ -217,12 +219,12 @@ const CartPage = () => {
                         {/* Product Details */}
                         <div className="flex-1 flex flex-col">
                           {/* Product Name and Description */}
-                          <div className="mb-3">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                          <div className="mb-2 sm:mb-3">
+                            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1">
                               {item.name}
                             </h2>
                             {product?.description && (
-                              <p className="text-sm text-gray-600 line-clamp-2">
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
                                 {product.description}
                               </p>
                             )}
@@ -238,19 +240,19 @@ const CartPage = () => {
                           )}
 
                           {/* Stock Status */}
-                          <div className="mb-3 flex items-center gap-2">
-                            <span className="text-sm text-green-600 font-medium">
+                          <div className="mb-2 sm:mb-3 flex items-center gap-2">
+                            <span className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">
                               In stock
                             </span>
-                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                            <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
                               Fulfilled
                             </span>
                           </div>
 
                           {/* Color */}
                           {item.color && (
-                            <div className="mb-3">
-                              <span className="text-sm text-gray-700">
+                            <div className="mb-2 sm:mb-3">
+                              <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                                 <span className="font-medium">Colour:</span>{" "}
                                 <span className="capitalize">{item.color}</span>
                               </span>
@@ -259,8 +261,8 @@ const CartPage = () => {
 
                           {/* Size */}
                           {item.size && item.size !== "One Size" && (
-                            <div className="mb-3">
-                              <span className="text-sm text-gray-700">
+                            <div className="mb-2 sm:mb-3">
+                              <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                                 <span className="font-medium">Size:</span>{" "}
                                 {item.size}
                               </span>
@@ -282,17 +284,17 @@ const CartPage = () => {
                                   </div>
                                 )}
                                 <div className="flex items-baseline gap-2">
-                                  <span className="text-2xl font-bold text-gray-900">
+                                  <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                                     ₹{formatPrice(itemTotal)}
                                   </span>
                                   {originalPrice && (
-                                    <span className="text-sm text-gray-500 line-through">
+                                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-through">
                                       M.R.P.: ₹{formatPrice(originalPrice)}
                                     </span>
                                   )}
                                 </div>
                                 {item.quantity > 1 && (
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     ₹{formatPrice(itemPrice)} per item
                                   </p>
                                 )}
@@ -349,16 +351,16 @@ const CartPage = () => {
                             </div>
 
                             {/* Action Links */}
-                            <div className="flex flex-wrap items-center gap-4 text-sm">
+                            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
                               <button
                                 onClick={() => handleDelete(item)}
-                                className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                               >
                                 Delete
                               </button>
                               <button
                                 onClick={() => handleSaveForLater(item)}
-                                className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                               >
                                 Save for later
                               </button>
@@ -366,15 +368,15 @@ const CartPage = () => {
                                 onClick={() =>
                                   router.push(`/product-details/${item.id}`)
                                 }
-                                className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                               >
                                 See more like this
                               </button>
                               <button
                                 onClick={() => handleShare(item)}
-                                className="text-blue-600 hover:text-blue-700 hover:underline transition-colors flex items-center gap-1"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
                               >
-                                <IconShare className="w-4 h-4" />
+                                <IconShare className="w-3 h-3 sm:w-4 sm:h-4" />
                                 Share
                               </button>
                             </div>
@@ -392,20 +394,20 @@ const CartPage = () => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="w-80 shrink-0"
+            className="w-full lg:w-80 shrink-0"
           >
-            <div className="sticky top-24 bg-white rounded-lg shadow-lg border border-gray-200 p-6">
+            <div className="sticky top-20 sm:top-24 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
                   Order Summary
                 </h2>
-                <div className="border-b border-gray-200 pb-4 mb-4 space-y-3">
+                <div className="border-b border-gray-200 dark:border-gray-700 pb-3 sm:pb-4 mb-3 sm:mb-4 space-y-2 sm:space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                       Subtotal ({totalItems}{" "}
                       {totalItems === 1 ? "item" : "items"}):
                     </p>
-                    <span className="text-xl text-end font-bold text-gray-900">
+                    <span className="text-lg sm:text-xl text-end font-bold text-gray-900 dark:text-white">
                       ₹{formatPrice(subtotal)}
                     </span>
                   </div>
@@ -413,33 +415,33 @@ const CartPage = () => {
                   {/* Coupon Section */}
                   <div className="space-y-2">
                     {appliedCoupon ? (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-2 sm:p-3">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <IconTag className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-semibold text-green-800">
+                            <IconTag className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            <span className="text-xs sm:text-sm font-semibold text-green-800 dark:text-green-400">
                               {appliedCoupon.code}
                             </span>
                           </div>
                           <button
                             onClick={handleRemoveCoupon}
-                            className="text-green-600 hover:text-green-800"
+                            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
                           >
                             <IconX className="w-4 h-4" />
                           </button>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-green-700">
+                          <span className="text-xs text-green-700 dark:text-green-400">
                             Discount:
                           </span>
-                          <span className="text-sm font-bold text-green-800">
+                          <span className="text-xs sm:text-sm font-bold text-green-800 dark:text-green-400">
                             -₹{formatPrice(discount)}
                           </span>
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Input
                             placeholder="Enter coupon code"
                             value={couponCode}
@@ -447,18 +449,19 @@ const CartPage = () => {
                             onPressEnter={handleApplyCoupon}
                             className="flex-1"
                             prefix={
-                              <IconTag className="w-4 h-4 text-gray-400" />
+                              <IconTag className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                             }
                           />
                           <Button
                             onClick={handleApplyCoupon}
                             loading={isApplyingCoupon}
                             type="default"
+                            className="w-full sm:w-auto"
                           >
                             Apply
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Try: WELCOME10, SAVE20, FLAT50, SUMMER25
                         </p>
                       </div>
@@ -466,15 +469,17 @@ const CartPage = () => {
                   </div>
 
                   {appliedCoupon && (
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                      <p className="text-lg font-bold text-gray-900">Total:</p>
-                      <span className="text-2xl text-end font-bold text-blue-600">
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                        Total:
+                      </p>
+                      <span className="text-xl sm:text-2xl text-end font-bold text-blue-600 dark:text-blue-400">
                         ₹{formatPrice(finalTotal)}
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
                   Taxes and shipping calculated at checkout
                 </p>
                 <Button
@@ -504,12 +509,12 @@ const CartPage = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-12"
+            className="mt-8 sm:mt-12"
           >
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
               Saved for Later ({savedForLaterItems.length})
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {savedForLaterItems.map((item, index) => {
                 const product = getProductDetails(item);
                 const itemPrice = parseFloat(item.price);
@@ -521,10 +526,10 @@ const CartPage = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-white rounded-lg shadow-sm p-4 border border-gray-200"
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 sm:p-4 border border-gray-200 dark:border-gray-700"
                   >
-                    <div className="flex gap-4">
-                      <div className="relative w-24 h-24 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                    <div className="flex gap-3 sm:gap-4">
+                      <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
                         <Image
                           src={item.image || product?.images?.[0] || ""}
                           alt={item.name}
@@ -533,20 +538,20 @@ const CartPage = () => {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">
+                        <h3 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">
                           {item.name}
                         </h3>
                         {item.size && item.size !== "One Size" && (
-                          <p className="text-xs text-gray-600 mb-1">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                             Size: {item.size}
                           </p>
                         )}
                         {item.color && (
-                          <p className="text-xs text-gray-600 mb-2 capitalize">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 capitalize">
                             Color: {item.color}
                           </p>
                         )}
-                        <p className="text-sm font-bold text-gray-900 mb-3">
+                        <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
                           ₹{formatPrice(itemTotal)}
                         </p>
                         <div className="flex gap-2">

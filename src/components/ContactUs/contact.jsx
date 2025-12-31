@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
-import { IconArrowRight } from "@tabler/icons-react";
 import { message } from "antd";
 import { useMotionTemplate, useMotionValue, motion } from "motion/react";
 
@@ -64,102 +63,91 @@ const ContactForm = ({
   };
 
   return (
-    <div className={cn("mx-auto w-full max-w-4xl mt-20", className)}>
-      <div className="shadow-input rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
-        <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 dark:text-neutral-200">
+    <div
+      className={cn(
+        "w-full mt-12 sm:mt-16 md:mt-20 px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12",
+        className
+      )}
+    >
+      <div className="shadow-input w-full rounded-none bg-white p-4 sm:p-6 md:rounded-2xl md:p-8 dark:bg-black">
+        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">
           {title}
         </h2>
-        <p className="mt-2 max-w-2xl text-sm md:text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
           {subtitle}
         </p>
         <form className="my-8" onSubmit={handleSubmit}>
-          <div className="mb-4 space-y-4">
-            {/* Name and Email Row - Equal Width */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <LabelInputContainer>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="John Doe"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
-              </LabelInputContainer>
-
-              <LabelInputContainer>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </LabelInputContainer>
-            </div>
-
-            {/* Phone and Subject Row - Equal Width */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <LabelInputContainer>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  placeholder="+91 9876543210"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                />
-              </LabelInputContainer>
-
-              <LabelInputContainer>
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  name="subject"
-                  placeholder="Product inquiry, Order support, Size guide..."
-                  type="text"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  required
-                />
-              </LabelInputContainer>
-            </div>
-
-            {/* Message - Full Width */}
+          <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
             <LabelInputContainer>
-              <Label htmlFor="message">Your Message</Label>
-              <Textarea
-                id="message"
-                name="message"
-                placeholder="Tell us about your fashion needs, product questions, or how we can help you find your perfect style..."
-                rows={6}
-                value={formData.message}
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                name="name"
+                placeholder="John Doe"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                required
+              />
+            </LabelInputContainer>
+            <LabelInputContainer>
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                name="email"
+                placeholder="you@example.com"
+                type="email"
+                value={formData.email}
                 onChange={handleChange}
                 required
               />
             </LabelInputContainer>
           </div>
+          <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
+            <LabelInputContainer>
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                name="phone"
+                placeholder="+91 9876543210"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                required
+              />
+            </LabelInputContainer>
+            <LabelInputContainer>
+              <Label htmlFor="subject">Subject</Label>
+              <Input
+                id="subject"
+                name="subject"
+                placeholder="Product inquiry, Order support..."
+                type="text"
+                value={formData.subject}
+                onChange={handleChange}
+                required
+              />
+            </LabelInputContainer>
+          </div>
+          <LabelInputContainer className="mb-4">
+            <Label htmlFor="message">Your Message</Label>
+            <Textarea
+              id="message"
+              name="message"
+              placeholder="Tell us about your fashion needs, product questions, or how we can help you find your perfect style..."
+              rows={6}
+              value={formData.message}
+              onChange={handleChange}
+              required
+            />
+          </LabelInputContainer>
 
           <button
-            className="group/btn relative flex h-12 w-full items-center justify-center gap-2 rounded-md bg-gradient-to-br from-black to-neutral-600 font-medium text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="group/btn relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-600 font-medium text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? (
-              "Sending..."
-            ) : (
-              <>
-                Send Message
-                <IconArrowRight className="h-5 w-5" />
-              </>
-            )}
+            {isSubmitting ? "Sending..." : "Send Message &rarr;"}
             <BottomGradient />
           </button>
         </form>
