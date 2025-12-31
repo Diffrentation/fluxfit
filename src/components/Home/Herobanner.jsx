@@ -66,24 +66,24 @@ function Herobanner() {
   }, []);
 
   return (
-    <div className="relative w-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:min-h-[600px] overflow-hidden bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <div className="relative w-full min-w-0 min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:min-h-[600px] overflow-hidden bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
       {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 rounded-full p-1.5 sm:p-2 md:p-2.5 shadow-lg transition-all duration-200 hover:scale-110"
+        className="absolute left-2 sm:left-3 md:left-4 top-[65%] sm:top-[60%] md:top-80 lg:top-1/2 -translate-y-1/2 z-50 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-full p-2 sm:p-2.5 md:p-3 shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:scale-110 active:scale-95"
         aria-label="Previous slide"
         suppressHydrationWarning
       >
-        <IconChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-700 dark:text-gray-200" />
+        <IconChevronLeft className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-900 dark:text-gray-100" />
       </button>
 
       <button
         onClick={nextSlide}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-50 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 rounded-full p-2 sm:p-3 shadow-lg transition-all duration-200 hover:scale-110"
+        className="absolute right-2 sm:right-3 md:right-4 top-[65%] sm:top-[60%] md:top-80 lg:top-1/2 -translate-y-1/2 z-50 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-full p-2 sm:p-2.5 md:p-3 shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:scale-110 active:scale-95"
         aria-label="Next slide"
         suppressHydrationWarning
       >
-        <IconChevronRight className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-700 dark:text-gray-200" />
+        <IconChevronRight className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-900 dark:text-gray-100" />
       </button>
 
       {/* Slider Container */}
@@ -100,20 +100,20 @@ function Herobanner() {
               ease: "easeInOut",
             },
           }}
-          className="absolute inset-0 w-full h-full"
+          className="absolute inset-0 w-full h-full min-w-0"
         >
-          <div className="w-full h-full flex items-center px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full items-center">
+          <div className="w-full h-full flex items-center px-2 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 min-w-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 md:gap-6 w-full items-center min-w-0 max-w-full">
               {/* Left Side - Text Content */}
-              <div className="flex flex-col justify-center space-y-2 sm:space-y-3 md:space-y-4 text-left">
+              <div className="flex flex-col justify-center space-y-2 sm:space-y-3 md:space-y-4 text-left min-w-0 w-full">
                 <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm font-medium tracking-wide">
                   {slides[currentSlide]?.subtitle || ""}
                 </p>
-                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 dark:text-white leading-tight">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 dark:text-white leading-tight break-words">
                   {slides[currentSlide]?.title || ""}
                 </h1>
                 <button
-                  className="self-start px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-md font-semibold text-xs sm:text-sm transition-colors duration-200 shadow-lg hover:shadow-xl"
+                  className="self-start px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-md font-semibold text-xs sm:text-sm transition-colors duration-200 shadow-lg hover:shadow-xl whitespace-nowrap"
                   suppressHydrationWarning
                 >
                   {slides[currentSlide]?.buttonText || "SHOP NOW"}
@@ -121,7 +121,7 @@ function Herobanner() {
               </div>
 
               {/* Right Side - Image */}
-              <div className="relative w-full h-[200px] sm:h-[250px] md:h-[350px] lg:h-[450px] xl:h-[550px] rounded-lg overflow-hidden dark:ring-2 dark:ring-gray-700">
+              <div className="relative w-full h-[200px] sm:h-[250px] md:h-[350px] lg:h-[450px] xl:h-[550px] rounded-lg overflow-hidden dark:ring-2 dark:ring-gray-700 min-w-0">
                 {slides[currentSlide]?.image && (
                   <Image
                     src={slides[currentSlide].image}
