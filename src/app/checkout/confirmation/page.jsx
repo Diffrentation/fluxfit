@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -14,7 +14,7 @@ import { Button, Card, message } from "antd";
 import Image from "next/image";
 import { productDatabase } from "@/lib/productDatabase";
 
-const OrderConfirmationPage = () => {
+const OrderConfirmationContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [order, setOrder] = useState(null);
@@ -35,7 +35,10 @@ const OrderConfirmationPage = () => {
 
   // Format price helper - prices are already in INR
   const formatPrice = (price) => {
-    return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return parseFloat(price).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
   const getProductDetails = (item) => {
@@ -75,7 +78,9 @@ const OrderConfirmationPage = () => {
         </div>
         <div class="order-info">
           <p><strong>Order ID:</strong> ${order.orderId}</p>
-          <p><strong>Order Date:</strong> ${new Date(order.orderDate).toLocaleDateString()}</p>
+          <p><strong>Order Date:</strong> ${new Date(
+            order.orderDate
+          ).toLocaleDateString()}</p>
           <p><strong>Status:</strong> ${order.status}</p>
         </div>
         <div>
@@ -83,7 +88,9 @@ const OrderConfirmationPage = () => {
           <p>${order.address.name}</p>
           <p>${order.address.phone}</p>
           <p>${order.address.addressLine1}, ${order.address.addressLine2}</p>
-          <p>${order.address.city}, ${order.address.state} - ${order.address.pincode}</p>
+          <p>${order.address.city}, ${order.address.state} - ${
+      order.address.pincode
+    }</p>
         </div>
         <table>
           <thead>
@@ -115,14 +122,24 @@ const OrderConfirmationPage = () => {
         </table>
         <div class="total">
           <p>Subtotal: ₹${formatPrice(order.orderSummary.subtotal)}</p>
-          ${order.orderSummary.discount > 0 ? `<p>Discount: -₹${formatPrice(order.orderSummary.discount)}</p>` : ""}
+          ${
+            order.orderSummary.discount > 0
+              ? `<p>Discount: -₹${formatPrice(order.orderSummary.discount)}</p>`
+              : ""
+          }
           <p>Shipping: ₹${order.orderSummary.shipping}</p>
           <p>Tax (GST 18%): ₹${order.orderSummary.tax}</p>
-          <p style="font-size: 18px;">Total: ₹${order.orderSummary.grandTotal}</p>
+          <p style="font-size: 18px;">Total: ₹${
+            order.orderSummary.grandTotal
+          }</p>
         </div>
         <div>
           <h3>Payment Method:</h3>
-          <p>${order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod.toUpperCase()}</p>
+          <p>${
+            order.paymentMethod === "cod"
+              ? "Cash on Delivery"
+              : order.paymentMethod.toUpperCase()
+          }</p>
         </div>
         <div class="footer">
           <p>Thank you for your purchase!</p>
@@ -172,7 +189,8 @@ const OrderConfirmationPage = () => {
             Order Confirmed!
           </h1>
           <p className="text-gray-600 mb-4">
-            Thank you for your purchase. Your order has been placed successfully.
+            Thank you for your purchase. Your order has been placed
+            successfully.
           </p>
           <p className="text-lg font-semibold text-gray-900">
             Order ID: <span className="text-blue-600">{order.orderId}</span>
@@ -213,7 +231,9 @@ const OrderConfirmationPage = () => {
                         {item.name}
                       </h3>
                       <div className="text-xs text-gray-600 mb-1">
-                        {item.size && item.size !== "One Size" && `Size: ${item.size} • `}
+                        {item.size &&
+                          item.size !== "One Size" &&
+                          `Size: ${item.size} • `}
                         {item.color && `Color: ${item.color} • `}
                         Qty: {item.quantity}
                       </div>
@@ -229,7 +249,9 @@ const OrderConfirmationPage = () => {
 
           {/* Order Summary */}
           <Card className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Order Summary
+            </h2>
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-gray-700">
                 <span>Subtotal</span>
@@ -274,15 +296,20 @@ const OrderConfirmationPage = () => {
 
         {/* Delivery Address */}
         <Card className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Delivery Address</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            Delivery Address
+          </h2>
           <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="font-semibold text-gray-900 mb-1">{order.address.name}</p>
+            <p className="font-semibold text-gray-900 mb-1">
+              {order.address.name}
+            </p>
             <p className="text-gray-700 text-sm mb-1">{order.address.phone}</p>
             <p className="text-gray-700 text-sm">
               {order.address.addressLine1}, {order.address.addressLine2}
             </p>
             <p className="text-gray-700 text-sm">
-              {order.address.city}, {order.address.state} - {order.address.pincode}
+              {order.address.city}, {order.address.state} -{" "}
+              {order.address.pincode}
             </p>
           </div>
         </Card>
@@ -329,5 +356,20 @@ const OrderConfirmationPage = () => {
   );
 };
 
-export default OrderConfirmationPage;
+const OrderConfirmationPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 pt-24 pb-12 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-600">Loading order details...</p>
+          </div>
+        </div>
+      }
+    >
+      <OrderConfirmationContent />
+    </Suspense>
+  );
+};
 
+export default OrderConfirmationPage;
