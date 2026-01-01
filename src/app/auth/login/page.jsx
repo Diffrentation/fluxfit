@@ -32,92 +32,91 @@ function Login() {
   const handleforgotPass = () => router.push("/auth/forgot-password");
 
   return (
-    <div className="min-h-screen">
-      {/* Full Width Header */}
-      <header className="w-full bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 pt-4 sm:pt-6 md:pt-8 lg:pt-10 xl:pt-12 2xl:pt-14 3xl:pt-16 pb-0">
-        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 3xl:px-20 pb-4 sm:pb-6 md:pb-8 lg:pb-10 xl:pb-12 2xl:pb-14 3xl:pb-16">
-          <div className="flex flex-col items-center">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl 3xl:text-9xl font-bold text-neutral-800 dark:text-neutral-200">
+    <div
+      className="
+        shadow-input mx-auto mt-20 sm:mt-24 md:mt-26
+        w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[70vw] xl:w-[55vw] 2xl:w-[50vw]
+        max-w-5xl rounded-lg sm:rounded-xl md:rounded-2xl bg-white p-4 sm:p-6 md:p-8 lg:p-10 dark:bg-black
+      "
+    >
+      {/* Logo */}
+      <div className="flex flex-col items-center mb-6 sm:mb-8">
+        {!logoError ? (
+          <>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-400 dark:text-gray-400">
               <span className="text-gray-500 dark:text-gray-400">
                 Welcome Back to{" "}
-              </span>
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-                FluxFit
-              </span>
-            </h1>
-          </div>
-        </div>
-      </header>
+              </span>{" "}
+              FluxFit
+            </h2>
+          </>
+        ) : (
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 dark:text-neutral-200">
+            FluxFit
+          </h2>
+        )}
+      </div>
+      <form className="mt-8" onSubmit={handleSubmit}>
+        <LabelInputContainer>
+          <Label htmlFor="email">Email Address</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </LabelInputContainer>
 
-      <div
-        className="
-          shadow-input mx-auto
-          w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[70vw] xl:w-[55vw] 2xl:w-[50vw]
-          max-w-5xl rounded-lg sm:rounded-xl md:rounded-2xl bg-white p-4 sm:p-6 md:p-8 lg:p-10 dark:bg-black
-        "
-      >
-        <form className="mt-8" onSubmit={handleSubmit}>
-          <LabelInputContainer>
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </LabelInputContainer>
-
-          <LabelInputContainer className="mt-4 relative">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type={showPass ? "text" : "password"}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-
-            <button
-              type="button"
-              onClick={() => setShowPass(!showPass)}
-              className="absolute top-1/2 right-4 cursor-pointer"
-            >
-              {showPass ? <FaRegEye /> : <FaRegEyeSlash />}
-            </button>
-          </LabelInputContainer>
-
-          <p
-            className="text-right text-sm text-blue-600 cursor-pointer mt-2"
-            onClick={handleforgotPass}
-          >
-            Forgot Password?
-          </p>
+        <LabelInputContainer className="mt-4 relative">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type={showPass ? "text" : "password"}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
           <button
-            className="group/btn mt-6 relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-700 font-medium text-white"
-            type="submit"
-            disabled={loading}
+            type="button"
+            onClick={() => setShowPass(!showPass)}
+            className="absolute top-1/2 right-4 cursor-pointer"
           >
-            {loading ? "Logging in..." : "Log in →"}
-            <BottomGradient />
+            {showPass ? <FaRegEye /> : <FaRegEyeSlash />}
           </button>
+        </LabelInputContainer>
 
-          <div className="my-8 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
+        <p
+          className="text-right text-sm text-blue-600 cursor-pointer mt-2"
+          onClick={handleforgotPass}
+        >
+          Forgot Password?
+        </p>
 
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mt-6">
-            Don&apos;t have an account?{" "}
-            <span
-              className="underline cursor-pointer text-blue-600"
-              onClick={handleSignup}
-            >
-              Sign up
-            </span>
-          </p>
-        </form>
-      </div>
+        <button
+          className="group/btn mt-6 relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-700 font-medium text-white"
+          type="submit"
+          disabled={loading}
+        >
+          {loading ? "Logging in..." : "Log in →"}
+          <BottomGradient />
+        </button>
+
+        <div className="my-8 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
+
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mt-6">
+          Don&apos;t have an account?{" "}
+          <span
+            className="underline cursor-pointer text-blue-600"
+            onClick={handleSignup}
+          >
+            Sign up
+          </span>
+        </p>
+      </form>
     </div>
   );
 }
