@@ -200,10 +200,11 @@ FluxFit is your premier destination for custom clothing and printing services. W
 
 ### Backend & Services
 
-- **MongoDB (Mongoose)** - Database (ready for integration)
+- **MongoDB (Mongoose)** - Database with comprehensive schema models
 - **Stripe** - Payment processing
 - **Cloudinary** - Image management and uploads
-- **JWT** - Authentication
+- **JWT** - Authentication with secure token management
+- **Bcrypt** - Password hashing and security
 - **LocalStorage** - Client-side data persistence (cart, orders, addresses, wishlist)
 
 ### Development Tools
@@ -239,7 +240,15 @@ yarn install
 pnpm install
 ```
 
-3. Run the development server:
+3. Set up environment variables:
+
+Create a `.env.local` file (see Environment Variables section above)
+
+4. Connect to MongoDB:
+
+Make sure MongoDB is running locally or update `MONGODB_URI` in `.env.local` for MongoDB Atlas
+
+5. Run the development server:
 
 ```bash
 npm run dev
@@ -320,6 +329,31 @@ fluxfit/
 │   │   ├── CartContext.jsx    # Shopping cart state management
 │   │   ├── WishlistContext.jsx # Wishlist state management
 │   │   └── SidebarContext.js   # Admin sidebar state management
+│   ├── models/                # MongoDB Mongoose models
+│   │   ├── index.js           # Model exports
+│   │   ├── user.model.js      # User authentication & profiles
+│   │   ├── otp.model.js       # OTP verification (auto-expiring)
+│   │   ├── product.model.js   # Products with variants & SEO
+│   │   ├── category.model.js  # Hierarchical categories
+│   │   ├── brand.model.js     # Brand management
+│   │   ├── order.model.js      # Orders with status tracking
+│   │   ├── cart.model.js      # Shopping cart
+│   │   ├── wishlist.model.js   # User wishlists
+│   │   ├── address.model.js    # User addresses
+│   │   ├── payment.model.js    # Payment transactions
+│   │   ├── refund.model.js    # Refund management
+│   │   ├── coupon.model.js    # Discount coupons
+│   │   ├── flashsale.model.js  # Flash sale events
+│   │   ├── review.model.js    # Product reviews & ratings
+│   │   ├── recentlyviewed.model.js # Recently viewed products
+│   │   ├── settings.model.js   # Website settings
+│   │   ├── shippingrule.model.js # Shipping rules
+│   │   ├── taxrate.model.js   # Tax rates (GST/VAT)
+│   │   ├── emailtemplate.model.js # Email templates
+│   │   ├── smstemplate.model.js  # SMS templates
+│   │   ├── apikey.model.js    # API key management
+│   │   ├── settlement.model.js # Financial settlements
+│   │   └── activitylog.model.js # Activity logging
 │   └── lib/                   # Utility functions and data
 │       ├── productDatabase.js # Product data
 │       ├── recentlyViewed.js  # Recently viewed products
@@ -466,22 +500,137 @@ The application is ready for deployment on platforms like:
    - For Vercel: Connect your GitHub repository and deploy automatically
    - For other platforms: Follow their respective deployment guides
 
-### Environment Variables (if needed)
+### Environment Variables
 
-- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` - Cloudinary cloud name for image uploads
-- `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` - Cloudinary upload preset
-- `STRIPE_PUBLIC_KEY` - Stripe public key (for payment integration)
-- `RAZORPAY_KEY_ID` - Razorpay key ID (for payment integration)
+Create a `.env.local` file in the root directory:
+
+```env
+# Database
+MONGODB_URI=mongodb://localhost:27017/fluxfit
+# or for MongoDB Atlas
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/fluxfit
+
+# JWT
+JWT_SECRET=your-secret-key-change-in-production
+JWT_EXPIRES_IN=7d
+
+# Cloudinary
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your-upload-preset
+
+# Payment Gateways
+STRIPE_PUBLIC_KEY=your-stripe-public-key
+STRIPE_SECRET_KEY=your-stripe-secret-key
+RAZORPAY_KEY_ID=your-razorpay-key-id
+RAZORPAY_KEY_SECRET=your-razorpay-secret
+
+# Email (Optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-email-password
+
+# SMS (Optional)
+SMS_PROVIDER=twilio
+SMS_API_KEY=your-sms-api-key
+SMS_API_SECRET=your-sms-api-secret
+```
+
+## 🗄️ Database Models
+
+FluxFit uses MongoDB with Mongoose for data modeling. All models are optimized with proper indexing, validation, and relationships.
+
+### Core Models
+
+- **User** - User authentication, profiles, roles (admin/buyer), permissions
+- **OTP** - OTP verification with automatic expiration (TTL index)
+- **Product** - Products with variants (size, color), images, SEO fields, stock management
+- **Category** - Hierarchical category structure with tree support
+- **Brand** - Brand management with SEO support
+
+### E-Commerce Models
+
+- **Order** - Complete order management with status tracking, timeline, payment info
+- **Cart** - Shopping cart with items and coupon support
+- **Wishlist** - User wishlist management
+- **Address** - User shipping and billing addresses
+- **Review** - Product reviews and ratings with moderation
+- **RecentlyViewed** - Recently viewed products (auto-cleanup)
+
+### Payment & Financial Models
+
+- **Payment** - Payment transactions with gateway integration (Stripe, Razorpay, PayPal)
+- **Refund** - Refund requests and processing workflow
+- **Settlement** - Financial settlements with multi-vendor support
+
+### Marketing Models
+
+- **Coupon** - Discount coupons with validation, usage limits, and expiry
+- **FlashSale** - Flash sale events with scheduling and product management
+
+### Configuration Models
+
+- **Settings** - Website settings (singleton pattern)
+- **ShippingRule** - Shipping rules with zone-based pricing
+- **TaxRate** - Tax rates (GST/VAT) with regional support
+- **EmailTemplate** - Email templates with variable substitution
+- **SMSTemplate** - SMS templates for notifications
+- **APIKey** - API key management with rate limiting
+
+### Utility Models
+
+- **ActivityLog** - User activity logging with automatic cleanup (90 days)
+
+### Model Features
+
+- ✅ **Optimized Indexing** - Strategic indexes for fast queries
+- ✅ **TTL Indexes** - Automatic cleanup for OTP, RecentlyViewed, ActivityLog
+- ✅ **Soft Deletes** - Preserve data with soft delete support
+- ✅ **Virtual Fields** - Computed properties for common calculations
+- ✅ **Pre/Post Hooks** - Automated business logic (password hashing, status updates)
+- ✅ **Validation** - Comprehensive field validation
+- ✅ **Relationships** - Proper references and population support
+- ✅ **Methods** - Instance and static methods for common operations
+
+### Usage Example
+
+```javascript
+import { User, Product, Order, Cart } from "@/models";
+
+// Create user
+const user = await User.create({
+  username: "john_doe",
+  email: "john@example.com",
+  password: "securepassword",
+  role: "buyer"
+});
+
+// Find products with search
+const { products } = await Product.search("t-shirt", {
+  category: categoryId,
+  minPrice: 1000,
+  maxPrice: 5000,
+  page: 1,
+  limit: 20
+});
+
+// Create order
+const order = await Order.create({
+  user: userId,
+  items: cartItems,
+  shippingAddress: address,
+  payment: { method: "razorpay" }
+});
+```
 
 ## 🚧 Future Enhancements
 
-- User authentication and accounts (backend integration)
-- Payment gateway backend integration (Stripe, Razorpay)
-- Review and rating system (full implementation with backend)
-- Email notifications for order updates
+- Payment gateway backend integration (Stripe, Razorpay) - API endpoints
+- Review and rating system - Full implementation with moderation
+- Email notifications for order updates - Template integration
 - Real-time order tracking with shipping APIs
-- SMS notifications
-- Multi-vendor marketplace support
+- SMS notifications - Template integration
+- Multi-vendor marketplace support - Enhanced settlement system
 - Advanced search with Elasticsearch
 - Recommendation engine
 - International shipping options
