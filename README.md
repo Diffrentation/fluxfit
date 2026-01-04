@@ -542,44 +542,489 @@ FluxFit uses MongoDB with Mongoose for data modeling. All models are optimized w
 
 ### Core Models
 
-- **User** - User authentication, profiles, roles (admin/buyer), permissions
-- **OTP** - OTP verification with automatic expiration (TTL index)
-- **Product** - Products with variants (size, color), images, SEO fields, stock management
-- **Category** - Hierarchical category structure with tree support
-- **Brand** - Brand management with SEO support
+#### 1. **User Model** (`user.model.js`)
+
+**Purpose**: Manages user authentication, profiles, and access control.
+
+**Key Features**:
+
+- User registration and authentication (email/username + password)
+- Role-based access control (admin/buyer)
+- Password hashing with bcrypt (automatic on save)
+- JWT token generation for authentication
+- Admin permissions management
+- User verification status tracking
+- Account blocking/deletion (soft delete)
+- Profile information (name, email, phone, address, profile image)
+- Last login tracking
+
+**Use Cases**:
+
+- User registration and login
+- Admin user management
+- Profile updates
+- Password reset functionality
+- Account verification
+
+#### 2. **OTP Model** (`otp.model.js`)
+
+**Purpose**: Handles OTP (One-Time Password) verification for email verification and password reset.
+
+**Key Features**:
+
+- Automatic expiration using TTL index (MongoDB auto-deletes expired OTPs)
+- Multiple OTP types (email-verification, password-reset, login)
+- Attempt tracking (max 5 attempts)
+- One OTP per user per type (deletes old unused OTPs)
+- Secure 6-digit OTP generation
+
+**Use Cases**:
+
+- Email verification during registration
+- Password reset verification
+- Two-factor authentication
+- Login verification
+
+#### 3. **Product Model** (`product.model.js`)
+
+**Purpose**: Manages product catalog with variants, inventory, and SEO optimization.
+
+**Key Features**:
+
+- Product variants (size, color, price, stock, SKU per variant)
+- Multiple product images with primary image support
+- SEO fields (meta title, description, keywords, slug)
+- Stock management (variant-level and product-level)
+- Product status workflow (draft → pending → approved → active)
+- Rating and review aggregation
+- Product approval system
+- Advanced search with text indexing
+- Featured, new, and popular product flags
+
+**Use Cases**:
+
+- Product catalog management
+- Inventory tracking
+- Product search and filtering
+- SEO optimization
+- Stock management
+
+#### 4. **Category Model** (`category.model.js`)
+
+**Purpose**: Manages hierarchical product categories with tree structure.
+
+**Key Features**:
+
+- Parent-child relationships (unlimited depth)
+- Category tree building and navigation
+- Breadcrumb path generation
+- Category images and banners
+- Sort order control
+- SEO optimization
+- Soft delete support
+
+**Use Cases**:
+
+- Product categorization
+- Navigation menu generation
+- Category-based filtering
+- SEO-friendly URLs
+
+#### 5. **Brand Model** (`brand.model.js`)
+
+**Purpose**: Manages brand information and associations.
+
+**Key Features**:
+
+- Brand logo and banner images
+- Website links
+- SEO fields
+- Featured brand support
+- Sort order control
+
+**Use Cases**:
+
+- Brand filtering
+- Brand pages
+- Product-brand associations
 
 ### E-Commerce Models
 
-- **Order** - Complete order management with status tracking, timeline, payment info
-- **Cart** - Shopping cart with items and coupon support
-- **Wishlist** - User wishlist management
-- **Address** - User shipping and billing addresses
-- **Review** - Product reviews and ratings with moderation
-- **RecentlyViewed** - Recently viewed products (auto-cleanup)
+#### 6. **Order Model** (`order.model.js`)
+
+**Purpose**: Complete order management system with status tracking and payment integration.
+
+**Key Features**:
+
+- Order items with product details and variants
+- Shipping and billing addresses
+- Order status workflow (pending → confirmed → processing → shipped → delivered)
+- Status timeline with history
+- Payment information integration
+- Coupon application tracking
+- Tax calculation (GST)
+- Shipping cost calculation
+- Order cancellation and return tracking
+- Invoice generation support
+- Delivery partner assignment
+- Order number generation
+
+**Use Cases**:
+
+- Order creation from cart
+- Order status updates
+- Order tracking
+- Invoice generation
+- Return/refund processing
+
+#### 7. **Cart Model** (`cart.model.js`)
+
+**Purpose**: Manages user shopping carts with items and coupon support.
+
+**Key Features**:
+
+- Cart items with product references and variants
+- Quantity management
+- Coupon application
+- Automatic total calculation (subtotal, discount, total)
+- Per-user cart (one cart per user)
+- Last updated tracking
+
+**Use Cases**:
+
+- Add/remove items from cart
+- Update quantities
+- Apply discount coupons
+- Calculate cart totals
+
+#### 8. **Wishlist Model** (`wishlist.model.js`)
+
+**Purpose**: Manages user wishlists for saving favorite products.
+
+**Key Features**:
+
+- Product references
+- Per-user wishlist (one wishlist per user)
+- Add/remove products
+- Check if product is in wishlist
+
+**Use Cases**:
+
+- Save products for later
+- Quick add to cart from wishlist
+- Wishlist sharing
+
+#### 9. **Address Model** (`address.model.js`)
+
+**Purpose**: Manages user shipping and billing addresses.
+
+**Key Features**:
+
+- Multiple addresses per user
+- Address types (home, work, other)
+- Default address support
+- Complete address fields (name, phone, address lines, city, state, country, pincode)
+- Landmark support
+- Soft delete
+
+**Use Cases**:
+
+- Shipping address selection
+- Billing address management
+- Address validation
+- Default address setting
+
+#### 10. **Review Model** (`review.model.js`)
+
+**Purpose**: Manages product reviews and ratings with moderation.
+
+**Key Features**:
+
+- Star ratings (1-5)
+- Review text and title
+- Review images
+- Helpful votes tracking
+- Moderation workflow (pending → approved/rejected)
+- Verified purchase badge
+- Admin/seller replies
+- Automatic product rating calculation
+
+**Use Cases**:
+
+- Product reviews
+- Rating aggregation
+- Review moderation
+- Customer feedback
+
+#### 11. **RecentlyViewed Model** (`recentlyviewed.model.js`)
+
+**Purpose**: Tracks recently viewed products for personalized recommendations.
+
+**Key Features**:
+
+- Product viewing history
+- Automatic cleanup (TTL index - 30 days)
+- Limited to 50 most recent products
+- Per-user tracking
+
+**Use Cases**:
+
+- Show recently viewed products
+- Personalized recommendations
+- User behavior tracking
 
 ### Payment & Financial Models
 
-- **Payment** - Payment transactions with gateway integration (Stripe, Razorpay, PayPal)
-- **Refund** - Refund requests and processing workflow
-- **Settlement** - Financial settlements with multi-vendor support
+#### 12. **Payment Model** (`payment.model.js`)
+
+**Purpose**: Manages payment transactions with multiple gateway support.
+
+**Key Features**:
+
+- Multiple payment methods (card, UPI, netbanking, COD, Razorpay, Stripe, PayPal)
+- Payment status tracking (pending → processing → completed → failed)
+- Gateway integration (transaction IDs, payment IDs)
+- Refund tracking
+- Tax information
+- Payment history
+- Failure reason tracking
+- Gateway response storage
+
+**Use Cases**:
+
+- Payment processing
+- Payment verification
+- Refund processing
+- Payment history
+- Financial reporting
+
+#### 13. **Refund Model** (`refund.model.js`)
+
+**Purpose**: Manages refund requests and processing workflow.
+
+**Key Features**:
+
+- Full and partial refunds
+- Refund reasons and descriptions
+- Refund status workflow (pending → approved → processing → completed)
+- Item-level refunds
+- Approval/rejection workflow
+- Gateway refund integration
+- Refund timeline tracking
+
+**Use Cases**:
+
+- Refund requests
+- Refund approval/rejection
+- Refund processing
+- Refund history
+
+#### 14. **Settlement Model** (`settlement.model.js`)
+
+**Purpose**: Manages financial settlements for multi-vendor marketplace support.
+
+**Key Features**:
+
+- Period-based settlements (start date, end date)
+- Financial summary (sales, orders, refunds, commission, tax, fees)
+- Commission calculation
+- Net amount calculation
+- Settlement status tracking
+- Bank/UPI settlement details
+- Multi-vendor support
+
+**Use Cases**:
+
+- Vendor payouts
+- Financial reporting
+- Commission tracking
+- Settlement processing
 
 ### Marketing Models
 
-- **Coupon** - Discount coupons with validation, usage limits, and expiry
-- **FlashSale** - Flash sale events with scheduling and product management
+#### 15. **Coupon Model** (`coupon.model.js`)
+
+**Purpose**: Manages discount coupons with validation and usage tracking.
+
+**Key Features**:
+
+- Coupon codes (unique, uppercase)
+- Discount types (percentage or fixed amount)
+- Usage limits (total and per user)
+- Validity period (start and end dates)
+- Minimum/maximum purchase requirements
+- Applicability (all products, specific categories, products, or brands)
+- Usage tracking
+- Automatic validation
+
+**Use Cases**:
+
+- Discount coupon creation
+- Coupon validation
+- Coupon application
+- Coupon performance tracking
+
+#### 16. **FlashSale Model** (`flashsale.model.js`)
+
+**Purpose**: Manages flash sale events with scheduling and product management.
+
+**Key Features**:
+
+- Scheduled flash sales (start and end dates)
+- Product-specific discounts
+- Stock management per sale
+- Sale status tracking (scheduled → active → ended)
+- Banner images
+- Statistics (views, sales, revenue)
+- Automatic status updates
+
+**Use Cases**:
+
+- Flash sale creation
+- Time-limited offers
+- Product promotion
+- Sales analytics
 
 ### Configuration Models
 
-- **Settings** - Website settings (singleton pattern)
-- **ShippingRule** - Shipping rules with zone-based pricing
-- **TaxRate** - Tax rates (GST/VAT) with regional support
-- **EmailTemplate** - Email templates with variable substitution
-- **SMSTemplate** - SMS templates for notifications
-- **APIKey** - API key management with rate limiting
+#### 17. **Settings Model** (`settings.model.js`)
+
+**Purpose**: Manages website-wide settings (singleton pattern - one document).
+
+**Key Features**:
+
+- Website information (name, logo, contact details)
+- Currency settings
+- Tax configuration
+- Shipping defaults
+- Maintenance mode
+- Email/SMS settings
+- Social media links
+
+**Use Cases**:
+
+- Website configuration
+- Global settings management
+- Maintenance mode control
+
+#### 18. **ShippingRule Model** (`shippingrule.model.js`)
+
+**Purpose**: Manages shipping rules with zone-based pricing.
+
+**Key Features**:
+
+- Multiple shipping types (flat, weight-based, distance-based, price-based)
+- Zone management (states, cities, pincodes)
+- Base price and rule-based pricing
+- Free shipping thresholds
+- Estimated delivery days
+
+**Use Cases**:
+
+- Shipping cost calculation
+- Zone-based shipping
+- Free shipping rules
+
+#### 19. **TaxRate Model** (`taxrate.model.js`)
+
+**Purpose**: Manages tax rates (GST/VAT) with regional support.
+
+**Key Features**:
+
+- Tax rate percentage
+- Tax types (GST, VAT, sales tax, service tax)
+- Applicability (all, categories, products)
+- State/region-based tax
+- Active/inactive status
+
+**Use Cases**:
+
+- Tax calculation
+- Regional tax management
+- GST compliance
+
+#### 20. **EmailTemplate Model** (`emailtemplate.model.js`)
+
+**Purpose**: Manages email templates with variable substitution.
+
+**Key Features**:
+
+- Template types (welcome, order-confirmation, password-reset, etc.)
+- Subject and body templates
+- Variable placeholders ({{variableName}})
+- Template rendering with variables
+- Active/inactive status
+
+**Use Cases**:
+
+- Email notifications
+- Order confirmations
+- Password reset emails
+- Marketing emails
+
+#### 21. **SMSTemplate Model** (`smstemplate.model.js`)
+
+**Purpose**: Manages SMS templates for notifications.
+
+**Key Features**:
+
+- SMS message templates (160 character limit)
+- Template types (OTP, order-confirmation, etc.)
+- Variable substitution
+- Template rendering
+
+**Use Cases**:
+
+- SMS notifications
+- OTP delivery
+- Order updates
+
+#### 22. **APIKey Model** (`apikey.model.js`)
+
+**Purpose**: Manages API keys for external integrations.
+
+**Key Features**:
+
+- API key generation (public/private keys)
+- Key types (public, private, webhook)
+- Permission management
+- Rate limiting configuration
+- IP whitelisting
+- Usage tracking
+- Expiration dates
+- Webhook URL support
+
+**Use Cases**:
+
+- Third-party integrations
+- API access control
+- Webhook management
+- Rate limiting
 
 ### Utility Models
 
-- **ActivityLog** - User activity logging with automatic cleanup (90 days)
+#### 23. **ActivityLog Model** (`activitylog.model.js`)
+
+**Purpose**: Tracks user activities and system events for auditing.
+
+**Key Features**:
+
+- User action logging
+- Entity tracking (user, product, order, etc.)
+- Action descriptions
+- Metadata storage
+- IP address and user agent tracking
+- Success/failure status
+- Error logging
+- Automatic cleanup (TTL index - 90 days)
+
+**Use Cases**:
+
+- User activity tracking
+- Audit logs
+- Debugging
+- Security monitoring
+- Analytics
 
 ### Model Features
 
@@ -602,7 +1047,7 @@ const user = await User.create({
   username: "john_doe",
   email: "john@example.com",
   password: "securepassword",
-  role: "buyer"
+  role: "buyer",
 });
 
 // Find products with search
@@ -611,7 +1056,7 @@ const { products } = await Product.search("t-shirt", {
   minPrice: 1000,
   maxPrice: 5000,
   page: 1,
-  limit: 20
+  limit: 20,
 });
 
 // Create order
@@ -619,7 +1064,7 @@ const order = await Order.create({
   user: userId,
   items: cartItems,
   shippingAddress: address,
-  payment: { method: "razorpay" }
+  payment: { method: "razorpay" },
 });
 ```
 
