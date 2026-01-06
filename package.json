@@ -29,6 +29,7 @@
     "multer": "^2.0.2",
     "next": "16.1.1",
     "next-cloudinary": "^6.17.5",
+    "nodemailer": "^7.0.12",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.4.1",
