@@ -113,11 +113,11 @@ This document lists all the APIs for the FluxFit e-commerce platform. The APIs a
 
 ## 5. Wishlist (5 APIs)
 
-- ⏳ `GET /api/wishlist` - Get user's wishlist
-- ⏳ `POST /api/wishlist/items` - Add item to wishlist
-- ⏳ `DELETE /api/wishlist/items/:itemId` - Remove item from wishlist
-- ⏳ `DELETE /api/wishlist` - Clear wishlist
-- ⏳ `GET /api/wishlist/check/:productId` - Check if product is in wishlist
+- ✅ `GET /api/wishlist` - Get user's wishlist
+- ✅ `POST /api/wishlist/items` - Add item to wishlist
+- ✅ `DELETE /api/wishlist/items/:itemId` - Remove item from wishlist
+- ✅ `DELETE /api/wishlist` - Clear wishlist
+- ✅ `GET /api/wishlist/check/:productId` - Check if product is in wishlist
 
 ---
 
@@ -125,27 +125,27 @@ This document lists all the APIs for the FluxFit e-commerce platform. The APIs a
 
 ### 6.1 Order Management (User)
 
-- ⏳ `GET /api/orders` - Get user's orders (with filters)
-- ⏳ `GET /api/orders/:id` - Get order details
-- ⏳ `POST /api/orders` - Create new order
-- ⏳ `POST /api/orders/:id/cancel` - Cancel order
-- ⏳ `POST /api/orders/:id/return` - Request return
-- ⏳ `POST /api/orders/:id/refund` - Request refund
-- ⏳ `GET /api/orders/:id/invoice` - Download invoice (PDF/HTML)
-- ⏳ `POST /api/orders/:id/reorder` - Reorder items
+- ✅ `GET /api/orders` - Get user's orders (with filters)
+- ✅ `GET /api/orders/:id` - Get order details
+- ✅ `POST /api/orders` - Create new order
+- ✅ `POST /api/orders/:id/cancel` - Cancel order
+- ✅ `POST /api/orders/:id/return` - Request return
+- ✅ `POST /api/orders/:id/refund` - Request refund
+- ✅ `GET /api/orders/:id/invoice` - Download invoice (PDF/HTML)
+- ✅ `POST /api/orders/:id/reorder` - Reorder items
 
 ### 6.2 Order Management (Admin)
 
-- ⏳ `GET /api/admin/orders` - Get all orders (with filters, pagination)
-- ⏳ `GET /api/admin/orders/:id` - Get order details (Admin)
-- ⏳ `PUT /api/admin/orders/:id/status` - Update order status
-- ⏳ `PUT /api/admin/orders/:id/assign-delivery` - Assign delivery partner
-- ⏳ `POST /api/admin/orders/:id/cancel` - Cancel order (Admin)
-- ⏳ `POST /api/admin/orders/:id/partial-cancel` - Partial cancel (Admin)
-- ⏳ `POST /api/admin/orders/:id/approve-return` - Approve return request
-- ⏳ `POST /api/admin/orders/:id/reject-return` - Reject return request
-- ⏳ `POST /api/admin/orders/:id/process-refund` - Process refund
-- ⏳ `GET /api/admin/orders/:id/invoice` - Generate invoice (Admin)
+- ✅ `GET /api/admin/orders` - Get all orders (with filters, pagination)
+- ✅ `GET /api/admin/orders/:id` - Get order details (Admin)
+- ✅ `PUT /api/admin/orders/:id/status` - Update order status
+- ✅ `PUT /api/admin/orders/:id/assign-delivery` - Assign delivery partner
+- ✅ `POST /api/admin/orders/:id/cancel` - Cancel order (Admin)
+- ✅ `POST /api/admin/orders/:id/partial-cancel` - Partial cancel (Admin)
+- ✅ `POST /api/admin/orders/:id/approve-return` - Approve return request
+- ✅ `POST /api/admin/orders/:id/reject-return` - Reject return request
+- ✅ `POST /api/admin/orders/:id/process-refund` - Process refund
+- ✅ `GET /api/admin/orders/:id/invoice` - Generate invoice (Admin)
 
 ---
 
