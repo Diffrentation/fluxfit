@@ -178,14 +178,14 @@ This document lists all the APIs for the FluxFit e-commerce platform. The APIs a
 
 ### 8.1 Coupons
 
-- ⏳ `GET /api/coupons` - Get active coupons (Public)
-- ⏳ `GET /api/coupons/:code/validate` - Validate coupon code
-- ⏳ `GET /api/admin/coupons` - Get all coupons (Admin)
-- ⏳ `GET /api/admin/coupons/:id` - Get coupon details (Admin)
-- ⏳ `POST /api/admin/coupons` - Create coupon (Admin)
-- ⏳ `PUT /api/admin/coupons/:id` - Update coupon (Admin)
-- ⏳ `DELETE /api/admin/coupons/:id` - Delete coupon (Admin)
-- ⏳ `GET /api/admin/coupons/:id/usage` - Get coupon usage statistics
+- ✅ `GET /api/coupons` - Get active coupons (Public)
+- ✅ `GET /api/coupons/:code/validate` - Validate coupon code
+- ✅ `GET /api/admin/coupons` - Get all coupons (Admin)
+- ✅ `GET /api/admin/coupons/:id` - Get coupon details (Admin)
+- ✅ `POST /api/admin/coupons` - Create coupon (Admin)
+- ✅ `PUT /api/admin/coupons/:id` - Update coupon (Admin)
+- ✅ `DELETE /api/admin/coupons/:id` - Delete coupon (Admin)
+- ✅ `GET /api/admin/coupons/:id/usage` - Get coupon usage statistics
 
 ### 8.2 Flash Sales
 
