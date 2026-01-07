@@ -36,14 +36,14 @@ This document lists all the APIs for the FluxFit e-commerce platform. The APIs a
 
 ### 1.2 User Profile
 
-- ⏳ `GET /api/users/profile` - Get current user profile
-- ⏳ `PUT /api/users/profile` - Update user profile
-- ⏳ `PUT /api/users/password` - Change password
-- ⏳ `GET /api/users/addresses` - Get user addresses
-- ⏳ `POST /api/users/addresses` - Add new address
-- ⏳ `PUT /api/users/addresses/:id` - Update address
-- ⏳ `DELETE /api/users/addresses/:id` - Delete address
-- ⏳ `PUT /api/users/addresses/:id/default` - Set default address
+- ✅ `GET /api/users/profile` - Get current user profile
+- ✅ `PUT /api/users/profile` - Update user profile
+- ✅ `PUT /api/users/password` - Change password
+- ✅ `GET /api/users/addresses` - Get user addresses
+- ✅ `POST /api/users/addresses` - Add new address
+- ✅ `PUT /api/users/addresses/:id` - Update address
+- ✅ `DELETE /api/users/addresses/:id` - Delete address
+- ✅ `PUT /api/users/addresses/:id/default` - Set default address
 
 ---
 
@@ -51,30 +51,30 @@ This document lists all the APIs for the FluxFit e-commerce platform. The APIs a
 
 ### 2.1 Product CRUD
 
-- ⏳ `GET /api/products` - Get all products (with pagination, filters, search)
-- ⏳ `GET /api/products/:id` - Get product by ID
-- ⏳ `POST /api/products` - Create new product (Admin)
-- ⏳ `PUT /api/products/:id` - Update product (Admin)
-- ⏳ `DELETE /api/products/:id` - Delete product (Admin)
-- ⏳ `POST /api/products/bulk-upload` - Bulk upload products via CSV (Admin)
+- ✅ `GET /api/products` - Get all products (with pagination, filters, search)
+- ✅ `GET /api/products/:id` - Get product by ID
+- ✅ `POST /api/products` - Create new product (Admin)
+- ✅ `PUT /api/products/:id` - Update product (Admin)
+- ✅ `DELETE /api/products/:id` - Delete product (Admin)
+- ✅ `POST /api/products/bulk-upload` - Bulk upload products via CSV (Admin)
 
 ### 2.2 Product Variants
 
-- ⏳ `GET /api/products/:id/variants` - Get product variants
-- ⏳ `POST /api/products/:id/variants` - Add product variant (Admin)
-- ⏳ `PUT /api/products/:id/variants/:variantId` - Update variant (Admin)
-- ⏳ `DELETE /api/products/:id/variants/:variantId` - Delete variant (Admin)
+- ✅ `GET /api/products/:id/variants` - Get product variants
+- ✅ `POST /api/products/:id/variants` - Add product variant (Admin)
+- ✅ `PUT /api/products/:id/variants/:variantId` - Update variant (Admin)
+- ✅ `DELETE /api/products/:id/variants/:variantId` - Delete variant (Admin)
 
 ### 2.3 Product Inventory
 
-- ⏳ `GET /api/products/:id/stock` - Get product stock
-- ⏳ `PUT /api/products/:id/stock` - Update product stock (Admin)
-- ⏳ `POST /api/products/:id/stock/adjust` - Adjust stock (Admin)
+- ✅ `GET /api/products/:id/stock` - Get product stock
+- ✅ `PUT /api/products/:id/stock` - Update product stock (Admin)
+- ✅ `POST /api/products/:id/stock/adjust` - Adjust stock (Admin)
 
 ### 2.4 Product Search & Filter
 
-- ⏳ `GET /api/products/search` - Search products
-- 📝 `GET /api/products/filters` - Get available filters (categories, colors, price ranges) - **Route file missing**
+- ✅ `GET /api/products/search` - Search products
+- ✅ `GET /api/products/filters` - Get available filters (categories, colors, price ranges)
 
 ---
 
