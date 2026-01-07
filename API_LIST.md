@@ -82,32 +82,32 @@ This document lists all the APIs for the FluxFit e-commerce platform. The APIs a
 
 ### 3.1 Categories
 
-- ⏳ `GET /api/categories` - Get all categories (tree structure)
-- ⏳ `GET /api/categories/:id` - Get category by ID
-- ⏳ `POST /api/categories` - Create category (Admin)
-- ⏳ `PUT /api/categories/:id` - Update category (Admin)
-- ⏳ `DELETE /api/categories/:id` - Delete category (Admin)
-- ⏳ `PUT /api/categories/:id/sort-order` - Update sort order (Admin)
+- ✅ `GET /api/categories` - Get all categories (tree structure)
+- ✅ `GET /api/categories/:id` - Get category by ID
+- ✅ `POST /api/categories` - Create category (Admin)
+- ✅ `PUT /api/categories/:id` - Update category (Admin)
+- ✅ `DELETE /api/categories/:id` - Delete category (Admin)
+- ✅ `PUT /api/categories/:id/sort-order` - Update sort order (Admin)
 
 ### 3.2 Brands
 
-- ⏳ `GET /api/brands` - Get all brands
-- ⏳ `GET /api/brands/:id` - Get brand by ID
-- ⏳ `POST /api/brands` - Create brand (Admin)
-- ⏳ `PUT /api/brands/:id` - Update brand (Admin)
-- ⏳ `DELETE /api/brands/:id` - Delete brand (Admin)
+- ✅ `GET /api/brands` - Get all brands
+- ✅ `GET /api/brands/:id` - Get brand by ID
+- ✅ `POST /api/brands` - Create brand (Admin)
+- ✅ `PUT /api/brands/:id` - Update brand (Admin)
+- ✅ `DELETE /api/brands/:id` - Delete brand (Admin)
 
 ---
 
 ## 4. Shopping Cart (7 APIs)
 
-- ⏳ `GET /api/cart` - Get user's cart
-- ⏳ `POST /api/cart/items` - Add item to cart
-- ⏳ `PUT /api/cart/items/:itemId` - Update cart item quantity
-- ⏳ `DELETE /api/cart/items/:itemId` - Remove item from cart
-- 📝 `DELETE /api/cart` - Clear entire cart - **Route file missing**
-- ⏳ `POST /api/cart/apply-coupon` - Apply coupon code
-- ⏳ `DELETE /api/cart/coupon` - Remove applied coupon
+- ✅ `GET /api/cart` - Get user's cart
+- ✅ `POST /api/cart/items` - Add item to cart
+- ✅ `PUT /api/cart/items/:itemId` - Update cart item quantity
+- ✅ `DELETE /api/cart/items/:itemId` - Remove item from cart
+- ✅ `DELETE /api/cart` - Clear entire cart
+- ✅ `POST /api/cart/apply-coupon` - Apply coupon code
+- ✅ `DELETE /api/cart/coupon` - Remove applied coupon
 
 ---
 
