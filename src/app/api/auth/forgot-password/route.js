@@ -15,7 +15,7 @@ export async function POST(request) {
 
     // Parse request body
     const body = await request.json();
-    const { email, phone, method = "email" } = body;
+    const { email, phone, method } = body;
 
     // Validate that at least one identifier is provided
     if (!email && !phone) {
@@ -28,9 +28,21 @@ export async function POST(request) {
       );
     }
 
+    // Auto-detect method based on provided identifiers if method not specified
+    let detectedMethod = method;
+    if (!detectedMethod) {
+      if (email && phone) {
+        detectedMethod = "both";
+      } else if (phone) {
+        detectedMethod = "phone";
+      } else if (email) {
+        detectedMethod = "email";
+      }
+    }
+
     // Validate method
     const validMethods = ["email", "phone", "both"];
-    if (!validMethods.includes(method)) {
+    if (!validMethods.includes(detectedMethod)) {
       return NextResponse.json(
         {
           success: false,
@@ -88,7 +100,10 @@ export async function POST(request) {
       otp = await user.generateOTP("password-reset", OTP_EXPIRY_MINUTES);
 
       // Send OTP via email if requested
-      if ((method === "email" || method === "both") && user.email) {
+      if (
+        (detectedMethod === "email" || detectedMethod === "both") &&
+        user.email
+      ) {
         const emailResult = await sendOTPEmail(
           user.email,
           otp,
@@ -102,7 +117,10 @@ export async function POST(request) {
       }
 
       // Send OTP via SMS if requested
-      if ((method === "phone" || method === "both") && user.phone) {
+      if (
+        (detectedMethod === "phone" || detectedMethod === "both") &&
+        user.phone
+      ) {
         const smsResult = await sendOTPSMS(user.phone, otp, "password-reset");
         results.phone = smsResult.success;
 
@@ -136,14 +154,14 @@ export async function POST(request) {
 
     // Build success message based on what was sent
     let successMessage = "OTP has been sent";
-    if (method === "both") {
+    if (detectedMethod === "both") {
       const sentTo = [];
       if (results.email) sentTo.push("email");
       if (results.phone) sentTo.push("phone");
       successMessage = `OTP has been sent to your ${sentTo.join(" and ")}`;
-    } else if (method === "email") {
+    } else if (detectedMethod === "email") {
       successMessage = "OTP has been sent to your email address";
-    } else if (method === "phone") {
+    } else if (detectedMethod === "phone") {
       successMessage = "OTP has been sent to your phone number";
     }
 
@@ -154,7 +172,7 @@ export async function POST(request) {
         message: successMessage,
         data: {
           userId: user._id,
-          method,
+          method: detectedMethod,
           sentTo: {
             email: results.email ? user.email : null,
             phone: results.phone ? user.phone : null,
