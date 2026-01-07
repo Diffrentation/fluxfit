@@ -121,12 +121,26 @@ export async function POST(request) {
         (detectedMethod === "phone" || detectedMethod === "both") &&
         user.phone
       ) {
+        console.log(`📱 Attempting to send SMS OTP to: ${user.phone}`);
         const smsResult = await sendOTPSMS(user.phone, otp, "password-reset");
         results.phone = smsResult.success;
 
         if (!smsResult.success) {
-          console.error("Failed to send OTP SMS:", smsResult.error);
+          console.error("❌ Failed to send OTP SMS:");
+          console.error(`   Error: ${smsResult.error}`);
+          console.error(`   Error Code: ${smsResult.errorCode || "N/A"}`);
+          console.error(`   Message: ${smsResult.message}`);
+        } else {
+          console.log(
+            `✅ SMS OTP sent successfully to: ${smsResult.to || user.phone}`
+          );
+          console.log(`   Message SID: ${smsResult.sid || "N/A"}`);
         }
+      } else if (
+        (detectedMethod === "phone" || detectedMethod === "both") &&
+        !user.phone
+      ) {
+        console.warn(`⚠️ SMS requested but user has no phone number on record`);
       }
 
       // Check if at least one method succeeded
