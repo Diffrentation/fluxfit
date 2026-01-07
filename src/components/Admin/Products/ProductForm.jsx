@@ -1,14 +1,21 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Select, InputNumber, Switch, Button, Upload, Tabs, message, Divider } from "antd";
 import {
-  IconUpload,
-  IconX,
-  IconPlus,
-  IconTrash,
-} from "@tabler/icons-react";
+  Modal,
+  Form,
+  Input,
+  Select,
+  InputNumber,
+  Switch,
+  Button,
+  Upload,
+  Tabs,
+  message,
+  Divider,
+} from "antd";
+import { IconUpload, IconX, IconPlus, IconTrash } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadImage } from "@/lib/upload-client";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -25,7 +32,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       form.setFieldsValue({
         name: product.name,
         price: parseFloat(product.price),
-        originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : undefined,
+        originalPrice: product.originalPrice
+          ? parseFloat(product.originalPrice)
+          : undefined,
         category: product.category,
         description: product.description,
         stock: product.stock || 0,
@@ -84,8 +93,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     if (info.file.status === "done" || info.file.originFileObj) {
       try {
         const file = info.file.originFileObj || info.file;
-        const result = await uploadToCloudinary(file);
-        setImageList([...imageList, result.secure_url || result.url]);
+        const result = await uploadImage(file, { folder: "fluxfit/products" });
+        setImageList([...imageList, result.url]);
         message.success("Image uploaded successfully");
       } catch (error) {
         message.error("Failed to upload image");
@@ -115,7 +124,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     const updated = [...variants];
     updated[index] = { ...updated[index], [field]: value };
     if (field === "size" || field === "color") {
-      updated[index].sku = `${form.getFieldValue("name") || "PROD"}-${updated[index].size}-${updated[index].color}`
+      updated[index].sku = `${form.getFieldValue("name") || "PROD"}-${
+        updated[index].size
+      }-${updated[index].color}`
         .toUpperCase()
         .replace(/\s+/g, "-");
     }
@@ -155,7 +166,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               <Form.Item
                 name="name"
                 label="Product Name"
-                rules={[{ required: true, message: "Please enter product name" }]}
+                rules={[
+                  { required: true, message: "Please enter product name" },
+                ]}
               >
                 <Input
                   placeholder="Enter product name"
@@ -177,21 +190,22 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                     min={0}
                     step={0.01}
                     style={{ width: "100%" }}
-                    formatter={(value) => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    formatter={(value) =>
+                      `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
                     parser={(value) => value.replace(/₹\s?|(,*)/g, "")}
                   />
                 </Form.Item>
 
-                <Form.Item
-                  name="originalPrice"
-                  label="Original Price (₹)"
-                >
+                <Form.Item name="originalPrice" label="Original Price (₹)">
                   <InputNumber
                     placeholder="0.00"
                     min={0}
                     step={0.01}
                     style={{ width: "100%" }}
-                    formatter={(value) => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    formatter={(value) =>
+                      `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
                     parser={(value) => value.replace(/₹\s?|(,*)/g, "")}
                   />
                 </Form.Item>
@@ -201,7 +215,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 <Form.Item
                   name="category"
                   label="Category"
-                  rules={[{ required: true, message: "Please select category" }]}
+                  rules={[
+                    { required: true, message: "Please select category" },
+                  ]}
                 >
                   <Select placeholder="Select category">
                     <Option value="Women">Women</Option>
@@ -215,7 +231,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 <Form.Item
                   name="stock"
                   label="Stock Quantity"
-                  rules={[{ required: true, message: "Please enter stock quantity" }]}
+                  rules={[
+                    { required: true, message: "Please enter stock quantity" },
+                  ]}
                 >
                   <InputNumber
                     placeholder="0"
@@ -228,12 +246,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               <Form.Item
                 name="description"
                 label="Description"
-                rules={[{ required: true, message: "Please enter description" }]}
+                rules={[
+                  { required: true, message: "Please enter description" },
+                ]}
               >
-                <TextArea
-                  rows={4}
-                  placeholder="Enter product description"
-                />
+                <TextArea rows={4} placeholder="Enter product description" />
               </Form.Item>
 
               <Form.Item
@@ -264,7 +281,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                   }))}
                   onChange={handleImageUpload}
                   onRemove={(file) => {
-                    const index = imageList.findIndex((url) => url === file.url);
+                    const index = imageList.findIndex(
+                      (url) => url === file.url
+                    );
                     handleRemoveImage(index);
                   }}
                   accept="image/*"
@@ -278,7 +297,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                   )}
                 </Upload>
                 <p className="text-xs text-gray-500 mt-2">
-                  Upload up to 5 images. First image will be the main product image.
+                  Upload up to 5 images. First image will be the main product
+                  image.
                 </p>
               </div>
 
@@ -322,7 +342,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-semibold text-gray-900">Product Variants</h3>
+                  <h3 className="font-semibold text-gray-900">
+                    Product Variants
+                  </h3>
                   <p className="text-sm text-gray-500">
                     Manage different sizes, colors, and pricing for this product
                   </p>
@@ -338,7 +360,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
               {variants.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
-                  No variants added. Click "Add Variant" to create product variations.
+                  No variants added. Click "Add Variant" to create product
+                  variations.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -354,7 +377,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                           </label>
                           <Select
                             value={variant.size}
-                            onChange={(value) => handleVariantChange(index, "size", value)}
+                            onChange={(value) =>
+                              handleVariantChange(index, "size", value)
+                            }
                             placeholder="Size"
                             style={{ width: "100%" }}
                           >
@@ -373,7 +398,13 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                           </label>
                           <Input
                             value={variant.color}
-                            onChange={(e) => handleVariantChange(index, "color", e.target.value)}
+                            onChange={(e) =>
+                              handleVariantChange(
+                                index,
+                                "color",
+                                e.target.value
+                              )
+                            }
                             placeholder="Color"
                           />
                         </div>
@@ -383,7 +414,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                           </label>
                           <InputNumber
                             value={variant.price}
-                            onChange={(value) => handleVariantChange(index, "price", value)}
+                            onChange={(value) =>
+                              handleVariantChange(index, "price", value)
+                            }
                             min={0}
                             step={0.01}
                             style={{ width: "100%" }}
@@ -395,7 +428,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                           </label>
                           <InputNumber
                             value={variant.stock}
-                            onChange={(value) => handleVariantChange(index, "stock", value)}
+                            onChange={(value) =>
+                              handleVariantChange(index, "stock", value)
+                            }
                             min={0}
                             style={{ width: "100%" }}
                           />
@@ -406,7 +441,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                           </label>
                           <Input
                             value={variant.sku}
-                            onChange={(e) => handleVariantChange(index, "sku", e.target.value)}
+                            onChange={(e) =>
+                              handleVariantChange(index, "sku", e.target.value)
+                            }
                             placeholder="SKU"
                           />
                         </div>
@@ -434,7 +471,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 <Form.Item
                   name="stock"
                   label="Total Stock"
-                  rules={[{ required: true, message: "Please enter stock quantity" }]}
+                  rules={[
+                    { required: true, message: "Please enter stock quantity" },
+                  ]}
                 >
                   <InputNumber
                     placeholder="0"
@@ -469,7 +508,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> You will receive notifications when stock falls below the threshold.
+                  <strong>Note:</strong> You will receive notifications when
+                  stock falls below the threshold.
                 </p>
               </div>
             </div>
@@ -496,14 +536,20 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 label="URL Slug"
                 rules={[
                   { required: true, message: "Please enter URL slug" },
-                  { pattern: /^[a-z0-9-]+$/, message: "Slug can only contain lowercase letters, numbers, and hyphens" }
+                  {
+                    pattern: /^[a-z0-9-]+$/,
+                    message:
+                      "Slug can only contain lowercase letters, numbers, and hyphens",
+                  },
                 ]}
                 help="URL-friendly version of the product name"
               >
                 <Input
                   placeholder="product-name"
                   onChange={(e) => {
-                    const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+                    const value = e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9-]/g, "-");
                     form.setFieldsValue({ slug: value });
                   }}
                 />
@@ -527,9 +573,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 label="Keywords"
                 help="Comma-separated keywords for SEO"
               >
-                <Input
-                  placeholder="keyword1, keyword2, keyword3"
-                />
+                <Input placeholder="keyword1, keyword2, keyword3" />
               </Form.Item>
             </div>
           </TabPane>
@@ -551,24 +595,30 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               </Form.Item>
 
               {form.getFieldValue("status") === "rejected" && (
-                <Form.Item
-                  name="rejectionReason"
-                  label="Rejection Reason"
-                >
-                  <TextArea
-                    rows={3}
-                    placeholder="Enter reason for rejection"
-                  />
+                <Form.Item name="rejectionReason" label="Rejection Reason">
+                  <TextArea rows={3} placeholder="Enter reason for rejection" />
                 </Form.Item>
               )}
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Status Workflow</h4>
+                <h4 className="font-semibold text-gray-900 mb-2">
+                  Status Workflow
+                </h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• <strong>Draft:</strong> Product is being created/edited</li>
-                  <li>• <strong>Pending:</strong> Awaiting admin approval</li>
-                  <li>• <strong>Approved:</strong> Product is live and visible to customers</li>
-                  <li>• <strong>Rejected:</strong> Product was rejected and needs revision</li>
+                  <li>
+                    • <strong>Draft:</strong> Product is being created/edited
+                  </li>
+                  <li>
+                    • <strong>Pending:</strong> Awaiting admin approval
+                  </li>
+                  <li>
+                    • <strong>Approved:</strong> Product is live and visible to
+                    customers
+                  </li>
+                  <li>
+                    • <strong>Rejected:</strong> Product was rejected and needs
+                    revision
+                  </li>
                 </ul>
               </div>
             </div>
@@ -589,4 +639,3 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 };
 
 export default ProductForm;
-

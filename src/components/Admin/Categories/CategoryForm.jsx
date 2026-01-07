@@ -1,8 +1,17 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Select, InputNumber, Upload, Button, message } from "antd";
+import {
+  Modal,
+  Form,
+  Input,
+  Select,
+  InputNumber,
+  Upload,
+  Button,
+  message,
+} from "antd";
 import { IconUpload, IconX } from "@tabler/icons-react";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadImage } from "@/lib/upload-client";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -63,8 +72,10 @@ const CategoryForm = ({ visible, category, categories, onClose, onSave }) => {
     if (info.file.status === "done" || info.file.originFileObj) {
       try {
         const file = info.file.originFileObj || info.file;
-        const result = await uploadToCloudinary(file);
-        setImageList([result.secure_url || result.url]);
+        const result = await uploadImage(file, {
+          folder: "fluxfit/categories",
+        });
+        setImageList([result.url]);
         message.success("Image uploaded successfully");
       } catch (error) {
         message.error("Failed to upload image");
@@ -77,8 +88,10 @@ const CategoryForm = ({ visible, category, categories, onClose, onSave }) => {
     if (info.file.status === "done" || info.file.originFileObj) {
       try {
         const file = info.file.originFileObj || info.file;
-        const result = await uploadToCloudinary(file);
-        setBannerList([result.secure_url || result.url]);
+        const result = await uploadImage(file, {
+          folder: "fluxfit/categories/banners",
+        });
+        setBannerList([result.url]);
         message.success("Banner uploaded successfully");
       } catch (error) {
         message.error("Failed to upload banner");
@@ -116,7 +129,12 @@ const CategoryForm = ({ visible, category, categories, onClose, onSave }) => {
       footer={null}
       width={700}
     >
-      <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        className="mt-4"
+      >
         <Form.Item
           name="name"
           label="Category Name"
@@ -136,7 +154,11 @@ const CategoryForm = ({ visible, category, categories, onClose, onSave }) => {
           label="URL Slug"
           rules={[
             { required: true, message: "Please enter URL slug" },
-            { pattern: /^[a-z0-9-]+$/, message: "Slug can only contain lowercase letters, numbers, and hyphens" },
+            {
+              pattern: /^[a-z0-9-]+$/,
+              message:
+                "Slug can only contain lowercase letters, numbers, and hyphens",
+            },
           ]}
         >
           <Input placeholder="category-slug" />
@@ -209,11 +231,7 @@ const CategoryForm = ({ visible, category, categories, onClose, onSave }) => {
           </div>
         </div>
 
-        <Form.Item
-          name="sortOrder"
-          label="Sort Order"
-          initialValue={0}
-        >
+        <Form.Item name="sortOrder" label="Sort Order" initialValue={0}>
           <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
         </Form.Item>
 
@@ -229,4 +247,3 @@ const CategoryForm = ({ visible, category, categories, onClose, onSave }) => {
 };
 
 export default CategoryForm;
-

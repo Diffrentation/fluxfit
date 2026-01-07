@@ -14,7 +14,7 @@ import {
   message,
 } from "antd";
 import { IconUpload, IconDeviceFloppy } from "@tabler/icons-react";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadImage } from "@/lib/upload-client";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -66,29 +66,32 @@ const WebsiteSettings = ({ onSave }) => {
     }
   }, [logo, favicon, form]);
 
-  const handleSubmit = useCallback((values) => {
-    const settings = {
-      ...values,
-      logo,
-      favicon,
-    };
-    try {
-      localStorage.setItem("adminWebsiteSettings", JSON.stringify(settings));
-      message.success("Website settings saved successfully");
-      onSave();
-    } catch (error) {
-      message.error("Failed to save settings");
-      console.error("Error saving website settings:", error);
-    }
-  }, [logo, favicon, onSave]);
+  const handleSubmit = useCallback(
+    (values) => {
+      const settings = {
+        ...values,
+        logo,
+        favicon,
+      };
+      try {
+        localStorage.setItem("adminWebsiteSettings", JSON.stringify(settings));
+        message.success("Website settings saved successfully");
+        onSave();
+      } catch (error) {
+        message.error("Failed to save settings");
+        console.error("Error saving website settings:", error);
+      }
+    },
+    [logo, favicon, onSave]
+  );
 
   const handleLogoUpload = async (info) => {
     if (info.file.status === "uploading") return;
     if (info.file.status === "done" || info.file.originFileObj) {
       try {
         const file = info.file.originFileObj || info.file;
-        const result = await uploadToCloudinary(file);
-        setLogo(result.secure_url || result.url);
+        const result = await uploadImage(file, { folder: "fluxfit/settings" });
+        setLogo(result.url);
         message.success("Logo uploaded successfully");
       } catch (error) {
         message.error("Failed to upload logo");
@@ -101,8 +104,8 @@ const WebsiteSettings = ({ onSave }) => {
     if (info.file.status === "done" || info.file.originFileObj) {
       try {
         const file = info.file.originFileObj || info.file;
-        const result = await uploadToCloudinary(file);
-        setFavicon(result.secure_url || result.url);
+        const result = await uploadImage(file, { folder: "fluxfit/settings" });
+        setFavicon(result.url);
         message.success("Favicon uploaded successfully");
       } catch (error) {
         message.error("Failed to upload favicon");
@@ -142,7 +145,9 @@ const WebsiteSettings = ({ onSave }) => {
           <Form.Item
             name="siteDescription"
             label="Site Description"
-            rules={[{ required: true, message: "Please enter site description" }]}
+            rules={[
+              { required: true, message: "Please enter site description" },
+            ]}
           >
             <TextArea rows={3} placeholder="Enter site description for SEO" />
           </Form.Item>
@@ -162,7 +167,9 @@ const WebsiteSettings = ({ onSave }) => {
             <Form.Item
               name="contactPhone"
               label="Contact Phone"
-              rules={[{ required: true, message: "Please enter contact phone" }]}
+              rules={[
+                { required: true, message: "Please enter contact phone" },
+              ]}
             >
               <Input placeholder="+91 1234567890" />
             </Form.Item>
@@ -177,12 +184,18 @@ const WebsiteSettings = ({ onSave }) => {
               </label>
               <Upload
                 listType="picture-card"
-                fileList={logo ? [{
-                  uid: "1",
-                  name: "logo.png",
-                  status: "done",
-                  url: logo,
-                }] : []}
+                fileList={
+                  logo
+                    ? [
+                        {
+                          uid: "1",
+                          name: "logo.png",
+                          status: "done",
+                          url: logo,
+                        },
+                      ]
+                    : []
+                }
                 onChange={handleLogoUpload}
                 accept="image/*"
                 maxCount={1}
@@ -205,12 +218,18 @@ const WebsiteSettings = ({ onSave }) => {
               </label>
               <Upload
                 listType="picture-card"
-                fileList={favicon ? [{
-                  uid: "1",
-                  name: "favicon.ico",
-                  status: "done",
-                  url: favicon,
-                }] : []}
+                fileList={
+                  favicon
+                    ? [
+                        {
+                          uid: "1",
+                          name: "favicon.ico",
+                          status: "done",
+                          url: favicon,
+                        },
+                      ]
+                    : []
+                }
                 onChange={handleFaviconUpload}
                 accept="image/*"
                 maxCount={1}
@@ -308,4 +327,3 @@ const WebsiteSettings = ({ onSave }) => {
 };
 
 export default WebsiteSettings;
-

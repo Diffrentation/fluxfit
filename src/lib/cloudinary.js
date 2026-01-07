@@ -1,3 +1,5 @@
+// This file is server-only - uses Node.js modules
+// DO NOT import this in client components - use /api/upload endpoints instead
 import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
 

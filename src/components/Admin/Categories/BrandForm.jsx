@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Form, Input, InputNumber, Upload, Button, message } from "antd";
 import { IconUpload } from "@tabler/icons-react";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadImage } from "@/lib/upload-client";
 
 const { TextArea } = Input;
 
@@ -43,8 +43,8 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
     if (info.file.status === "done" || info.file.originFileObj) {
       try {
         const file = info.file.originFileObj || info.file;
-        const result = await uploadToCloudinary(file);
-        setLogoList([result.secure_url || result.url]);
+        const result = await uploadImage(file, { folder: "fluxfit/brands" });
+        setLogoList([result.url]);
         message.success("Logo uploaded successfully");
       } catch (error) {
         message.error("Failed to upload logo");
@@ -67,7 +67,12 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
       footer={null}
       width={600}
     >
-      <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        className="mt-4"
+      >
         <Form.Item
           name="name"
           label="Brand Name"
@@ -87,7 +92,11 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
           label="URL Slug"
           rules={[
             { required: true, message: "Please enter URL slug" },
-            { pattern: /^[a-z0-9-]+$/, message: "Slug can only contain lowercase letters, numbers, and hyphens" },
+            {
+              pattern: /^[a-z0-9-]+$/,
+              message:
+                "Slug can only contain lowercase letters, numbers, and hyphens",
+            },
           ]}
         >
           <Input placeholder="brand-slug" />
@@ -122,11 +131,7 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
           </Upload>
         </div>
 
-        <Form.Item
-          name="sortOrder"
-          label="Sort Order"
-          initialValue={0}
-        >
+        <Form.Item name="sortOrder" label="Sort Order" initialValue={0}>
           <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
         </Form.Item>
 
@@ -142,4 +147,3 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
 };
 
 export default BrandForm;
-
