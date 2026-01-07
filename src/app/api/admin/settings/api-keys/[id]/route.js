@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 /**
  * PUT /api/admin/settings/api-keys/:id
  * Update API key
- * 
+ *
  * Body Parameters (all optional):
  * - name: API key name
  * - type: API key type - "public", "private", "webhook"
@@ -89,11 +89,15 @@ export async function PUT(request, { params }) {
         return NextResponse.json(
           {
             success: false,
-            message: `Invalid API key type. Must be one of: ${validTypes.join(", ")}`,
+            message: `Invalid API key type. Must be one of: ${validTypes.join(
+              ", "
+            )}`,
             errors: [
               {
                 field: "type",
-                message: `API key type must be one of: ${validTypes.join(", ")}`,
+                message: `API key type must be one of: ${validTypes.join(
+                  ", "
+                )}`,
               },
             ],
           },
@@ -103,7 +107,8 @@ export async function PUT(request, { params }) {
 
       // If changing to webhook type, validate webhook URL
       if (type === "webhook") {
-        const urlToCheck = webhookUrl !== undefined ? webhookUrl : apiKey.webhookUrl;
+        const urlToCheck =
+          webhookUrl !== undefined ? webhookUrl : apiKey.webhookUrl;
         if (!urlToCheck || !urlToCheck.trim()) {
           return NextResponse.json(
             {
@@ -146,7 +151,9 @@ export async function PUT(request, { params }) {
                 errors: [
                   {
                     field: "permissions",
-                    message: `Permission must be one of: ${validPermissions.join(", ")}`,
+                    message: `Permission must be one of: ${validPermissions.join(
+                      ", "
+                    )}`,
                   },
                 ],
               },
@@ -188,11 +195,15 @@ export async function PUT(request, { params }) {
           return NextResponse.json(
             {
               success: false,
-              message: `Invalid rate limit period. Must be one of: ${validPeriods.join(", ")}`,
+              message: `Invalid rate limit period. Must be one of: ${validPeriods.join(
+                ", "
+              )}`,
               errors: [
                 {
                   field: "rateLimit.period",
-                  message: `Rate limit period must be one of: ${validPeriods.join(", ")}`,
+                  message: `Rate limit period must be one of: ${validPeriods.join(
+                    ", "
+                  )}`,
                 },
               ],
             },
@@ -247,7 +258,8 @@ export async function PUT(request, { params }) {
     // Update allowedIPs if provided
     if (allowedIPs !== undefined) {
       if (Array.isArray(allowedIPs)) {
-        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        const ipRegex =
+          /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
         for (const ip of allowedIPs) {
           if (!ipRegex.test(ip.trim())) {
             return NextResponse.json(
@@ -279,7 +291,8 @@ export async function PUT(request, { params }) {
           return NextResponse.json(
             {
               success: false,
-              message: "Webhook URL cannot be cleared for webhook type API keys",
+              message:
+                "Webhook URL cannot be cleared for webhook type API keys",
               errors: [
                 {
                   field: "webhookUrl",
@@ -362,8 +375,10 @@ export async function PUT(request, { params }) {
     };
 
     // Format API key (masked)
-    const expiresAt = apiKey.expiresAt;
-    const isValid = apiKey.isActive && (!expiresAt || new Date() < new Date(expiresAt));
+    const apiKeyExpiresAt = apiKey.expiresAt;
+    const isValid =
+      apiKey.isActive &&
+      (!apiKeyExpiresAt || new Date() < new Date(apiKeyExpiresAt));
 
     const formattedKey = {
       id: apiKey._id,
@@ -380,7 +395,7 @@ export async function PUT(request, { params }) {
         count: apiKey.usage?.count || 0,
         lastUsed: apiKey.usage?.lastUsed || null,
       },
-      expiresAt: expiresAt || null,
+      expiresAt: apiKeyExpiresAt || null,
       isValid: isValid,
       isActive: apiKey.isActive,
       allowedIPs: apiKey.allowedIPs || [],
@@ -488,4 +503,3 @@ export async function DELETE(request, { params }) {
     );
   }
 }
-
