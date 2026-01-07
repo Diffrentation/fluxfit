@@ -32,7 +32,7 @@ export async function PUT(request, { params }) {
     const Product = (await import("@/models/product.model")).default;
 
     // Get flash sale ID from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
@@ -394,7 +394,7 @@ export async function DELETE(request, { params }) {
     await connectDB();
 
     // Get flash sale ID from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {

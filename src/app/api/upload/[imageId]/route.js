@@ -7,7 +7,7 @@ import { deleteFromCloudinary } from "@/lib/cloudinary";
  */
 export async function DELETE(request, { params }) {
   try {
-    const { imageId } = params;
+    const { imageId } = await params;
 
     if (!imageId) {
       return NextResponse.json(

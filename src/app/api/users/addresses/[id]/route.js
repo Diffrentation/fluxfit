@@ -15,8 +15,8 @@ export async function PUT(request, { params }) {
       return error;
     }
 
-    // Get address ID from params
-    const { id } = params;
+    // Get address ID from params (await params in Next.js 16)
+    const { id } = await params;
 
     // Validate address ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -377,8 +377,8 @@ export async function DELETE(request, { params }) {
       return error;
     }
 
-    // Get address ID from params
-    const { id } = params;
+    // Get address ID from params (await params in Next.js 16)
+    const { id } = await params;
 
     // Validate address ID
     if (!mongoose.Types.ObjectId.isValid(id)) {

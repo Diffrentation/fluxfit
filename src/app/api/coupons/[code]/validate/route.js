@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
     await connectDB();
 
     // Get coupon code from params
-    const { code } = params;
+    const { code } = await params;
 
     // Validate code
     if (!code || !code.trim()) {

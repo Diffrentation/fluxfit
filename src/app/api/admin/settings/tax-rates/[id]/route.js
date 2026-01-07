@@ -32,7 +32,7 @@ export async function PUT(request, { params }) {
     await connectDB();
 
     // Get tax rate ID
-    const { id } = params;
+    const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         {
@@ -481,7 +481,7 @@ export async function DELETE(request, { params }) {
     await connectDB();
 
     // Get tax rate ID
-    const { id } = params;
+    const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         {

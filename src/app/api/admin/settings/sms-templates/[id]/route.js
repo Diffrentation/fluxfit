@@ -27,7 +27,7 @@ export async function PUT(request, { params }) {
     await connectDB();
 
     // Get template ID
-    const { id } = params;
+    const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         {

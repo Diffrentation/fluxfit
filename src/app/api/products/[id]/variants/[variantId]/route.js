@@ -20,7 +20,7 @@ export async function PUT(request, { params }) {
     await connectDB();
 
     // Get product ID and variant ID from params
-    const { id, variantId } = params;
+    const { id, variantId } = await params;
 
     // Validate IDs
     if (!id) {
@@ -356,7 +356,7 @@ export async function DELETE(request, { params }) {
     await connectDB();
 
     // Get product ID and variant ID from params
-    const { id, variantId } = params;
+    const { id, variantId } = await params;
 
     // Validate IDs
     if (!id) {

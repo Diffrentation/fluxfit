@@ -103,6 +103,6 @@ addressSchema.statics.getDefault = async function (userId) {
   });
 };
 
-const Address = mongoose.model("Address", addressSchema);
+const Address = mongoose.models.Address || mongoose.model("Address", addressSchema);
 export default Address;
 

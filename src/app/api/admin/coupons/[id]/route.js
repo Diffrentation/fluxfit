@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
     await connectDB();
 
     // Get coupon ID or code from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID
     if (!id) {
@@ -183,7 +183,7 @@ export async function PUT(request, { params }) {
     await connectDB();
 
     // Get coupon ID or code from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID
     if (!id) {
@@ -601,7 +601,7 @@ export async function DELETE(request, { params }) {
     await connectDB();
 
     // Get coupon ID or code from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID
     if (!id) {

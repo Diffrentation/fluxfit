@@ -20,7 +20,7 @@ export async function DELETE(request, { params }) {
     await connectDB();
 
     // Get item ID from params
-    const { itemId } = params;
+    const { itemId } = await params;
 
     // Validate item ID
     if (!itemId) {

@@ -23,7 +23,7 @@ export async function GET(request, { params }) {
     await connectDB();
 
     // Get product ID or slug from params
-    const { id } = params;
+    const { id } = await params;
     if (!id) {
       return NextResponse.json(
         {
@@ -269,7 +269,7 @@ export async function POST(request, { params }) {
     await connectDB();
 
     // Get product ID or slug from params
-    const { id } = params;
+    const { id } = await params;
     if (!id) {
       return NextResponse.json(
         {

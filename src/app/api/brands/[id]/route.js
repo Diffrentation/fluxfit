@@ -17,7 +17,7 @@ export async function GET(request, { params }) {
     await connectDB();
 
     // Get brand ID or slug from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID format
     if (!id) {
@@ -132,7 +132,7 @@ export async function PUT(request, { params }) {
     await connectDB();
 
     // Get brand ID or slug from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID format
     if (!id) {
@@ -432,7 +432,7 @@ export async function DELETE(request, { params }) {
     await connectDB();
 
     // Get brand ID or slug from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID format
     if (!id) {

@@ -23,7 +23,7 @@ export async function GET(request, { params }) {
     await connectDB();
 
     // Get order ID or order number from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID
     if (!id) {

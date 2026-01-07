@@ -24,7 +24,7 @@ export async function POST(request, { params }) {
     await connectDB();
 
     // Get review ID
-    const { id } = params;
+    const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         {

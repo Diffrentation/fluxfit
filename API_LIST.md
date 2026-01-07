@@ -36,12 +36,12 @@ This document lists all the APIs for the FluxFit e-commerce platform. The APIs a
 
 ### 1.2 User Profile
 
-- ✅ `GET /api/users/profile` - Get current user profile
+- ✅ `GET /api/users/profile` - Get current user profile 
 - ✅ `PUT /api/users/profile` - Update user profile
 - ✅ `PUT /api/users/password` - Change password
-- ✅ `GET /api/users/addresses` - Get user addresses
-- ✅ `POST /api/users/addresses` - Add new address
-- ✅ `PUT /api/users/addresses/:id` - Update address
+- ✅ `GET /api/users/addresses` - Get user addresses       
+- ✅ `POST /api/users/addresses` - Add new address  
+- ✅ `PUT /api/users/addresses/:id` - Update address   //
 - ✅ `DELETE /api/users/addresses/:id` - Delete address
 - ✅ `PUT /api/users/addresses/:id/default` - Set default address
 

@@ -26,7 +26,7 @@ export async function POST(request, { params }) {
     await connectDB();
 
     // Get API key ID
-    const { id } = params;
+    const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         {

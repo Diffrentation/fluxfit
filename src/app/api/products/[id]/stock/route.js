@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
     await connectDB();
 
     // Get product ID from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID format
     if (!id) {
@@ -132,7 +132,7 @@ export async function PUT(request, { params }) {
     await connectDB();
 
     // Get product ID from params
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID format
     if (!id) {

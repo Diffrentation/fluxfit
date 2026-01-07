@@ -22,7 +22,7 @@ export async function GET(request, { params }) {
     await connectDB();
 
     // Get payment ID
-    const { id } = params;
+    const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         {

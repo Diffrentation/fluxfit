@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
     await connectDB();
 
     // Get product ID from params
-    const { productId } = params;
+    const { productId } = await params;
 
     // Validate product ID
     if (!productId) {
