@@ -22,7 +22,6 @@ export async function POST(request) {
       const form = await request.formData();
 
       parsed = {
-        username: form.get("username"),
         firstname: form.get("firstname"),
         lastname: form.get("lastname"),
         email: form.get("email"),
@@ -68,7 +67,6 @@ export async function POST(request) {
     }
 
     const {
-      username,
       firstname,
       lastname,
       email,
@@ -80,12 +78,12 @@ export async function POST(request) {
     } = parsed;
 
     // Validate required fields
-    if (!username || !firstname || !lastname || !email || !password) {
+    if (!firstname || !lastname || !email || !password) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "Please provide all required fields: username, firstname, lastname, email, and password",
+            "Please provide all required fields: firstname, lastname, email, and password",
         },
         { status: 400 }
       );
@@ -114,14 +112,61 @@ export async function POST(request) {
       );
     }
 
-    // Validate username length
-    if (username.length < 3 || username.length > 20) {
+    // Generate username automatically from firstname + lastname
+    const generateUsername = (firstname, lastname) => {
+      // Combine firstname and lastname, convert to lowercase, remove spaces and special characters
+      let baseUsername = `${firstname}${lastname}`
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, ""); // Remove all non-alphanumeric characters
+
+      // Ensure minimum length of 3 characters
+      if (baseUsername.length < 3) {
+        baseUsername = baseUsername.padEnd(3, "0");
+      }
+
+      // Truncate to max 20 characters
+      if (baseUsername.length > 20) {
+        baseUsername = baseUsername.substring(0, 20);
+      }
+
+      return baseUsername;
+    };
+
+    // Generate base username
+    let username = generateUsername(firstname, lastname);
+    let usernameExists = true;
+    let attemptCount = 0;
+    const maxAttempts = 100;
+
+    // Ensure username is unique by appending numbers if needed
+    while (usernameExists && attemptCount < maxAttempts) {
+      const existingUser = await User.findOne({
+        username: username.toLowerCase(),
+        isdeleted: false,
+      });
+
+      if (!existingUser) {
+        usernameExists = false;
+      } else {
+        // Append a random number (1-9999) to make it unique
+        const randomNum = Math.floor(Math.random() * 9999) + 1;
+        const baseUsername = generateUsername(firstname, lastname);
+        // Keep base username + number within 20 chars
+        const numStr = randomNum.toString();
+        const maxBaseLength = 20 - numStr.length;
+        username = baseUsername.substring(0, maxBaseLength) + numStr;
+        attemptCount++;
+      }
+    }
+
+    if (usernameExists) {
       return NextResponse.json(
         {
           success: false,
-          message: "Username must be between 3 and 20 characters long",
+          message: "Unable to generate unique username. Please try again.",
         },
-        { status: 400 }
+        { status: 500 }
       );
     }
 
@@ -136,22 +181,17 @@ export async function POST(request) {
       );
     }
 
-    // Check if user with email or username already exists
+    // Check if user with email already exists (username uniqueness already checked above)
     const existingUser = await User.findOne({
-      $or: [
-        { email: email.toLowerCase() },
-        { username: username.toLowerCase() },
-      ],
+      email: email.toLowerCase(),
       isdeleted: false,
     });
 
     if (existingUser) {
-      const field =
-        existingUser.email === email.toLowerCase() ? "email" : "username";
       return NextResponse.json(
         {
           success: false,
-          message: `User with this ${field} already exists`,
+          message: "User with this email already exists",
         },
         { status: 409 }
       );
