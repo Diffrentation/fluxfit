@@ -81,7 +81,7 @@ export async function PUT(request, { params }) {
         { status: 200 }
       );
     }
-
+    
     // Use the model method to set as default (this will unset other defaults)
     await address.setAsDefault();
 

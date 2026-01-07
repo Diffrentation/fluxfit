@@ -41,7 +41,7 @@ This document lists all the APIs for the FluxFit e-commerce platform. The APIs a
 - ✅ `PUT /api/users/password` - Change password
 - ✅ `GET /api/users/addresses` - Get user addresses       
 - ✅ `POST /api/users/addresses` - Add new address  
-- ✅ `PUT /api/users/addresses/:id` - Update address   //
+- ✅ `PUT /api/users/addresses/:id` - Update address   
 - ✅ `DELETE /api/users/addresses/:id` - Delete address
 - ✅ `PUT /api/users/addresses/:id/default` - Set default address
 
