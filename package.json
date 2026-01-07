@@ -37,6 +37,7 @@
     "recharts": "^3.6.0",
     "stripe": "^20.1.0",
     "tailwind-merge": "^3.4.0",
+    "twilio": "^5.11.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

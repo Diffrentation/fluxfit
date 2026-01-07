@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/user.model";
 import OTP from "@/models/otp.model";
-import { sendWelcomeEmail } from "@/lib/email";
 
 /**
- * POST /api/auth/verify-otp
- * Verify OTP and mark user as verified
+ * POST /api/auth/verify-forgot-pass-otp
+ * Verify OTP sent for password reset
  */
 export async function POST(request) {
   try {
@@ -15,7 +14,7 @@ export async function POST(request) {
 
     // Parse request body
     const body = await request.json();
-    const { userId, otp, type = "email-verification" } = body;
+    const { userId, otp } = body;
 
     // Validate required fields
     if (!userId || !otp) {
@@ -55,19 +54,23 @@ export async function POST(request) {
       );
     }
 
-    // Check if user is already verified (for email-verification type)
-    if (type === "email-verification" && user.isverified) {
+    // Check if user is blocked
+    if (user.isblocked) {
       return NextResponse.json(
         {
           success: false,
-          message: "Email is already verified",
+          message: "Account is blocked. Please contact support.",
         },
-        { status: 400 }
+        { status: 403 }
       );
     }
 
-    // Verify OTP using the OTP model with userId
-    const verificationResult = await OTP.verifyOTPByUserId(userId, otp, type);
+    // Verify OTP for password-reset type
+    const verificationResult = await OTP.verifyOTPByUserId(
+      userId,
+      otp,
+      "password-reset"
+    );
 
     if (!verificationResult.valid) {
       return NextResponse.json(
@@ -79,59 +82,27 @@ export async function POST(request) {
       );
     }
 
-    // Update user verification status (for email-verification)
-    if (type === "email-verification") {
-      user.isverified = true;
-      // Clear verificationExpiresAt so user won't be auto-deleted
-      user.verificationExpiresAt = null;
-      await user.save({ validateBeforeSave: false });
+    // Generate a temporary reset token (can be used for password reset)
+    // This allows the frontend to proceed with password reset
+    const resetToken = user.generatePasswordResetToken();
+    await user.save({ validateBeforeSave: false });
 
-      // Send welcome email using email utility
-      try {
-        const emailResult = await sendWelcomeEmail(user.email, {
-          firstname: user.firstname,
-          lastname: user.lastname,
-        });
-
-        if (!emailResult.success) {
-          console.error("Failed to send welcome email:", emailResult.error);
-        } else {
-          console.log("✅ Welcome email sent successfully");
-        }
-      } catch (emailError) {
-        console.error("Failed to send welcome email:", emailError);
-        // Don't fail verification if welcome email fails
-      }
-    }
-
-    // Return success response
+    // Return success response with reset token
     return NextResponse.json(
       {
         success: true,
-        message:
-          type === "email-verification"
-            ? "Email verified successfully! Welcome to FluxFit."
-            : "OTP verified successfully",
+        message: "OTP verified successfully. You can now reset your password.",
         data: {
-          user: {
-            id: user._id,
-            username: user.username,
-            firstname: user.firstname,
-            lastname: user.lastname,
-            email: user.email,
-            role: user.role,
-            isverified: user.isverified,
-            phone: user.phone || null,
-            address: user.address || null,
-            profileimage: user.profileimage || null,
-          },
+          userId: user._id,
+          email: user.email,
+          resetToken,
           verified: true,
         },
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("OTP verification error:", error);
+    console.error("Forgot password OTP verification error:", error);
 
     // Handle invalid ObjectId format
     if (error.name === "CastError" && error.kind === "ObjectId") {
