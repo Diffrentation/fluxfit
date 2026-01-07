@@ -129,6 +129,12 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Verification expiry - unverified users will be deleted after this time
+    verificationExpiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -144,20 +150,16 @@ const userSchema = new mongoose.Schema(
 );
 
 // Hash password before saving (for both admin and buyer)
-userSchema.pre("save", async function (next) {
+// Use promise-style middleware (no `next` with async fn)
+userSchema.pre("save", async function () {
   // Only hash the password if it has been modified (or is new)
   if (!this.isModified("password")) {
-    return next();
+    return;
   }
 
-  try {
-    // Hash password with cost of 10
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
+  // Hash password with cost of 12
+  const salt = await bcrypt.genSalt(12);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 // Method to compare password (for both admin and buyer)
@@ -309,5 +311,43 @@ userSchema.index({ email: 1, role: 1 });
 userSchema.index({ username: 1, role: 1 });
 userSchema.index({ role: 1, isblocked: 1, isdeleted: 1 });
 
-const User = mongoose.model("User", userSchema);
+// TTL index to automatically delete unverified users after verificationExpiresAt
+// MongoDB will automatically delete documents when verificationExpiresAt is reached
+// Only applies to unverified users (isverified: false)
+userSchema.index(
+  { verificationExpiresAt: 1 },
+  {
+    expireAfterSeconds: 0,
+    partialFilterExpression: {
+      isverified: false,
+      verificationExpiresAt: { $exists: true },
+    },
+  }
+);
+
+// Static method to manually delete expired unverified users (backup cleanup)
+userSchema.statics.deleteExpiredUnverifiedUsers = async function () {
+  const result = await this.deleteMany({
+    isverified: false,
+    verificationExpiresAt: { $lt: new Date(), $ne: null },
+  });
+  console.log(`🗑️ Deleted ${result.deletedCount} expired unverified users`);
+  return result;
+};
+
+// Static method to set verification expiry for a user
+userSchema.statics.setVerificationExpiry = async function (
+  userId,
+  expiryMinutes = 10
+) {
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
+  return await this.findByIdAndUpdate(
+    userId,
+    { verificationExpiresAt: expiresAt },
+    { new: true }
+  );
+};
+
+// Check if model is already compiled to avoid OverwriteModelError in development
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 export default User;

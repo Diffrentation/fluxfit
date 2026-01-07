@@ -143,6 +143,58 @@ otpSchema.statics.verifyOTP = async function (
   return { valid: true, userId: otpDoc.userId };
 };
 
+// Static method to verify OTP by userId
+otpSchema.statics.verifyOTPByUserId = async function (
+  userId,
+  otp,
+  type = "email-verification"
+) {
+  const otpDoc = await this.findOne({
+    userId,
+    otp,
+    type,
+    isUsed: false,
+    expiresAt: { $gt: new Date() }, // Not expired
+  });
+
+  if (!otpDoc) {
+    // Increment attempts if OTP document exists but doesn't match
+    const existingOtp = await this.findOne({
+      userId,
+      type,
+      isUsed: false,
+    });
+
+    if (existingOtp) {
+      existingOtp.attempts += 1;
+      if (existingOtp.attempts >= 5) {
+        // Mark as used if too many attempts
+        existingOtp.isUsed = true;
+      }
+      await existingOtp.save();
+    }
+
+    return { valid: false, message: "Invalid or expired OTP" };
+  }
+
+  // Check if too many attempts
+  if (otpDoc.attempts >= 5) {
+    otpDoc.isUsed = true;
+    await otpDoc.save();
+    return {
+      valid: false,
+      message: "Too many failed attempts. Please request a new OTP.",
+    };
+  }
+
+  // Mark OTP as used
+  otpDoc.isUsed = true;
+  otpDoc.attempts += 1;
+  await otpDoc.save();
+
+  return { valid: true, userId: otpDoc.userId, email: otpDoc.email };
+};
+
 // Static method to get active OTP for a user
 otpSchema.statics.getActiveOTP = async function (
   userId,
@@ -172,5 +224,10 @@ otpSchema.statics.deleteUserOTPs = async function (userId, type = null) {
   return await this.deleteMany(query);
 };
 
-const OTP = mongoose.model("OTP", otpSchema);
+// Check if model is already compiled to avoid OverwriteModelError in development
+// Delete cached model if it doesn't have the latest methods
+if (mongoose.models.OTP && !mongoose.models.OTP.verifyOTPByUserId) {
+  delete mongoose.models.OTP;
+}
+const OTP = mongoose.models.OTP || mongoose.model("OTP", otpSchema);
 export default OTP;
