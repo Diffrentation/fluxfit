@@ -201,10 +201,13 @@ FluxFit is your premier destination for custom clothing and printing services. W
 ### Backend & Services
 
 - **MongoDB (Mongoose)** - Database with comprehensive schema models
-- **Stripe** - Payment processing
-- **Cloudinary** - Image management and uploads
-- **JWT** - Authentication with secure token management
-- **Bcrypt** - Password hashing and security
+- **Next.js API Routes** - Serverless API endpoints
+- **Stripe** - Payment processing (integration ready)
+- **Cloudinary** - Image management and uploads ✅ **Implemented**
+- **JWT** - Authentication with secure token management ✅ **Implemented**
+- **Bcrypt** - Password hashing and security ✅ **Implemented**
+- **Nodemailer** - Email notifications ✅ **Implemented**
+- **Twilio** - SMS notifications (integration ready)
 - **LocalStorage** - Client-side data persistence (cart, orders, addresses, wishlist)
 
 ### Development Tools
@@ -213,6 +216,7 @@ FluxFit is your premier destination for custom clothing and printing services. W
 - **TypeScript** (ready for migration)
 - **React Compiler** - Performance optimization
 - **CSV Parser** - Bulk data import/export
+- **Multer** - File upload handling
 
 ## 🚀 Getting Started
 
@@ -396,6 +400,28 @@ fluxfit/
 - `/admin/coupons` - Coupon and flash sale management
 - `/admin/payments` - Payment history, refunds, and finance management
 - `/admin/settings` - Website settings and configuration
+
+### API Routes
+
+All API routes are located under `/api` directory. See [API_LIST.md](./API_LIST.md) for complete API documentation.
+
+**Implemented API Routes:**
+- `/api/auth/*` - Authentication endpoints ✅
+- `/api/upload/*` - File upload endpoints ✅
+
+**Planned API Routes:**
+- `/api/products/*` - Product management
+- `/api/categories/*` - Category management
+- `/api/brands/*` - Brand management
+- `/api/cart/*` - Shopping cart
+- `/api/wishlist/*` - Wishlist management
+- `/api/orders/*` - Order management
+- `/api/payments/*` - Payment processing
+- `/api/coupons/*` - Coupon management
+- `/api/admin/*` - Admin endpoints
+- `/api/users/*` - User profile management
+- `/api/reviews/*` - Reviews and ratings
+- `/api/recently-viewed/*` - Recently viewed products
 
 ## 🎯 Key Features in Detail
 
@@ -1068,8 +1094,74 @@ const order = await Order.create({
 });
 ```
 
+## 📊 API Implementation Status
+
+### Current Status
+
+**Total API Endpoints:** 134  
+**Implemented:** ~14 endpoints  
+**In Progress:** ~0 endpoints  
+**Planned:** ~120 endpoints (route files exist but need implementation)
+
+### Implemented APIs
+
+#### ✅ Authentication & Security (~8 endpoints)
+- User registration with OTP verification
+- User login and logout
+- Password reset flow (forgot password, reset password)
+- Token refresh mechanism
+- Email verification
+- OTP resend functionality
+
+#### ✅ File Uploads (3 endpoints)
+- Single image upload (Cloudinary)
+- Multiple images upload
+- Image deletion
+
+### Planned APIs (Route Files Created)
+
+The following API route files have been created but need implementation:
+
+- **Products** (15 endpoints) - CRUD, variants, inventory, search
+- **Categories & Brands** (10 endpoints) - Category tree, brand management
+- **Shopping Cart** (7 endpoints) - Cart management, coupon application
+- **Wishlist** (5 endpoints) - Wishlist operations
+- **Orders** (18 endpoints) - Order creation, tracking, cancellation, returns
+- **Payments** (12 endpoints) - Payment processing, history, refunds
+- **Coupons & Offers** (10 endpoints) - Coupon management, flash sales
+- **Admin Dashboard** (12 endpoints) - Analytics, reports, statistics
+- **User Management** (8 endpoints) - User administration
+- **Settings** (10 endpoints) - Website settings, shipping, tax, templates
+- **Reviews & Ratings** (6 endpoints) - Product reviews and moderation
+- **Recently Viewed** (2 endpoints) - Product viewing history
+- **Finance** (5 endpoints) - Settlements, commissions, fraud detection
+
+### Implementation Priority
+
+1. **High Priority (MVP)** - ~60 APIs
+   - Products CRUD and search
+   - Shopping cart
+   - Orders (create, view, cancel)
+   - Basic payments
+   - User profile management
+
+2. **Medium Priority** - ~45 APIs
+   - Admin dashboard
+   - Order management (admin)
+   - Coupons and offers
+   - User management (admin)
+
+3. **Low Priority** - ~29 APIs
+   - Reviews and ratings
+   - Advanced analytics
+   - Finance and settlements
+   - Flash sales
+
+For detailed API documentation, see [API_LIST.md](./API_LIST.md).
+
 ## 🚧 Future Enhancements
 
+- Complete API implementation for all 134 endpoints
 - Payment gateway backend integration (Stripe, Razorpay) - API endpoints
 - Review and rating system - Full implementation with moderation
 - Email notifications for order updates - Template integration
@@ -1080,6 +1172,9 @@ const order = await Order.create({
 - Recommendation engine
 - International shipping options
 - Multi-language support
+- API documentation with Swagger/OpenAPI
+- Rate limiting implementation
+- Caching layer for frequently accessed data
 
 ## 📝 License
 
@@ -1090,5 +1185,9 @@ This project is private and proprietary.
 This is a private project. For inquiries, please contact the team through the contact information provided above.
 
 ---
+
+**Last Updated:** December 2024  
+**Version:** 1.0  
+**API Implementation:** ~14/134 endpoints (10.4%)
 
 Built with ❤️ by the FluxFit team
