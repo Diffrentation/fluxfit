@@ -54,7 +54,7 @@ export async function GET(request) {
       isDeleted: false,
       status: status,
     };
-
+    
     // Text search (using MongoDB text search)
     if (search && search.trim()) {
       query.$text = { $search: search.trim() };
