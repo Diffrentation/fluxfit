@@ -16,6 +16,7 @@ import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Herobanner from "../Home/Herobanner.jsx";
+import { useRouter } from "next/navigation";
 
 export function Nav() {
   // ecommerce navbar items for desktop (without Cart)
@@ -81,7 +82,7 @@ export function Nav() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { getCartCount } = useCart();
   const cartCount = getCartCount();
-
+  const router = useRouter();
   return (
     <div className="relative w-full">
       <Navbar>
@@ -90,8 +91,8 @@ export function Nav() {
           <NavbarLogo />
           <NavItems items={desktopNavItems} />
           <div className="flex items-center gap-4">
-            <NavbarButton variant="secondary">Login</NavbarButton>
-            <NavbarButton variant="primary">Register</NavbarButton>
+            <NavbarButton onClick={() => router.push("/auth/login")} variant="secondary">Login</NavbarButton>
+            <NavbarButton onClick={() => router.push("/auth/register")} variant="primary">Register</NavbarButton>
             <Link href="/cart" className="inline-block">
               <NavbarButton
                 variant="primary"

@@ -126,6 +126,7 @@ export async function POST(request) {
             profileimage: user.profileimage || null,
           },
           verified: true,
+          token: user.token,
         },
       },
       { status: 200 }

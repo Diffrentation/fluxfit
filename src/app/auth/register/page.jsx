@@ -279,7 +279,7 @@ export default function Signup() {
             />
             <button
               type="button"
-              className="absolute top-1/2 right-4 cursor-pointer transform -translate-y-1/2"
+              className="absolute top-1/2 right-4 cursor-pointer"
               onClick={() => setShowPass(!showPass)}
             >
               {showPass ? <FaRegEye /> : <FaRegEyeSlash />}

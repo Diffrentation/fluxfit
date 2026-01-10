@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { FaRegEyeSlash, FaRegEye } from "react-icons/fa6";
 import toast from "react-hot-toast";
+import axios from "axios";
 
 function Login() {
   const [showPass, setShowPass] = useState(false);
@@ -19,16 +20,24 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      toast.success("Login functionality will be available soon!");
+    const response = await axios.post("/api/auth/login", {
+      emailOrUsername:email,
+      password,
+    });
+    if (response?.data?.success) {
+      toast.success(response?.data?.message);
+      localStorage.setItem("token", response?.data?.token);
+      localStorage.setItem("user", JSON.stringify(response?.data?.user));
+      router.push("/");
+    } else {
+      toast.error(response?.data?.message);
       setLoading(false);
-      // router.push("/"); // Uncomment when API is ready
-    }, 1000);
+      return;
+    }
+    setLoading(false);
   };
 
-  const handleSignup = () => router.push("/auth/signup");
+  const handleSignup = () => router.push("/auth/register");
   const handleforgotPass = () => router.push("/auth/forgot-password");
 
   return (
