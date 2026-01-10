@@ -208,7 +208,7 @@ userSchema.methods.generatePasswordResetToken = function () {
 // Method to generate OTP for email verification (uses separate OTP model)
 userSchema.methods.generateOTP = async function (
   type = "email-verification",
-  expiryMinutes = 5
+  expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || "5")
 ) {
   return await OTP.generateOTP(this._id, this.email, type, expiryMinutes);
 };
@@ -281,7 +281,6 @@ userSchema.statics.findBuyerByCredentials = async function (
   if (user.role !== "buyer") {
     throw new Error("Access denied. Buyer account required.");
   }
-
   return user;
 };
 
@@ -338,7 +337,7 @@ userSchema.statics.deleteExpiredUnverifiedUsers = async function () {
 // Static method to set verification expiry for a user
 userSchema.statics.setVerificationExpiry = async function (
   userId,
-  expiryMinutes = 5
+  expiryMinutes = parseInt(process.env.USER_EXPIRY_MINUTES || "5")
 ) {
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
   return await this.findByIdAndUpdate(

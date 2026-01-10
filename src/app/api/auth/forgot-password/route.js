@@ -89,7 +89,7 @@ export async function POST(request) {
     }
 
     // Generate OTP for password reset
-    const OTP_EXPIRY_MINUTES = 10;
+    const OTP_EXPIRY_MINUTES = 1;
     let otp = null;
     const results = {
       email: null,

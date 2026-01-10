@@ -64,7 +64,7 @@ otpSchema.statics.generateOTP = async function (
   userId,
   email,
   type = "email-verification",
-  expiryMinutes = 10
+  expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || "1")
 ) {
   // Delete any existing unused OTPs for this user and type
   await this.deleteMany({

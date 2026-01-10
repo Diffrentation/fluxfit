@@ -246,7 +246,7 @@ export async function POST(request) {
     }
 
     // Set verification expiry (user will be auto-deleted if not verified within 10 minutes)
-    const OTP_EXPIRY_MINUTES = 10;
+    const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES || "5");
     userData.verificationExpiresAt = new Date(
       Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
     );
@@ -284,7 +284,7 @@ export async function POST(request) {
       {
         success: true,
         message:
-          "User registered successfully. Please verify your email with the OTP sent to your email address.",
+          `Please verify your email with the OTP sent to your email address. OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.`,
         data: {
           user: {
             id: user._id,

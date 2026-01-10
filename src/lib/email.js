@@ -83,6 +83,7 @@ export const sendEmail = async ({
  * @returns {Promise<Object>} - Result object
  */
 export const sendOTPEmail = async (email, otp, type = "email-verification") => {
+  const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES || "5");
   const subjectMap = {
     "email-verification": "Verify Your Email - FluxFit",
     "password-reset": "Reset Your Password - FluxFit",
@@ -110,7 +111,7 @@ export const sendOTPEmail = async (email, otp, type = "email-verification") => {
         <div style="background: white; border: 2px dashed #667eea; border-radius: 5px; padding: 20px; text-align: center; margin: 20px 0;">
           <h1 style="color: #667eea; font-size: 36px; letter-spacing: 5px; margin: 0;">${otp}</h1>
         </div>
-        <p>This OTP will expire in 10 minutes. Please do not share this code with anyone.</p>
+        <p>This OTP will expire in ${OTP_EXPIRY_MINUTES} minutes. Please do not share this code with anyone.</p>
         <p>If you didn't request this OTP, please ignore this email.</p>
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
         <p style="color: #666; font-size: 12px; margin: 0;">
