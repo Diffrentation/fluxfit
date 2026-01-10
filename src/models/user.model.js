@@ -208,7 +208,7 @@ userSchema.methods.generatePasswordResetToken = function () {
 // Method to generate OTP for email verification (uses separate OTP model)
 userSchema.methods.generateOTP = async function (
   type = "email-verification",
-  expiryMinutes = 10
+  expiryMinutes = 5
 ) {
   return await OTP.generateOTP(this._id, this.email, type, expiryMinutes);
 };
@@ -338,7 +338,7 @@ userSchema.statics.deleteExpiredUnverifiedUsers = async function () {
 // Static method to set verification expiry for a user
 userSchema.statics.setVerificationExpiry = async function (
   userId,
-  expiryMinutes = 10
+  expiryMinutes = 1
 ) {
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
   return await this.findByIdAndUpdate(
