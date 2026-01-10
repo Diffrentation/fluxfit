@@ -338,7 +338,7 @@ userSchema.statics.deleteExpiredUnverifiedUsers = async function () {
 // Static method to set verification expiry for a user
 userSchema.statics.setVerificationExpiry = async function (
   userId,
-  expiryMinutes = 1
+  expiryMinutes = 5
 ) {
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
   return await this.findByIdAndUpdate(

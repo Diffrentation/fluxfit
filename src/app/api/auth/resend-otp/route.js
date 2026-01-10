@@ -9,146 +9,74 @@ import { sendOTPEmail } from "@/lib/email";
  */
 export async function POST(request) {
   try {
+
     // Connect to database
-    await connectDB();
-
-    // Parse request body
-    const body = await request.json();
-    const { email, type = "email-verification" } = body;
-
-    // Validate required fields
-    if (!email) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Please provide email address",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid email address format",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate type
-    const validTypes = ["email-verification", "password-reset", "login"];
-    if (!validTypes.includes(type)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Invalid OTP type. Must be one of: ${validTypes.join(", ")}`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Find user by email
-    const user = await User.findOne({
-      email: email.toLowerCase(),
-      isdeleted: false,
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "User not found with this email address",
-        },
-        { status: 404 }
-      );
-    }
-
-    // Check if user is blocked
-    if (user.isblocked) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Account is blocked. Please contact support.",
-        },
-        { status: 403 }
-      );
-    }
-
-    // Check if user is already verified (for email-verification type)
-    if (type === "email-verification" && user.isverified) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Email is already verified",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Generate new OTP
-    const OTP_EXPIRY_MINUTES = 10;
-    let otp = null;
     try {
-      otp = await user.generateOTP(type, OTP_EXPIRY_MINUTES);
-
-      // Extend verification expiry for email-verification type
-      if (type === "email-verification" && !user.isverified) {
-        user.verificationExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-        await user.save({ validateBeforeSave: false });
-      }
-
-      // Send OTP email
-      const emailResult = await sendOTPEmail(user.email, otp, type);
-
-      if (!emailResult.success) {
-        console.error("Failed to send OTP email:", emailResult.error);
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Failed to send OTP email. Please try again later.",
-          },
-          { status: 500 }
-        );
-      }
-    } catch (otpError) {
-      console.error("Error generating/sending OTP:", otpError);
+      await connectDB();
+    } catch (error) {
+      console.error("Failed to connect to database:", error);
       return NextResponse.json(
-        {
-          success: false,
-          message: "Failed to generate OTP. Please try again.",
-        },
+        { success: false, message: "Database connection failed" },
         { status: 500 }
       );
     }
 
-    // Return success response
+    const body = await request.json();
+    const { userId, email, type = "email-verification" } = body;
+
+    let user = null;
+
+    // ✅ if userId provided
+    if (userId) {
+      user = await User.findOne({ _id: userId, isdeleted: false });
+    }
+    // ✅ else find by email
+    else if (email) {
+      user = await User.findOne({ email: email.toLowerCase(), isdeleted: false });
+    } else {
+      return NextResponse.json(
+        { success: false, message: "Please provide userId or email address" },
+        { status: 400 }
+      );
+    }
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    if (type === "email-verification" && user.isverified) {
+      return NextResponse.json(
+        { success: false, message: "Email is already verified" },
+        { status: 400 }
+      );
+    }
+
+    const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES || "10");
+    const otp = await user.generateOTP(type, OTP_EXPIRY_MINUTES);
+
+    const emailResult = await sendOTPEmail(user.email, otp, type);
+    if (!emailResult.success) {
+      return NextResponse.json(
+        { success: false, message: "Failed to send OTP email" },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: true,
-        message: "OTP has been sent to your email address",
-        data: {
-          email: user.email,
-          otpSent: true,
-          expiresIn: "10 minutes",
-        },
+        message: "OTP resent successfully ✅",
+        data: { userId: user._id, email: user.email, otpSent: true },
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Resend OTP error:", error);
-
-    // Generic error response
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message || "Failed to resend OTP. Please try again.",
-      },
+      { success: false, message: error.message || "Resend OTP failed" },
       { status: 500 }
     );
   }
 }
-

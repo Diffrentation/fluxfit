@@ -14,6 +14,7 @@ export default function Signup() {
   const [imagePreview, setImagePreview] = useState("");
   const [logoError, setLogoError] = useState(false);
   const fileInputRef = useRef(null);
+  const [type, setType] = useState("email-verification");
 
 
   const [formData, setFormData] = useState({
@@ -162,7 +163,7 @@ export default function Signup() {
         return;
       }
   
-      router.push(`/auth/otp?type=register&userId=${userId}`);
+      router.push(`/auth/otp?type=${type}&userId=${userId}`);
     }
   };
   

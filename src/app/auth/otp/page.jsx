@@ -74,10 +74,9 @@ function OTPPageContent() {
     if (otpValue.length !== 6) return toast.error("Please enter complete OTP");
 
     const apiType =
-    type === "register" ? "email-verification" :
-    type === "forgot" ? "forgot-password" :
+    type === "email-verification" ? "email-verification" :
+    type === "password-reset" ? "password-reset" :
     "email-verification";
-
 
     try {
       setLoading(true);
