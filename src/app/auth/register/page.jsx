@@ -6,12 +6,15 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { FaRegEyeSlash, FaRegEye, FaCamera, FaUser } from "react-icons/fa";
 import toast from "react-hot-toast";
+import { useEffect } from "react";
+import axios from "axios";
 
 export default function Signup() {
   const [showPass, setShowPass] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
   const [logoError, setLogoError] = useState(false);
   const fileInputRef = useRef(null);
+
 
   const [formData, setFormData] = useState({
     firstname: "",
@@ -30,6 +33,49 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
 
+    // now integrate the api call to register the user
+    const registerUser = async (formData) => {
+      try {
+        setLoading(true);
+    
+        const data = new FormData();
+        data.append("firstname", formData.firstname);
+        data.append("lastname", formData.lastname);
+        data.append("email", formData.email);
+        data.append("password", formData.password);
+        data.append("phone", formData.phone);
+    
+        data.append("address.city", formData.address.city);
+        data.append("address.state", formData.address.state);
+        data.append("address.country", formData.address.country);
+        data.append("address.pincode", formData.address.pincode);
+    
+        // ✅ image optional
+        if (selectedFile) {
+          data.append("profileimage", selectedFile);
+        }
+    
+        const response = await axios.post("/api/auth/register", data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+    
+        // ✅ success toast
+        if (response.data.success) {
+          toast.success(response.data.message || "Registered ✅");
+        } else {
+          toast.error(response.data.message || "Failed");
+        }
+    
+        return response; // ✅ MOST IMPORTANT (without this redirect will never work)
+    
+      } catch (error) {
+        toast.error(error?.response?.data?.message || "Failed to register user");
+        return null; // ✅ important
+      } finally {
+        setLoading(false);
+      }
+    };
+      
   const handleChange = (e) => {
     const { id, value } = e.target;
 
@@ -82,9 +128,8 @@ export default function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    // Validate all required fields including address
+  
+    // ✅ validate
     if (
       !formData.firstname ||
       !formData.lastname ||
@@ -96,26 +141,31 @@ export default function Signup() {
       !formData.address.pincode
     ) {
       toast.error("All fields including address are required");
-      setLoading(false);
       return;
     }
-
-    // Validate pincode format
+  
     const pincodeRegex = /^\d{6}$/;
     if (!pincodeRegex.test(formData.address.pincode)) {
       toast.error("Please enter a valid 6-digit pincode");
-      setLoading(false);
       return;
     }
-
-    // Simulate API call delay
-    setTimeout(() => {
-      toast.success("Signup functionality will be available soon!");
-      setLoading(false);
-      // router.push(`/auth/otp?type=register&userId=${userId}`); // Uncomment when API is ready
-    }, 1000);
+  
+    // ✅ call api
+    const response = await registerUser(formData);
+  
+    // ✅ redirect
+    if (response?.data?.success) {
+      const userId = response?.data?.data?.user?.id;
+  
+      if (!userId) {
+        toast.error("userId missing in response!");
+        return;
+      }
+  
+      router.push(`/auth/otp?type=register&userId=${userId}`);
+    }
   };
-
+  
   const handleLogin = () => router.push("/auth/login");
 
   return (
