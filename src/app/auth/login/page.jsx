@@ -19,24 +19,45 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    const response = await axios.post("/api/auth/login", {
-      emailOrUsername:email,
-      password,
-    });
-    if (response?.data?.success) {
-      toast.success(response?.data?.message);
-      localStorage.setItem("token", response?.data?.token);
-      localStorage.setItem("user", JSON.stringify(response?.data?.user));
-      router.push("/");
-    } else {
-      toast.error(response?.data?.message);
+  
+    try {
+      setLoading(true);
+  
+      const response = await axios.post("/api/auth/login", {
+        emailOrUsername: email,
+        password,
+      });
+  
+      if (response?.data?.success) {
+        toast.success(response?.data?.message || "Login successful ✅");
+  
+        // ✅ correct storage
+        localStorage.setItem("token", response?.data?.data?.token);
+        localStorage.setItem(
+          "user",
+          JSON.stringify(response?.data?.data?.user)
+        );
+  
+        router.push("/");
+        return;
+      }
+  
+      toast.error(response?.data?.message || "Login failed");
+    } catch (error) {
+      // ✅ if not verified redirect to otp
+      if (error?.response?.status === 403) {
+        toast.error("Please verify your email first!");
+        const userId = error?.response?.data?.data?.userId;
+        if (userId) router.push(`/auth/otp?type=register&userId=${userId}`);
+        return;
+      }
+  
+      toast.error(error?.response?.data?.message || "Invalid login credentials");
+    } finally {
       setLoading(false);
-      return;
     }
-    setLoading(false);
   };
-
+  
   const handleSignup = () => router.push("/auth/register");
   const handleforgotPass = () => router.push("/auth/forgot-password");
 
