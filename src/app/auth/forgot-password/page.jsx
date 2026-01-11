@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import axios from "axios";
 
 export default function OtpSendTo() {
   const [email, setEmail] = useState("");
@@ -27,13 +28,24 @@ export default function OtpSendTo() {
     }
 
     setLoading(true);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      toast.success("Forgot password functionality will be available soon!");
+    try {
+      const response = await axios.post("/api/auth/forgot-password",{
+        email: email,
+        method: "email"
+      })
+      if (response?.data?.success) {
+        toast.success(response?.data?.data?.message);
+        router.push(`/auth/otp?type=password-reset&userId=${response?.data?.data?.userId}`);
+      } else {
+        toast.error(response?.data?.data?.message);
+      }
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      toast.error(error?.response?.data?.data?.message || "Forgot password failed. Please try again.");
+    } finally {
       setLoading(false);
-      // router.push(`/auth/otp?type=forgot&userId=${userId}`); // Uncomment when API is ready
-    }, 1000);
+    }
+
   };
 
   return (

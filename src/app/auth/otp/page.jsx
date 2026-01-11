@@ -98,7 +98,11 @@ function OTPPageContent() {
         toast.success(response?.data?.message || "OTP verified successfully ✅");
 
         // ✅ redirect
-        router.push("/auth/login"); // you can change "/" if you want
+        if(type === "password-reset") {
+          router.push("/auth/change-password?userId=" + userId);
+        } else {
+          router.push("/auth/login");
+        }
       } else {
         toast.error(response?.data?.message || "Invalid OTP");
       }
