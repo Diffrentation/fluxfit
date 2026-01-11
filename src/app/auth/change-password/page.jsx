@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
+import axios from "axios";
 
 function ChangePasswordContent() {
   const router = useRouter();
@@ -19,7 +20,10 @@ function ChangePasswordContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    const userId = searchParams.get("userId");
+    if (!userId) {
+      return toast.error("User ID not found!");
+    }
     const newPassword = e.target.newPassword.value;
     const confirmPassword = e.target.confirmPassword.value;
 
@@ -27,14 +31,26 @@ function ChangePasswordContent() {
       return toast.error("Passwords do not match!");
     }
 
-    setLoading(true);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      toast.success("Password change functionality will be available soon!");
+    try {
+      setLoading(true);
+      const response = await axios.post("/api/auth/reset-password",{
+        userId: userId,
+        newPassword: newPassword
+      })
+      if (response?.data?.success) {
+        toast.success(response?.data?.message);
+        router.push("/auth/login");
+      } else {
+        toast.error(response?.data?.message);
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      toast.error(error?.response?.data?.message || "Reset password failed. Please try again.");
+    } finally {
       setLoading(false);
-      // setTimeout(() => router.push("/auth/login"), 1500); // Uncomment when API is ready
-    }, 1000);
+    }
+
+
   };
 
   return (
