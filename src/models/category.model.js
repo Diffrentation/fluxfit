@@ -164,7 +164,6 @@ categorySchema.statics.getFlatList = async function () {
   const categories = await this.find({ isDeleted: false })
     .sort({ sortOrder: 1, name: 1 })
     .lean();
-
   const buildTree = (parentId = null, level = 0) => {
     return categories
       .filter((cat) => {
@@ -182,16 +181,16 @@ categorySchema.statics.getFlatList = async function () {
 };
 
 // Pre-save middleware to generate slug
-categorySchema.pre("save", function (next) {
+categorySchema.pre("save", async function () {
   if (this.isModified("name") && !this.slug) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
   }
-  next();
 });
 
-const Category = mongoose.model("Category", categorySchema);
-export default Category;
+const Category =
+  mongoose.models.Category || mongoose.model("Category", categorySchema);
 
+export default Category;
