@@ -28,7 +28,7 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
     }
   }, [brand, form]);
 
-  /* ---------------- SLUG GENERATOR (MEMOIZED) ---------------- */
+  /* ---------------- SLUG GENERATOR ---------------- */
   const generateSlug = useCallback((name) => {
     return name
       .toLowerCase()
@@ -36,7 +36,23 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
       .replace(/(^-|-$)/g, "");
   }, []);
 
-  /* ---------------- HANDLE SUBMIT ---------------- */
+  /* ---------------- HANDLE LOGO UPLOAD (LIKE CATEGORY FORM) ---------------- */
+  const handleLogoUpload = useCallback(async (info) => {
+    if (!info.file.originFileObj) return;
+
+    try {
+      const result = await uploadImage(info.file.originFileObj, {
+        folder: "fluxfit/brands",
+      });
+
+      setLogoList([result.url]);
+      message.success("Logo uploaded successfully");
+    } catch {
+      message.error("Logo upload failed");
+    }
+  }, []);
+
+  /* ---------------- HANDLE FORM SUBMIT ---------------- */
   const handleSubmit = useCallback(
     async (values) => {
       try {
@@ -50,7 +66,7 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
           sortOrder: values.sortOrder || 0,
         };
 
-        const { data } = await axios.post("/api/brands", payload, {
+        const { data } = await axios.post("/api/brands", JSON.stringify(payload), {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -82,26 +98,12 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
     [logoList, onClose, onSave, form]
   );
 
-  /* ---------------- LOGO UPLOAD HANDLER ---------------- */
-  const handleLogoUpload = useCallback(async (info) => {
-    if (info.file.status === "uploading") return;
-
-    try {
-      const file = info.file.originFileObj || info.file;
-      const result = await uploadImage(file, { folder: "fluxfit/brands" });
-      setLogoList([result.url]);
-      message.success("Logo uploaded successfully");
-    } catch {
-      message.error("Failed to upload logo");
-    }
-  }, []);
-
-  /* ---------------- UPLOAD FILE LIST (MEMOIZED) ---------------- */
+  /* ---------------- MEMOIZED FILE LIST ---------------- */
   const uploadFileList = useMemo(
     () =>
       logoList.map((url, index) => ({
         uid: index.toString(),
-        name: `logo-${index}.jpg`,
+        name: "logo",
         status: "done",
         url,
       })),
@@ -125,7 +127,9 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
         >
           <Input
             placeholder="Enter brand name"
-            onChange={(e) => form.setFieldsValue({ slug: generateSlug(e.target.value) })}
+            onChange={(e) =>
+              form.setFieldsValue({ slug: generateSlug(e.target.value) })
+            }
           />
         </Form.Item>
 
@@ -134,7 +138,7 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
           label="URL Slug"
           rules={[
             { required: true, message: "Please enter URL slug" },
-            { pattern: /^[a-z0-9-]+$/, message: "Only lowercase letters, numbers & hyphens allowed" },
+            { pattern: /^[a-z0-9-]+$/, message: "Invalid slug format" },
           ]}
         >
           <Input placeholder="brand-slug" />
@@ -144,13 +148,15 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
           <TextArea rows={3} placeholder="Enter brand description" />
         </Form.Item>
 
+        {/* Logo Upload */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Brand Logo</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Brand Logo
+          </label>
           <Upload
             listType="picture-card"
             fileList={uploadFileList}
             onChange={handleLogoUpload}
-            accept="image/*"
             maxCount={1}
           >
             {logoList.length < 1 && (
