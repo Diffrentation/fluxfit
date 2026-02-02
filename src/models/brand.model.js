@@ -99,16 +99,15 @@ brandSchema.virtual("productCount", {
 });
 
 // Pre-save middleware to generate slug
-brandSchema.pre("save", function (next) {
+brandSchema.pre("save", async function () {
   if (this.isModified("name") && !this.slug) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
   }
-  next();
 });
 
-const Brand = mongoose.model("Brand", brandSchema);
+const Brand = mongoose.models.Brand || mongoose.model("Brand", brandSchema);
 export default Brand;
 

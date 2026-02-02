@@ -379,15 +379,14 @@ productSchema.statics.search = async function (query, filters = {}) {
 };
 
 // Pre-save middleware to generate slug
-productSchema.pre("save", function (next) {
+productSchema.pre("save", async function () {
   if (this.isModified("name") && !this.slug) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
   }
-  next();
 });
 
-const Product = mongoose.model("Product", productSchema);
+const Product = mongoose.models.Product || mongoose.model("Product", productSchema);
 export default Product;

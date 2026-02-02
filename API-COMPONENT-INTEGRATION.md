@@ -396,7 +396,7 @@ This document describes which APIs are integrated with which components in the F
 
 - `CategoryNav` component (`src/components/ui/CategoryNav.jsx`)
   - Displays category navigation
-- `ProductOverview` component (`src/components/Home/ProductOverview.jsx`)
+- `ProductOverview` component (`src/components/Home/ProductOverview.jsx`) <><>
   - Category filter dropdown
 - Admin `CategoryTree` component (`src/components/Admin/Categories/CategoryTree.jsx`)
   - Admin category management
