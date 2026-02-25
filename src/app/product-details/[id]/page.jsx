@@ -20,7 +20,7 @@ import {
 } from "@tabler/icons-react";
 import { Button, message } from "antd";
 import { useCart } from "@/context/CartContext";
-import { productDatabase } from "@/lib/productDatabase";
+import axios from "axios";
 import { addToRecentlyViewed } from "@/lib/recentlyViewed";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 import ProductCard from "@/components/ui/ProductCard";
@@ -33,126 +33,120 @@ const formatPrice = (price) => {
 function ProductDetails() {
   const params = useParams();
   const router = useRouter();
-  const productId = parseInt(params.id);
-  const product = productDatabase[productId];
-  const { addToCart } = useCart();
-
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(product?.sizes[0] || "");
-  const [selectedColor, setSelectedColor] = useState(product?.color || "");
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const infoSectionRef = useRef(null);
+  const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist(); // Assuming WishlistContext is available
 
-  // Track product view in recently viewed
+  // Fetch product details
   useEffect(() => {
-    if (product && productId) {
-      addToRecentlyViewed(productId);
-    }
-  }, [product, productId]);
-
-  // Handle scroll detection for right section
-  useEffect(() => {
-    const handleScroll = () => {
-      if (infoSectionRef.current) {
-        const scrollTop = infoSectionRef.current.scrollTop;
-        setShowScrollTop(scrollTop > 300);
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const { data } = await axios.get(`/api/products/${params.id}`);
+        if (data.success) {
+          const productData = data.data.product;
+          
+          // Transform API data to match component expectations if needed
+          // For now assuming API returns compatible structure or we adjust usage
+          const transformProduct = {
+            ...productData,
+            id: productData._id, // Ensure ID is accessible as 'id' for compatibility
+            images: productData.images?.map(img => img.url) || [],
+            sizes: productData.variants?.map(v => v.size).filter((v, i, a) => a.indexOf(v) === i) || [],
+            colors: productData.variants?.map(v => v.color).filter((v, i, a) => a.indexOf(v) === i) || [],
+            price: productData.basePrice,
+            // Fallbacks for missing fields
+            features: productData.features || [], 
+            returnPolicy: productData.returnPolicy || "30-day return policy",
+            shipping: productData.shippingInfo || "Free shipping available",
+          };
+          
+          setProduct(transformProduct);
+          setSelectedSize(transformProduct.sizes?.[0] || "");
+          setSelectedColor(transformProduct.colors?.[0] || "");
+          
+          // Fetch related products (simple implementation: same category)
+          if (productData.category) {
+             fetchRelatedProducts(productData.category._id || productData.category);
+          }
+        } else {
+             message.error("Product not found");
+        }
+      } catch (error) {
+        console.error("Failed to fetch product:", error);
+        message.error("Failed to load product details");
+      } finally {
+        setLoading(false);
       }
     };
 
-    const infoSection = infoSectionRef.current;
-    if (infoSection) {
-      infoSection.addEventListener("scroll", handleScroll);
-      return () => infoSection.removeEventListener("scroll", handleScroll);
+    if (params.id) {
+      fetchProduct();
     }
+  }, [params.id]);
+
+  // Fetch related products
+  const fetchRelatedProducts = async (categoryId) => {
+      try {
+          const { data } = await axios.get(`/api/products?category=${categoryId}&limit=4`);
+          if (data.success) {
+              setRelatedProducts(data.data.products.filter(p => p._id !== params.id).map(p => ({
+                  ...p,
+                  id: p._id,
+                  image: p.images?.[0]?.url || "",
+                  price: p.basePrice
+              })));
+          }
+      } catch (error) {
+          console.error("Failed to fetch related products", error);
+      }
+  };
+
+  // Track product view in recently viewed
+  useEffect(() => {
+    if (product && product.id) {
+      addToRecentlyViewed(product.id);
+    }
+  }, [product]);
+
+  const [otherProducts, setOtherProducts] = useState([]);
+
+  // ... (fetchProduct useEffect is already here from previous step, assuming it's correct)
+
+  // Fetch other products (explore more)
+  const fetchOtherProducts = async () => {
+    try {
+      const { data } = await axios.get(`/api/products?limit=8`);
+      if (data.success) {
+        setOtherProducts(data.data.products.filter(p => p._id !== params.id).map(p => ({
+            ...p,
+            id: p._id,
+            image: p.images?.[0]?.url || "",
+            price: p.basePrice
+        })));
+      }
+    } catch (error) {
+      console.error("Failed to fetch other products", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchOtherProducts();
   }, []);
-
-  const scrollToTop = () => {
-    if (infoSectionRef.current) {
-      infoSectionRef.current.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  if (!product) {
-    return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          Product Not Found
-        </h1>
-        <Button type="primary" onClick={() => router.push("/")}>
-          Go Back Home
-        </Button>
-      </div>
-    );
-  }
-
-  const handleAddToCart = () => {
-    addToCart(product, {
-      size: selectedSize,
-      color: selectedColor,
-      quantity: quantity,
-    });
-    message.success(`${quantity} ${product.name} added to cart!`, 2);
-  };
-
-  // Get all products except current one
-  const getAllProducts = () => {
-    return Object.values(productDatabase)
-      .filter((p) => p.id !== productId)
-      .map((p) => ({
-        ...p,
-        image: p.images?.[0] || "",
-      }));
-  };
-
-  // Get related products (same category or similar tags, excluding current product)
-  const getRelatedProducts = () => {
-    const allProducts = Object.values(productDatabase);
-    const related = allProducts
-      .filter((p) => {
-        if (p.id === productId) return false;
-
-        // Same category products get highest priority
-        if (p.category === product.category) return true;
-
-        // Products with matching tags
-        if (product.tags && p.tags) {
-          const hasMatchingTag = product.tags.some((tag) =>
-            p.tags.includes(tag)
-          );
-          if (hasMatchingTag) return true;
-        }
-
-        return false;
-      })
-      .map((p) => ({
-        ...p,
-        image: p.images?.[0] || "",
-      }))
-      .slice(0, 8); // Limit to 8 related products
-
-    return related;
-  };
-
-  // Get all other products (excluding current and related)
-  const getOtherProducts = () => {
-    const relatedIds = getRelatedProducts().map((p) => p.id);
-    const allProducts = getAllProducts();
-
-    return allProducts.filter((p) => !relatedIds.includes(p.id));
-  };
 
   const handleQuickView = (product) => {
     router.push(`/product-details/${product.id}`);
   };
-
-  const relatedProducts = getRelatedProducts();
-  const otherProducts = getOtherProducts();
 
   const colorMap = {
     white: "bg-white border-2 border-gray-300",
@@ -166,6 +160,9 @@ function ProductDetails() {
     tan: "bg-amber-200",
     silver: "bg-gray-300",
     gold: "bg-yellow-400",
+    "sky blue": "bg-sky-400",
+    olive: "bg-olive-500",
+    maroon: "bg-red-900",
   };
 
   return (

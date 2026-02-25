@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Product from "@/models/product.model";
 import mongoose from "mongoose";
+import Category from "@/models/category.model"
 
 /**
  * GET /api/products
@@ -27,10 +28,8 @@ import mongoose from "mongoose";
  */
 export async function GET(request) {
   try {
-    // Connect to database
     await connectDB();
 
-    // Get query parameters
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page")) || 1;
     const limit = Math.min(parseInt(searchParams.get("limit")) || 20, 100);
@@ -43,239 +42,176 @@ export async function GET(request) {
     const size = searchParams.get("size");
     const tags = searchParams.get("tags");
     const inStock = searchParams.get("inStock");
-    const status = searchParams.get("status") || "active";
+    const status = searchParams.get("status");
     const isFeatured = searchParams.get("isFeatured");
     const isNew = searchParams.get("isNew");
     const isPopular = searchParams.get("isPopular");
     const sort = searchParams.get("sort") || "createdAt-desc";
 
-    // Build query
-    const query = {
-      isDeleted: false,
-      status: status,
-    };
+    // 1. Build Match Query
+    const query = { isDeleted: false };
+    if (status) query.status = status;
+    if (search?.trim()) query.$text = { $search: search.trim() };
     
-    // Text search (using MongoDB text search)
-    if (search && search.trim()) {
-      query.$text = { $search: search.trim() };
-    }
-
-    // Category filter
+    // Category Logic: Handle both ID and Slug
     if (category) {
       if (mongoose.Types.ObjectId.isValid(category)) {
-        query.category = category;
+        query.category = new mongoose.Types.ObjectId(category);
       } else {
-        // If it's a slug, we'd need to lookup category first
-        // For now, assume it's an ID
-        query.category = category;
+        const categoryDoc = await Category.findOne({ slug: category });
+        if (categoryDoc) query.category = categoryDoc._id;
       }
     }
 
-    // Brand filter
-    if (brand) {
-      if (mongoose.Types.ObjectId.isValid(brand)) {
-        query.brand = brand;
-      }
+    if (brand && mongoose.Types.ObjectId.isValid(brand)) {
+      query.brand = new mongoose.Types.ObjectId(brand);
     }
 
-    // Price range filter
     if (minPrice || maxPrice) {
       query.basePrice = {};
-      if (minPrice) {
-        query.basePrice.$gte = parseFloat(minPrice);
-      }
-      if (maxPrice) {
-        query.basePrice.$lte = parseFloat(maxPrice);
-      }
+      if (minPrice) query.basePrice.$gte = parseFloat(minPrice);
+      if (maxPrice) query.basePrice.$lte = parseFloat(maxPrice);
     }
 
-    // Color filter
-    if (color) {
-      query.colors = { $in: [color] };
-    }
+    if (color) query.colors = { $in: [color] };
+    if (size) query.sizes = { $in: [size] };
+    if (tags) query.tags = { $in: tags.split(",").map(t => t.trim().toLowerCase()) };
+    if (inStock !== null) query.inStock = inStock === "true";
+    if (isFeatured !== null) query.isFeatured = isFeatured === "true";
+    if (isNew !== null) query.isNew = isNew === "true";
+    if (isPopular !== null) query.isPopular = isPopular === "true";
 
-    // Size filter
-    if (size) {
-      query.sizes = { $in: [size] };
-    }
-
-    // Tags filter
-    if (tags) {
-      const tagArray = tags.split(",").map((tag) => tag.trim().toLowerCase());
-      query.tags = { $in: tagArray };
-    }
-
-    // Stock filter
-    if (inStock !== null && inStock !== undefined) {
-      query.inStock = inStock === "true" || inStock === true;
-    }
-
-    // Featured filter
-    if (isFeatured !== null && isFeatured !== undefined) {
-      query.isFeatured = isFeatured === "true" || isFeatured === true;
-    }
-
-    // New products filter
-    if (isNew !== null && isNew !== undefined) {
-      query.isNew = isNew === "true" || isNew === true;
-    }
-
-    // Popular products filter
-    if (isPopular !== null && isPopular !== undefined) {
-      query.isPopular = isPopular === "true" || isPopular === true;
-    }
-
-    // Build sort object
+    // 2. Build Sort Object
     let sortObj = {};
-    const sortParts = sort.split("-");
-    const sortField = sortParts[0];
-    const sortOrder = sortParts[1] === "asc" ? 1 : -1;
+    const [sortField, sortOrderStr] = sort.split("-");
+    const sortOrder = sortOrderStr === "asc" ? 1 : -1;
 
     switch (sortField) {
-      case "price":
-        sortObj.basePrice = sortOrder;
-        break;
-      case "rating":
-        sortObj["rating.average"] = sortOrder;
-        break;
-      case "createdAt":
-        sortObj.createdAt = sortOrder;
-        break;
-      case "name":
-        sortObj.name = sortOrder;
-        break;
-      case "popularity":
-        sortObj["rating.count"] = sortOrder;
-        break;
-      default:
-        sortObj.createdAt = -1;
+      case "price": sortObj.basePrice = sortOrder; break;
+      case "rating": sortObj["rating.average"] = sortOrder; break;
+      case "name": sortObj.name = sortOrder; break;
+      case "popularity": sortObj["rating.count"] = sortOrder; break;
+      default: sortObj.createdAt = -1;
     }
+    if (search?.trim()) sortObj.score = { $meta: "textScore" };
 
-    // If text search is used, add text score to sort
-    if (search && search.trim()) {
-      sortObj.score = { $meta: "textScore" };
-    }
-
-    // Calculate skip
+    // 3. Execute Unified Pipeline
     const skip = (page - 1) * limit;
 
-    // Execute query with pagination
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .populate("category", "name slug")
-        .populate("brand", "name logo")
-        .sort(sortObj)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Product.countDocuments(query),
+    const result = await Product.aggregate([
+      { $match: query },
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [
+            { $sort: sortObj },
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $lookup: {
+                from: "categories",
+                localField: "category",
+                foreignField: "_id",
+                as: "category"
+              }
+            },
+            { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+            {
+              $lookup: {
+                from: "brands",
+                localField: "brand",
+                foreignField: "_id",
+                as: "brand"
+              }
+            },
+            { $unwind: { path: "$brand", preserveNullAndEmptyArrays: true } },
+            {
+              $addFields: {
+                id: "$_id",
+                primaryImage: {
+                  $ifNull: [
+                    { $filter: { input: "$images", as: "img", cond: { $eq: ["$$img.isPrimary", true] } } },
+                    { $slice: ["$images", 1] }
+                  ]
+                },
+                discountPercentage: {
+                  $cond: {
+                    if: { $and: [{ $gt: ["$originalPrice", 0] }, { $gt: ["$originalPrice", "$basePrice"] }] },
+                    then: { $round: [{ $multiply: [{ $divide: [{ $subtract: ["$originalPrice", "$basePrice"] }, "$originalPrice"] }, 100] }, 0] },
+                    else: { $ifNull: ["$discount", 0] }
+                  }
+                }
+              }
+            },
+            {
+              $project: {
+                name: 1,
+                slug: 1,
+                description: 1,
+                basePrice: 1,
+                originalPrice: 1,
+                stock: 1,
+                inStock: 1,
+                images: 1,
+                variants: 1,
+                tags: 1,
+                colors: 1,
+                sizes: 1,
+                rating: 1,
+                features: 1,
+                isFeatured: 1,
+                isNew: 1,
+                isPopular: 1,
+                createdAt: 1,
+                updatedAt: 1,
+
+                category: {
+                  _id: "$category._id",
+                  name: "$category.name",
+                  slug: "$category.slug",
+                  metaTitle: "$category.metaTitle",
+                  metaDescription: "$category.metaDescription",
+                  metaKeywords: "$category.metaKeywords",
+                  parent: "$category.parent"
+                },
+
+                brand: {
+                  _id: "$brand._id",
+                  name: "$brand.name",
+                  logo: "$brand.logo",
+                  slug: "$brand.slug",
+                  description: "$brand.description"
+                }
+              }
+            }         
+           ]
+        }
+      }
     ]);
 
-    // Format products for response
-    const formattedProducts = products.map((product) => {
-      // Get primary image
-      const primaryImage =
-        product.images?.find((img) => img.isPrimary)?.url ||
-        product.images?.[0]?.url ||
-        null;
+    const products = result[0].data;
+    const total = result[0].metadata[0]?.total || 0;
 
-      // Calculate discount percentage
-      const discountPercentage =
-        product.originalPrice && product.originalPrice > product.basePrice
-          ? Math.round(
-              ((product.originalPrice - product.basePrice) /
-                product.originalPrice) *
-                100
-            )
-          : product.discount || 0;
-
-      return {
-        id: product._id,
-        name: product.name,
-        slug: product.slug,
-        description: product.description,
-        shortDescription: product.shortDescription,
-        category: product.category
-          ? {
-              id: product.category._id,
-              name: product.category.name,
-              slug: product.category.slug,
-            }
-          : null,
-        brand: product.brand
-          ? {
-              id: product.brand._id,
-              name: product.brand.name,
-              logo: product.brand.logo,
-            }
-          : null,
-        basePrice: product.basePrice,
-        originalPrice: product.originalPrice,
-        discount: discountPercentage,
-        images: product.images || [],
-        primaryImage: primaryImage,
-        variants: product.variants || [],
-        tags: product.tags || [],
-        colors: product.colors || [],
-        sizes: product.sizes || [],
-        stock: product.stock,
-        inStock: product.inStock,
-        rating: product.rating || { average: 0, count: 0 },
-        reviews: product.reviews || 0,
-        features: product.features || [],
-        isFeatured: product.isFeatured || false,
-        isNew: product.isNew || false,
-        isPopular: product.isPopular || false,
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-      };
-    });
-
-    // Return response
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Products retrieved successfully",
-        data: {
-          products: formattedProducts,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit),
-            hasNextPage: page < Math.ceil(total / limit),
-            hasPrevPage: page > 1,
-          },
-          filters: {
-            search: search || null,
-            category: category || null,
-            brand: brand || null,
-            minPrice: minPrice ? parseFloat(minPrice) : null,
-            maxPrice: maxPrice ? parseFloat(maxPrice) : null,
-            color: color || null,
-            size: size || null,
-            tags: tags ? tags.split(",").map((t) => t.trim()) : null,
-            inStock: inStock !== null ? inStock === "true" : null,
-            status,
-            isFeatured: isFeatured !== null ? isFeatured === "true" : null,
-            isNew: isNew !== null ? isNew === "true" : null,
-            isPopular: isPopular !== null ? isPopular === "true" : null,
-            sort,
-          },
+    return NextResponse.json({
+      success: true,
+      message: "Products retrieved successfully",
+      data: {
+        products,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPrevPage: page > 1,
         },
-      },
-      { status: 200 }
-    );
+        filters: { ...Object.fromEntries(searchParams), sort }
+      }
+    }, { status: 200 });
+
   } catch (error) {
     console.error("Get products error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          error.message || "Failed to retrieve products. Please try again.",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 

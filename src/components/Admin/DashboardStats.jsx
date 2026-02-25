@@ -124,14 +124,21 @@ const DashboardStats = () => {
                 </span>
               }
               suffix={<span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{stat.suffix}</span>}
-              valueStyle={{
-                color: stat.color === "green" ? "#10b981" : 
-                       stat.color === "blue" ? "#3b82f6" :
-                       stat.color === "purple" ? "#a855f7" : "#f97316",
-                fontSize: "18px",
-                fontWeight: "bold",
+              styles={{
+                content: {
+                  color:
+                    stat.color === "green"
+                      ? "#10b981"
+                      : stat.color === "blue"
+                      ? "#3b82f6"
+                      : stat.color === "purple"
+                      ? "#a855f7"
+                      : "#f97316",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                },
               }}
-            />
+                          />
             <div className="mt-2 flex items-center gap-1 text-xs sm:text-sm">
               <IconTrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 dark:text-green-400" />
               <span className="text-green-600 dark:text-green-400 font-medium">

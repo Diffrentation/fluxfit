@@ -12,7 +12,8 @@ const ProductCard = ({ product, onQuickView }) => {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const isWishlisted = isInWishlist(product.id);
+  const productId = product.id || product._id;
+  const isWishlisted = isInWishlist(productId);
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -70,7 +71,7 @@ const ProductCard = ({ product, onQuickView }) => {
           onClick={(e) => {
             e.stopPropagation();
             if (isWishlisted) {
-              removeFromWishlist(product.id);
+              removeFromWishlist(productId);
               message.success("Removed from wishlist");
             } else {
               addToWishlist(product);

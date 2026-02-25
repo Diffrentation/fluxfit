@@ -68,7 +68,7 @@ const AbandonedCartStats = () => {
               title="Total Cart Sessions"
               value={stats.totalCarts}
               prefix={<IconShoppingCart className="w-5 h-5 text-blue-500" />}
-              valueStyle={{ color: "#3b82f6", fontSize: "24px", fontWeight: "bold" }}
+              formatter={(value) => <span className="text-blue-500 text-2xl font-bold">{value}</span>}
             />
           </div>
           <div>
@@ -76,15 +76,15 @@ const AbandonedCartStats = () => {
               title="Abandoned Carts"
               value={stats.abandonedCarts}
               prefix={<IconX className="w-5 h-5 text-red-500" />}
-              valueStyle={{ color: "#ef4444", fontSize: "24px", fontWeight: "bold" }}
+              formatter={(value) => <span className="text-red-500 text-2xl font-bold">{value}</span>}
             />
           </div>
           <div>
             <Statistic
               title="Abandoned Cart Value"
-              value={formatPrice(stats.abandonedValue)}
+              value={stats.abandonedValue}
               prefix="₹"
-              valueStyle={{ color: "#f97316", fontSize: "24px", fontWeight: "bold" }}
+              formatter={(value) => <span className="text-orange-500 text-2xl font-bold">{formatPrice(value)}</span>}
             />
           </div>
           <div>
@@ -92,7 +92,7 @@ const AbandonedCartStats = () => {
               title="Recovery Rate"
               value={stats.recoveryRate}
               suffix="%"
-              valueStyle={{ color: "#10b981", fontSize: "24px", fontWeight: "bold" }}
+              formatter={(value) => <span className="text-emerald-500 text-2xl font-bold">{value}</span>}
             />
             <Progress
               percent={stats.recoveryRate}

@@ -12,16 +12,19 @@ export const useSidebar = () => {
 };
 
 export const SidebarProvider = ({ children }) => {
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    // Initialize from localStorage on mount to prevent hydration mismatch
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Initialize from localStorage on mount (client-side only) to prevent hydration mismatch
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("adminSidebarCollapsed");
-      return saved !== null ? JSON.parse(saved) : false;
+      if (saved !== null) {
+        setIsCollapsed(JSON.parse(saved));
+      }
     }
-    return false;
-  });
+  }, []);
 
-  // Save collapsed state to localStorage (only when it changes, not on initial mount)
+  // Save collapsed state to localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("adminSidebarCollapsed", JSON.stringify(isCollapsed));
@@ -34,4 +37,5 @@ export const SidebarProvider = ({ children }) => {
     </SidebarContext.Provider>
   );
 };
+
 

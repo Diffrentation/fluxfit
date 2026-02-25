@@ -336,50 +336,6 @@ const ProductManagementPage = () => {
               </div>
 
               {/* Filters */}
-              <div className="bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-                  <div className="sm:col-span-2 lg:col-span-1">
-                    <Search
-                      placeholder="Search products..."
-                      allowClear
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      prefix={
-                        <IconSearch className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      }
-                      size="large"
-                      className="w-full"
-                    />
-                  </div>
-                  <Select
-                    value={categoryFilter}
-                    onChange={setCategoryFilter}
-                    style={{ width: "100%" }}
-                    size="large"
-                    className="w-full"
-                  >
-                    <Option value="all">All Categories</Option>
-                    {categories.slice(1).map((cat) => (
-                      <Option key={cat} value={cat}>
-                        {cat}
-                      </Option>
-                    ))}
-                  </Select>
-                  <Select
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    style={{ width: "100%" }}
-                    size="large"
-                    className="w-full"
-                  >
-                    <Option value="all">All Status</Option>
-                    <Option value="approved">Approved</Option>
-                    <Option value="pending">Pending</Option>
-                    <Option value="rejected">Rejected</Option>
-                    <Option value="draft">Draft</Option>
-                  </Select>
-                </div>
-              </div>
             </motion.div>
 
             {/* Product List */}

@@ -1,7 +1,22 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Table, Tag, Button, Avatar, Image, Dropdown, message, Card } from "antd";
+import { 
+  Table, 
+  Tag, 
+  Button, 
+  Image, 
+  Dropdown, 
+  message, 
+  Card, 
+  Input, 
+  Select, 
+  Space, 
+  Spin, 
+  Empty, 
+  Pagination,
+  Modal
+} from "antd";
 import {
   IconEdit,
   IconTrash,
@@ -10,34 +25,330 @@ import {
   IconCheck,
   IconX,
   IconClock,
+  IconSearch,
+  IconFilter,
+  IconRefresh,
+  IconCalendar,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
-import { format } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
+import axios from "axios";
+import safeFormatDate from "@/lib/dateFormatter";
 
-const ProductList = ({ products, onEdit, onDelete, onView }) => {
+const { Search } = Input;
+const { Option } = Select;
+const { confirm } = Modal;
+
+const ProductList = ({ onEdit, onDelete, onView }) => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    search: "",
+    category: "",
+    status: "",
+    inStock: "",
+    page: 1,
+    limit: 10,
+    sort: "createdAt-desc",
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
+  const [categories, setCategories] = useState([]);
+  const searchTimeoutRef = useRef(null);
+  const previousFiltersRef = useRef({});
+
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data } = await axios.get("/api/categories?format=flat", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (data.success) {
+        setCategories(data.data.categories || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    }
+  }, []);
+
+  // Build query parameters with advanced search support
+  const buildQueryParams = useCallback((currentFilters) => {
+    const params = new URLSearchParams();
+    
+    Object.entries(currentFilters).forEach(([key, value]) => {
+      if (value !== "" && value !== null && value !== undefined) {
+        // Handle search query specially - send as q parameter for backend
+        if (key === "search" && value.trim()) {
+          params.append("q", value.trim());
+        } else {
+          params.append(key, value);
+        }
+      }
+    });
+    
+    return params.toString();
+  }, []);
+
+  // Check if filters have actually changed
+  const hasFiltersChanged = useCallback((newFilters, oldFilters) => {
+    const keys = ["search", "category", "status", "inStock", "sort", "page", "limit"];
+    return keys.some(key => newFilters[key] !== oldFilters[key]);
+  }, []);
+
+  // Fetch products with filters - optimized with debouncing
+  const fetchProducts = useCallback(async (currentFilters) => {
+    setLoading(true);
+    try {
+      const queryParams = buildQueryParams(currentFilters);
+      
+      const { data } = await axios.get(`/api/products?${queryParams}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        params: {
+          // Additional search parameters for backend
+          searchFields: currentFilters.search ? "name,description,sku,id" : undefined,
+        },
+      });
+
+      if (data.success) {
+        // Ensure createdAt is a valid date for each product
+        const validatedProducts = (data.data.products || []).map(product => ({
+          ...product,
+          id: product.id || product._id,
+          createdAt: product.createdAt ? new Date(product.createdAt) : new Date(),
+        }));
+        
+        setProducts(validatedProducts);
+        setPagination(data.data.pagination || {
+          page: currentFilters.page,
+          limit: currentFilters.limit,
+          total: 0,
+          totalPages: 1,
+        });
+        
+        // Store current filters for comparison
+        previousFiltersRef.current = { ...currentFilters };
+      } else {
+        message.error(data.message || "Failed to fetch products");
+      }
+    } catch (error) {
+      console.error("Fetch products error:", error);
+      message.error(
+        error.response?.data?.message || 
+        "Failed to load products. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [buildQueryParams]);
+
+  // Debounced search function
+  const debouncedSearch = useCallback((searchValue) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setFilters(prev => {
+        const newFilters = {
+          ...prev,
+          search: searchValue,
+          page: 1, // Reset to first page on new search
+        };
+        
+        // Only fetch if filters have changed
+        if (hasFiltersChanged(newFilters, previousFiltersRef.current)) {
+          fetchProducts(newFilters);
+        }
+        
+        return newFilters;
+      });
+    }, 500); // 500ms debounce delay
+  }, [fetchProducts, hasFiltersChanged]);
+
+  // Handle filter changes with optimization
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters(prev => {
+      const newFilters = {
+        ...prev,
+        [key]: value,
+        ...(key !== "page" && key !== "limit" ? { page: 1 } : {}), // Reset page on filter change
+      };
+      
+      // For search, use debounced version
+      if (key === "search") {
+        debouncedSearch(value);
+        return newFilters;
+      }
+      
+      // For other filters, fetch immediately if changed
+      if (hasFiltersChanged(newFilters, previousFiltersRef.current)) {
+        fetchProducts(newFilters);
+      }
+      
+      return newFilters;
+    });
+  }, [debouncedSearch, fetchProducts, hasFiltersChanged]);
+
+  // Handle search input with immediate feedback
+  const handleSearch = (value) => {
+    handleFilterChange("search", value);
+  };
+
+  // Handle pagination change
+  const handlePageChange = (page, pageSize) => {
+    setFilters(prev => {
+      const newFilters = {
+        ...prev,
+        page,
+        limit: pageSize,
+      };
+      
+      if (hasFiltersChanged(newFilters, previousFiltersRef.current)) {
+        fetchProducts(newFilters);
+      }
+      
+      return newFilters;
+    });
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts(filters);
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []); // Empty dependency array - only run once on mount
+
+  // Show delete confirmation modal
+  const showDeleteConfirm = (product) => {
+    setProductToDelete(product);
+    setDeleteModalVisible(true);
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return;
+    
+    setDeleteLoading(true);
+    try {
+      const { data } = await axios.delete(`/api/products/${productToDelete.id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (data.success) {
+        message.success({
+          content: 'Product deleted successfully',
+          icon: <IconCheck className="w-4 h-4 text-green-500" />,
+        });
+        
+        // Refresh products with current filters
+        fetchProducts(filters);
+        
+        // Call onDelete callback if provided
+        if (onDelete) onDelete(productToDelete.id);
+        
+        // Close modal
+        setDeleteModalVisible(false);
+        setProductToDelete(null);
+      } else {
+        message.error(data.message || "Failed to delete product");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      message.error(
+        error.response?.data?.message || 
+        "Failed to delete product. Please try again."
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Cancel delete
+  const handleDeleteCancel = () => {
+    setDeleteModalVisible(false);
+    setProductToDelete(null);
+  };
+
+  // Handle refresh
+  const handleRefresh = () => {
+    fetchProducts(filters);
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    const defaultFilters = {
+      search: "",
+      category: "",
+      status: "",
+      inStock: "",
+      page: 1,
+      limit: 10,
+      sort: "createdAt-desc",
+    };
+    
+    setFilters(defaultFilters);
+    fetchProducts(defaultFilters);
+  };
+
+  // Check if any filter is active
+  const hasActiveFilters = () => {
+    const { search, category, status, inStock, sort } = filters;
+    return search !== "" || category !== "" || status !== "" || inStock !== "" || sort !== "createdAt-desc";
+  };
+
+  // Status color mapping
   const getStatusColor = (status) => {
     const colors = {
       approved: "green",
       pending: "orange",
       rejected: "red",
       draft: "gray",
+      active: "blue",
+      inactive: "gray",
     };
     return colors[status] || "default";
   };
 
+  // Status icon
   const getStatusIcon = (status) => {
     switch (status) {
       case "approved":
+      case "active":
         return <IconCheck className="w-4 h-4" />;
       case "pending":
         return <IconClock className="w-4 h-4" />;
       case "rejected":
+      case "inactive":
         return <IconX className="w-4 h-4" />;
       default:
         return null;
     }
   };
 
+  // Table columns
   const columns = [
     {
       title: "Product",
@@ -48,7 +359,7 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
             <Image
-              src={record.images?.[0] || record.image || ""}
+              src={record.primaryImage || record.images?.[0]?.url || ""}
               alt={record.name}
               width={48}
               height={48}
@@ -67,62 +378,77 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
     },
     {
       title: "Category",
-      dataIndex: "category",
       key: "category",
-      width: 100,
+      width: 120,
       responsive: ["sm", "md", "lg"],
-      render: (category) => (
+      render: (_, record) => (
         <Tag color="blue" className="font-medium">
-          {category}
+          {record.category?.name || "Uncategorized"}
         </Tag>
       ),
     },
     {
       title: "Price",
-      dataIndex: "price",
       key: "price",
       width: 100,
       responsive: ["sm", "md", "lg"],
-      render: (price) => (
-        <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
-          ₹{formatPrice(price)}
-        </span>
+      render: (_, record) => (
+        <div>
+          <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
+            ₹{formatPrice(record.basePrice || 0)}
+          </span>
+          {record.originalPrice > record.basePrice && (
+            <div className="text-xs text-gray-500 line-through">
+              ₹{formatPrice(record.originalPrice || 0)}
+            </div>
+          )}
+        </div>
       ),
     },
     {
       title: "Stock",
-      dataIndex: "stock",
       key: "stock",
       width: 90,
       responsive: ["md", "lg"],
-      render: (stock) => (
+      render: (_, record) => (
         <span
           className={`font-semibold text-sm sm:text-base ${
-            stock > 10
+            record.stock > 10
               ? "text-green-600 dark:text-green-400"
-              : stock > 0
+              : record.stock > 0
               ? "text-orange-600 dark:text-orange-400"
               : "text-red-600 dark:text-red-400"
           }`}
         >
-          {stock || 0} units
+          {(record.stock || 0)} units
         </span>
       ),
     },
     {
       title: "Status",
-      dataIndex: "status",
       key: "status",
       width: 100,
       responsive: ["sm", "md", "lg"],
-      render: (status) => (
+      render: (_, record) => (
         <Tag
-          color={getStatusColor(status)}
+          color={getStatusColor(record.status)}
           className="flex items-center gap-1 w-fit"
         >
-          {getStatusIcon(status)}
-          <span className="capitalize">{status}</span>
+          {getStatusIcon(record.status)}
+          <span className="capitalize">{record.status || "draft"}</span>
         </Tag>
+      ),
+    },
+    {
+      title: "Created",
+      key: "createdAt",
+      width: 100,
+      responsive: ["lg"],
+      render: (_, record) => (
+        <div className="text-xs text-gray-500 flex items-center gap-1">
+          <IconCalendar className="w-3 h-3" />
+          {safeFormatDate(record.createdAt)}
+        </div>
       ),
     },
     {
@@ -139,13 +465,13 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
                 key: "view",
                 label: "View Details",
                 icon: <IconEye className="w-4 h-4" />,
-                onClick: () => onView(record),
+                onClick: () => onView && onView(record),
               },
               {
                 key: "edit",
                 label: "Edit Product",
                 icon: <IconEdit className="w-4 h-4" />,
-                onClick: () => onEdit(record),
+                onClick: () => onEdit && onEdit(record),
               },
               {
                 type: "divider",
@@ -155,7 +481,7 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
                 label: "Delete",
                 icon: <IconTrash className="w-4 h-4" />,
                 danger: true,
-                onClick: () => onDelete(record.id),
+                onClick: () => showDeleteConfirm(record),
               },
             ],
           }}
@@ -176,13 +502,13 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
     return (
       <Card
         className="h-full hover:shadow-md transition-shadow"
-        bodyStyle={{ padding: "12px" }}
+        styles={{ body: { padding: "12px" } }}
       >
         <div className="flex flex-col gap-3">
           <div className="flex items-start gap-3">
             <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
               <Image
-                src={product.images?.[0] || product.image || ""}
+                src={product.primaryImage || product.images?.[0]?.url || ""}
                 alt={product.name}
                 width={80}
                 height={80}
@@ -192,17 +518,21 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate mb-1">
-                {product.name}
+                {product.name || "Unnamed Product"}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">ID: {product.id}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                ID: {product.id || "N/A"}
+              </p>
               <div className="flex flex-wrap gap-2 mb-2">
-                <Tag color="blue" className="text-xs">{product.category}</Tag>
+                <Tag color="blue" className="text-xs">
+                  {product.category?.name || "Uncategorized"}
+                </Tag>
                 <Tag
                   color={getStatusColor(product.status)}
                   className="flex items-center gap-1 text-xs"
                 >
                   {getStatusIcon(product.status)}
-                  <span className="capitalize">{product.status}</span>
+                  <span className="capitalize">{product.status || "draft"}</span>
                 </Tag>
               </div>
             </div>
@@ -211,24 +541,36 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <span className="text-gray-500 dark:text-gray-400 text-xs">Price:</span>
-              <p className="font-semibold text-gray-900 dark:text-white">
-                ₹{formatPrice(product.price)}
-              </p>
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-white">
+                  ₹{formatPrice(product.basePrice || 0)}
+                </p>
+                {product.originalPrice > product.basePrice && (
+                  <p className="text-xs text-gray-500 line-through">
+                    ₹{formatPrice(product.originalPrice || 0)}
+                  </p>
+                )}
+              </div>
             </div>
             <div>
               <span className="text-gray-500 dark:text-gray-400 text-xs">Stock:</span>
               <p
                 className={`font-semibold ${
-                  product.stock > 10
+                  (product.stock || 0) > 10
                     ? "text-green-600 dark:text-green-400"
-                    : product.stock > 0
+                    : (product.stock || 0) > 0
                     ? "text-orange-600 dark:text-orange-400"
                     : "text-red-600 dark:text-red-400"
                 }`}
               >
-                {product.stock || 0} units
+                {(product.stock || 0)} units
               </p>
             </div>
+          </div>
+
+          <div className="text-xs text-gray-500 flex items-center gap-1">
+            <IconCalendar className="w-3 h-3" />
+            Created: {safeFormatDate(product.createdAt)}
           </div>
 
           <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
@@ -236,7 +578,7 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
               type="default"
               size="small"
               icon={<IconEye className="w-3 h-3" />}
-              onClick={() => onView(product)}
+              onClick={() => onView && onView(product)}
               className="flex-1"
             >
               View
@@ -245,37 +587,158 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
               type="default"
               size="small"
               icon={<IconEdit className="w-3 h-3" />}
-              onClick={() => onEdit(product)}
+              onClick={() => onEdit && onEdit(product)}
               className="flex-1"
             >
               Edit
             </Button>
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "delete",
-                    label: "Delete",
-                    icon: <IconTrash className="w-4 h-4" />,
-                    danger: true,
-                    onClick: () => onDelete(product.id),
-                  },
-                ],
-              }}
-              trigger={["click"]}
+            <Button
+              type="default"
+              size="small"
+              icon={<IconTrash className="w-3 h-3" />}
+              onClick={() => showDeleteConfirm(product)}
+              danger
+              className="flex-1"
             >
-              <Button
-                type="default"
-                size="small"
-                icon={<IconDots className="w-3 h-3" />}
-                danger
-              />
-            </Dropdown>
+              Delete
+            </Button>
           </div>
         </div>
       </Card>
     );
   };
+
+  // Filter controls component
+  const FilterControls = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6 shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <Search
+            placeholder="Search by name, ID, description, or SKU..."
+            allowClear
+            enterButton={<IconSearch className="w-4 h-4" />}
+            size="large"
+            onSearch={handleSearch}
+            onChange={(e) => handleFilterChange("search", e.target.value)}
+            value={filters.search}
+            loading={loading}
+          />
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <Select
+            placeholder="Category"
+            style={{ width: 150 }}
+            size="large"
+            allowClear
+            value={filters.category || undefined}
+            onChange={(value) => handleFilterChange("category", value)}
+            loading={categories.length === 0}
+          >
+            {categories.map((cat) => (
+              <Option key={cat._id || cat.id} value={cat._id || cat.id}>
+                {cat.name}
+              </Option>
+            ))}
+          </Select>
+
+          <Select
+            placeholder="Status"
+            style={{ width: 150 }}
+            size="large"
+            allowClear
+            value={filters.status || undefined}
+            onChange={(value) => handleFilterChange("status", value)}
+          >
+            <Option value="active">Active</Option>
+            <Option value="inactive">Inactive</Option>
+            <Option value="pending">Pending</Option>
+            <Option value="draft">Draft</Option>
+          </Select>
+
+          <Select
+            placeholder="Stock"
+            style={{ width: 150 }}
+            size="large"
+            allowClear
+            value={filters.inStock || undefined}
+            onChange={(value) => handleFilterChange("inStock", value)}
+          >
+            <Option value="true">In Stock</Option>
+            <Option value="false">Out of Stock</Option>
+          </Select>
+
+          <Select
+            placeholder="Sort By"
+            style={{ width: 150 }}
+            size="large"
+            value={filters.sort}
+            onChange={(value) => handleFilterChange("sort", value)}
+          >
+            <Option value="createdAt-desc">Newest First</Option>
+            <Option value="createdAt-asc">Oldest First</Option>
+            <Option value="price-asc">Price: Low to High</Option>
+            <Option value="price-desc">Price: High to Low</Option>
+            <Option value="name-asc">Name: A to Z</Option>
+            <Option value="name-desc">Name: Z to A</Option>
+          </Select>
+
+          <Button
+            type="default"
+            icon={<IconRefresh className="w-4 h-4" />}
+            size="large"
+            onClick={handleRefresh}
+            loading={loading}
+          >
+            Refresh
+          </Button>
+          
+          {hasActiveFilters() && (
+            <Button
+              type="text"
+              size="large"
+              onClick={handleClearFilters}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Clear Filters
+            </Button>
+          )}
+        </div>
+      </div>
+      
+      {/* Active filters indicator */}
+      {hasActiveFilters() && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="text-xs text-gray-500">Active filters:</span>
+          {filters.search && (
+            <Tag closable onClose={() => handleFilterChange("search", "")}>
+              Search: {filters.search}
+            </Tag>
+          )}
+          {filters.category && (
+            <Tag closable onClose={() => handleFilterChange("category", "")}>
+              Category: {categories.find(c => (c._id || c.id) === filters.category)?.name || filters.category}
+            </Tag>
+          )}
+          {filters.status && (
+            <Tag closable onClose={() => handleFilterChange("status", "")}>
+              Status: {filters.status}
+            </Tag>
+          )}
+          {filters.inStock && (
+            <Tag closable onClose={() => handleFilterChange("inStock", "")}>
+              Stock: {filters.inStock === "true" ? "In Stock" : "Out of Stock"}
+            </Tag>
+          )}
+          {filters.sort !== "createdAt-desc" && (
+            <Tag closable onClose={() => handleFilterChange("sort", "createdAt-desc")}>
+              Sort: {filters.sort}
+            </Tag>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <motion.div
@@ -283,37 +746,139 @@ const ProductList = ({ products, onEdit, onDelete, onView }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
     >
-      {/* Grid Layout for Mobile and Tablet */}
-      <div className="lg:hidden">
-        {products.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            No products found
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Filter Controls */}
+      <FilterControls />
 
-      {/* Table Layout for Desktop */}
-      <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <Table
-          dataSource={products.map((p) => ({ ...p, key: p.id }))}
-          columns={columns}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} products`,
-            responsive: true,
-          }}
-          scroll={{ x: 600 }}
-          className="product-table"
-          size="small"
-        />
-      </div>
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-red-600">
+            <IconAlertTriangle className="w-5 h-5" />
+            <span>Delete Product</span>
+          </div>
+        }
+        open={deleteModalVisible}
+        onCancel={handleDeleteCancel}
+        footer={[
+          <Button key="cancel" onClick={handleDeleteCancel} disabled={deleteLoading}>
+            Cancel
+          </Button>,
+          <Button
+            key="delete"
+            type="primary"
+            danger
+            loading={deleteLoading}
+            onClick={handleDeleteConfirm}
+          >
+            Delete
+          </Button>,
+        ]}
+        width={400}
+      >
+        <div className="py-4">
+          <p className="text-gray-600 mb-2">
+            Are you sure you want to delete this product?
+          </p>
+          {productToDelete && (
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Image
+                  src={productToDelete.primaryImage || productToDelete.images?.[0]?.url || ""}
+                  alt={productToDelete.name}
+                  width={40}
+                  height={40}
+                  className="rounded object-cover"
+                  fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23f0f0f0'/%3E%3C/svg%3E"
+                />
+                <div>
+                  <p className="font-medium">{productToDelete.name}</p>
+                  <p className="text-xs text-gray-500">ID: {productToDelete.id}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <p className="text-red-500 text-sm mt-3">
+            This action cannot be undone. The product will be permanently deleted.
+          </p>
+        </div>
+      </Modal>
+
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex flex-col gap-4 justify-center items-center py-20">
+          <Spin size="large" />
+          <p className="text-gray-500">Loading products...</p>
+        </div>
+      ) : (
+        <>
+          {/* Products Count */}
+          <div className="mb-4 flex justify-between items-center">
+            <div className="text-sm text-gray-500">
+              Showing {Math.min(products.length, pagination.limit)} of {pagination.total} products
+            </div>
+            <div className="text-sm text-gray-500">
+              Page {pagination.page} of {pagination.totalPages}
+            </div>
+          </div>
+
+          {/* Grid Layout for Mobile and Tablet */}
+          <div className="lg:hidden">
+            {products.length === 0 ? (
+              <Empty
+                description="No products found"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                className="py-12"
+              />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {products.map((product) => (
+                  <ProductCard key={product.id || Math.random()} product={product} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Table Layout for Desktop */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <Table
+              dataSource={products.map((p) => ({ ...p, key: p.id || Math.random() }))}
+              columns={columns}
+              pagination={false}
+              loading={loading}
+              scroll={{ x: 800 }}
+              className="product-table"
+              size="small"
+              locale={{
+                emptyText: (
+                  <Empty
+                    description="No products found"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                ),
+              }}
+            />
+          </div>
+
+          {/* Pagination */}
+          {pagination.total > 0 && (
+            <div className="mt-6 flex justify-center">
+              <Pagination
+                current={pagination.page}
+                pageSize={pagination.limit}
+                total={pagination.total}
+                onChange={handlePageChange}
+                showSizeChanger
+                showQuickJumper
+                showTotal={(total, range) => 
+                  `${range[0]}-${range[1]} of ${total} items`
+                }
+                size="default"
+                disabled={loading}
+              />
+            </div>
+          )}
+        </>
+      )}
     </motion.div>
   );
 };
