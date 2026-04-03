@@ -190,6 +190,6 @@ refundSchema.pre("save", function () {
   }
 });
 
-const Refund = mongoose.model("Refund", refundSchema);
+const Refund = mongoose.models.Refund || mongoose.model("Refund", refundSchema);
 export default Refund;
 

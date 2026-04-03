@@ -20,6 +20,7 @@ import {
   IconTags,
   IconCreditCard,
   IconCurrencyRupee,
+  IconMessageCircle,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -72,6 +73,12 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       label: "Payments & Finance",
       icon: IconCreditCard,
       path: "/admin/payments",
+    },
+    {
+      id: "reviews",
+      label: "Reviews",
+      icon: IconMessageCircle,
+      path: "/admin/reviews",
     },
     {
       id: "analytics",

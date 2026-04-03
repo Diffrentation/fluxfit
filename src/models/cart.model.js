@@ -178,6 +178,6 @@ cartSchema.statics.getOrCreate = async function (userId) {
 if (mongoose.models.Cart) {
   mongoose.deleteModel("Cart");
 }
-const Cart = mongoose.model("Cart", cartSchema);
+const Cart = mongoose.models.Cart || mongoose.model("Cart", cartSchema);
 export default Cart;
 

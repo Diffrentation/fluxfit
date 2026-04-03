@@ -100,6 +100,7 @@ shippingRuleSchema.methods.calculateCost = function (weight = 0, distance = 0, o
   return this.basePrice;
 };
 
-const ShippingRule = mongoose.model("ShippingRule", shippingRuleSchema);
+const ShippingRule =
+  mongoose.models.ShippingRule || mongoose.model("ShippingRule", shippingRuleSchema);
 export default ShippingRule;
 

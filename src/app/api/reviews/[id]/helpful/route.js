@@ -63,16 +63,35 @@ export async function POST(request, { params }) {
       (userId) => userId.toString() === user._id.toString()
     );
 
-    let action;
     if (isAlreadyHelpful) {
-      // Unmark as helpful
-      await review.unmarkHelpful(user._id);
-      action = "unmarked";
-    } else {
-      // Mark as helpful
-      await review.markHelpful(user._id);
-      action = "marked";
+      return NextResponse.json(
+        {
+          success: true,
+          message: "You have already marked this review as helpful",
+          review: {
+            id: review._id,
+            helpful: {
+              count: review.helpful.count,
+              isHelpful: true,
+            },
+          },
+          data: {
+            review: {
+              id: review._id,
+              helpful: {
+                count: review.helpful.count,
+                isHelpful: true,
+              },
+            },
+            action: "already_marked",
+          },
+        },
+        { status: 200 }
+      );
     }
+
+    // Mark as helpful
+    await review.markHelpful(user._id);
 
     // Reload review to get updated helpful count
     await review.populate("user", "firstname lastname profileimage");
@@ -90,10 +109,11 @@ export async function POST(request, { params }) {
     return NextResponse.json(
       {
         success: true,
-        message: `Review ${action} as helpful successfully`,
+        message: "Review marked as helpful successfully",
+        review: formattedReview,
         data: {
           review: formattedReview,
-          action: action,
+          action: "marked",
         },
       },
       { status: 200 }

@@ -149,6 +149,7 @@ activityLogSchema.statics.getEntityActivity = async function (
     .lean();
 };
 
-const ActivityLog = mongoose.model("ActivityLog", activityLogSchema);
+const ActivityLog =
+  mongoose.models.ActivityLog || mongoose.model("ActivityLog", activityLogSchema);
 export default ActivityLog;
 

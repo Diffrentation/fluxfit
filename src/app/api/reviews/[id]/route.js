@@ -2,8 +2,121 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Review from "@/models/review.model";
 import Product from "@/models/product.model";
-import { authenticateUser, authenticateAdmin } from "@/lib/auth";
+import { authenticateUser } from "@/lib/auth";
 import mongoose from "mongoose";
+
+/**
+ * GET /api/reviews/:id
+ * Get single review details.
+ */
+export async function GET(request, { params }) {
+  try {
+    await connectDB();
+
+    const { id } = await params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid review ID",
+        },
+        { status: 400 }
+      );
+    }
+
+    const review = await Review.findById(id)
+      .populate("user", "firstname lastname profileimage")
+      .populate("product", "name slug")
+      .lean();
+
+    if (!review) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Review not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    // Only approved reviews are public.
+    // Non-approved reviews are visible only to admin or review owner.
+    if (review.status !== "approved") {
+      const authHeader = request.headers.get("authorization");
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Review not found",
+          },
+          { status: 404 }
+        );
+      }
+
+      const { error, user } = await authenticateUser(request);
+      if (error) return error;
+
+      const isAdmin = user.role === "admin";
+      const isOwner = review.user?._id?.toString() === user._id.toString();
+      if (!isAdmin && !isOwner) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Review not found",
+          },
+          { status: 404 }
+        );
+      }
+    }
+
+    const formattedReview = {
+      id: review._id,
+      rating: review.rating,
+      title: review.title || null,
+      comment: review.comment,
+      status: review.status,
+      images: review.images || [],
+      helpful: {
+        count: review.helpful?.count || 0,
+      },
+      isVerifiedPurchase: !!review.isVerifiedPurchase,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      user: review.user
+        ? {
+            id: review.user._id,
+            name: `${review.user.firstname || ""} ${review.user.lastname || ""}`.trim(),
+            avatar: review.user.profileimage || null,
+          }
+        : null,
+      product: review.product
+        ? {
+            id: review.product._id,
+            name: review.product.name,
+            slug: review.product.slug,
+          }
+        : null,
+    };
+
+    return NextResponse.json(
+      {
+        success: true,
+        review: formattedReview,
+        data: { review: formattedReview },
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Get review details error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message || "Failed to fetch review details",
+      },
+      { status: 500 }
+    );
+  }
+}
 
 /**
  * PUT /api/reviews/:id
@@ -17,6 +130,7 @@ import mongoose from "mongoose";
  * - title: Review title
  * - comment: Review comment
  * - images: Array of image objects [{url, alt}]
+ * - status: Review status ("pending" | "approved" | "rejected" | "spam") (admin only)
  */
 export async function PUT(request, { params }) {
   try {
@@ -69,7 +183,7 @@ export async function PUT(request, { params }) {
 
     // Get request body
     const body = await request.json();
-    const { rating, title, comment, images } = body;
+    const { rating, title, comment, images, status } = body;
 
     // Track if rating changed (for product rating update)
     const ratingChanged = rating !== undefined && rating !== review.rating;
@@ -152,6 +266,27 @@ export async function PUT(request, { params }) {
       }
     }
 
+    if (status !== undefined) {
+      if (!isAdmin) {
+        errors.push({
+          field: "status",
+          message: "Only admin can change review status",
+        });
+      } else {
+        const allowedStatuses = ["pending", "approved", "rejected", "spam"];
+        if (!allowedStatuses.includes(status)) {
+          errors.push({
+            field: "status",
+            message: "Status must be one of: pending, approved, rejected, spam",
+          });
+        } else {
+          review.status = status;
+          review.moderatedBy = user._id;
+          review.moderatedAt = new Date();
+        }
+      }
+    }
+
     if (errors.length > 0) {
       return NextResponse.json(
         {
@@ -172,9 +307,24 @@ export async function PUT(request, { params }) {
     // Save review
     await review.save();
 
-    // Update product rating if rating changed or status changed to approved
-    if (ratingChanged || (oldStatus !== "approved" && review.status === "approved")) {
+    // Update product rating when approved reviews are impacted
+    const approvedStateChanged =
+      oldStatus === "approved" || review.status === "approved";
+    if (ratingChanged || approvedStateChanged) {
       await Review.updateProductRating(review.product);
+
+      // If no approved reviews remain, reset product rating stats
+      const approvedCount = await Review.countDocuments({
+        product: review.product,
+        status: "approved",
+      });
+      if (approvedCount === 0) {
+        await Product.findByIdAndUpdate(review.product, {
+          "rating.average": 0,
+          "rating.count": 0,
+          reviews: 0,
+        });
+      }
     }
 
     // Populate user and product data

@@ -92,6 +92,8 @@ recentlyViewedSchema.pre("save", function () {
   this.lastUpdated = new Date();
 });
 
-const RecentlyViewed = mongoose.model("RecentlyViewed", recentlyViewedSchema);
+const RecentlyViewed =
+  mongoose.models.RecentlyViewed ||
+  mongoose.model("RecentlyViewed", recentlyViewedSchema);
 export default RecentlyViewed;
 

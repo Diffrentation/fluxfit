@@ -91,6 +91,6 @@ taxRateSchema.methods.isApplicable = function (productId = null, categoryId = nu
   return false;
 };
 
-const TaxRate = mongoose.model("TaxRate", taxRateSchema);
+const TaxRate = mongoose.models.TaxRate || mongoose.model("TaxRate", taxRateSchema);
 export default TaxRate;
 

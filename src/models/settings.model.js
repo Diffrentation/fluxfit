@@ -89,6 +89,6 @@ settingsSchema.statics.updateSettings = async function (updates) {
   return settings;
 };
 
-const Settings = mongoose.model("Settings", settingsSchema);
+const Settings = mongoose.models.Settings || mongoose.model("Settings", settingsSchema);
 export default Settings;
 

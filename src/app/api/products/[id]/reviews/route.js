@@ -36,10 +36,13 @@ export async function GET(request, { params }) {
 
     // Find product by ID or slug
     let product;
+    const activeProductFilter = {
+      $or: [{ isDeleted: { $ne: true } }, { isdeleted: { $ne: true } }],
+    };
     if (mongoose.Types.ObjectId.isValid(id)) {
-      product = await Product.findOne({ _id: id, isdeleted: false });
+      product = await Product.findOne({ _id: id, ...activeProductFilter });
     } else {
-      product = await Product.findOne({ slug: id, isdeleted: false });
+      product = await Product.findOne({ slug: id, ...activeProductFilter });
     }
 
     if (!product) {
@@ -282,10 +285,13 @@ export async function POST(request, { params }) {
 
     // Find product by ID or slug
     let product;
+    const activeProductFilter = {
+      $or: [{ isDeleted: { $ne: true } }, { isdeleted: { $ne: true } }],
+    };
     if (mongoose.Types.ObjectId.isValid(id)) {
-      product = await Product.findOne({ _id: id, isdeleted: false });
+      product = await Product.findOne({ _id: id, ...activeProductFilter });
     } else {
-      product = await Product.findOne({ slug: id, isdeleted: false });
+      product = await Product.findOne({ slug: id, ...activeProductFilter });
     }
 
     if (!product) {

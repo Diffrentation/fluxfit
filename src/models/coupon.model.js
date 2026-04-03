@@ -219,5 +219,5 @@ couponSchema.statics.findValid = async function (
   return { valid: true, coupon, message: "Coupon is valid" };
 };
 
-const Coupon = mongoose.model("Coupon", couponSchema);
+const Coupon = mongoose.models.Coupon || mongoose.model("Coupon", couponSchema);
 export default Coupon;

@@ -129,6 +129,6 @@ apiKeySchema.methods.validateIP = function (ip) {
   return this.allowedIPs.includes(ip);
 };
 
-const APIKey = mongoose.model("APIKey", apiKeySchema);
+const APIKey = mongoose.models.APIKey || mongoose.model("APIKey", apiKeySchema);
 export default APIKey;
 

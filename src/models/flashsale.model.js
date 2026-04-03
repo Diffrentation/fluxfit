@@ -172,6 +172,6 @@ flashSaleSchema.pre("save", function () {
   this.checkStatus();
 });
 
-const FlashSale = mongoose.model("FlashSale", flashSaleSchema);
+const FlashSale = mongoose.models.FlashSale || mongoose.model("FlashSale", flashSaleSchema);
 export default FlashSale;
 

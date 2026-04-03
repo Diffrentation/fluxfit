@@ -72,6 +72,7 @@ emailTemplateSchema.methods.render = function (variables = {}) {
   return { subject, body };
 };
 
-const EmailTemplate = mongoose.model("EmailTemplate", emailTemplateSchema);
+const EmailTemplate =
+  mongoose.models.EmailTemplate || mongoose.model("EmailTemplate", emailTemplateSchema);
 export default EmailTemplate;
 

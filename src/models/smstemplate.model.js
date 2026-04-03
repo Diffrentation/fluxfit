@@ -61,6 +61,7 @@ smsTemplateSchema.methods.render = function (variables = {}) {
   return message;
 };
 
-const SMSTemplate = mongoose.model("SMSTemplate", smsTemplateSchema);
+const SMSTemplate =
+  mongoose.models.SMSTemplate || mongoose.model("SMSTemplate", smsTemplateSchema);
 export default SMSTemplate;
 

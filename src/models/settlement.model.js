@@ -136,6 +136,7 @@ settlementSchema.methods.markCompleted = function (transactionId, processedBy) {
   return this.save();
 };
 
-const Settlement = mongoose.model("Settlement", settlementSchema);
+const Settlement =
+  mongoose.models.Settlement || mongoose.model("Settlement", settlementSchema);
 export default Settlement;
 

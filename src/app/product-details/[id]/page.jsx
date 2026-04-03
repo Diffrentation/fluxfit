@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +17,7 @@ import {
   IconRefresh,
   IconCheck,
   IconArrowUp,
+  IconThumbUp,
 } from "@tabler/icons-react";
 import { Button, message, Spin } from "antd";
 import { useCart } from "@/context/CartContext";
@@ -55,6 +56,22 @@ function ProductDetails() {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   const [otherProducts, setOtherProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsPagination, setReviewsPagination] = useState({
+    page: 1,
+    limit: 5,
+    total: 0,
+    totalPages: 1,
+  });
+  const [reviewRatingFilter, setReviewRatingFilter] = useState("");
+  const [reviewSearch, setReviewSearch] = useState("");
+  const [helpfulLoadingId, setHelpfulLoadingId] = useState(null);
+  const [helpfulClickedMap, setHelpfulClickedMap] = useState({});
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState("");
+  const [submitReviewLoading, setSubmitReviewLoading] = useState(false);
+  const [isReviewAuth, setIsReviewAuth] = useState(false);
 
   const isOtherThanCurrentProduct = (p, routeParam, excludeProduct) => {
     const pid = String(p._id || p.id || "");
@@ -69,7 +86,7 @@ function ProductDetails() {
     return true;
   };
 
-  const fetchRelatedProducts = async (categoryId, signal, excludeProduct) => {
+  const fetchRelatedProducts = useCallback(async (categoryId, signal, excludeProduct) => {
     try {
       const { data } = await axios.get(
         `/api/products?category=${encodeURIComponent(categoryId)}&limit=4&status=active`,
@@ -87,7 +104,7 @@ function ProductDetails() {
       if (axios.isCancel?.(error) || error.name === "CanceledError") return;
       console.error("Failed to fetch related products", error);
     }
-  };
+  }, [params.id]);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -131,13 +148,13 @@ function ProductDetails() {
 
     if (params.id) fetchProduct();
     return () => ac.abort();
-  }, [params.id]);
+  }, [fetchRelatedProducts, params.id]);
 
   useEffect(() => {
     if (product && product.id) addToRecentlyViewed(product.id);
   }, [product]);
 
-  const fetchOtherProducts = async () => {
+  const fetchOtherProducts = useCallback(async () => {
     try {
       const { data } = await axios.get(`/api/products?limit=8&status=active`);
       if (data.success && Array.isArray(data.data?.products)) {
@@ -151,11 +168,156 @@ function ProductDetails() {
     } catch (error) {
       console.error("Failed to fetch other products", error);
     }
-  };
+  }, [params.id, product]);
 
   useEffect(() => {
     if (params.id) fetchOtherProducts();
-  }, [params.id]);
+  }, [fetchOtherProducts, params.id]);
+
+  const fetchReviews = useCallback(async () => {
+    if (!product?.id) return;
+    try {
+      setReviewsLoading(true);
+      const { data } = await axios.get("/api/reviews", {
+        params: {
+          productId: product.id,
+          page: reviewsPagination.page,
+          limit: reviewsPagination.limit,
+          rating: reviewRatingFilter || undefined,
+          search: reviewSearch || undefined,
+        },
+      });
+
+      if (data?.success) {
+        const nextReviews = data.reviews || data.data?.reviews || [];
+        const pagination = data.data?.pagination || {};
+        setReviews(nextReviews);
+        setReviewsPagination((prev) => ({
+          ...prev,
+          total: pagination.total || 0,
+          totalPages: pagination.totalPages || 1,
+        }));
+      } else {
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reviews:", error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [product?.id, reviewsPagination.page, reviewsPagination.limit, reviewRatingFilter, reviewSearch]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      setIsReviewAuth(!!token && token !== "undefined" && token !== "null");
+    }
+  }, []);
+
+  const handleMarkHelpful = useCallback(
+    async (reviewId) => {
+      if (!reviewId || helpfulClickedMap[reviewId]) return;
+      const token = localStorage.getItem("token");
+      if (!token) {
+        message.warning("Please login to mark reviews as helpful");
+        return;
+      }
+
+      const previous = reviews;
+      setHelpfulLoadingId(reviewId);
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === reviewId
+            ? {
+                ...r,
+                helpful: {
+                  ...(r.helpful || {}),
+                  count: (r.helpful?.count || 0) + 1,
+                },
+              }
+            : r
+        )
+      );
+
+      try {
+        const { data } = await axios.post(
+          `/api/reviews/${reviewId}/helpful`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (data?.success) {
+          setHelpfulClickedMap((prev) => ({ ...prev, [reviewId]: true }));
+          message.success(data.message || "Marked as helpful");
+        } else {
+          setReviews(previous);
+          message.error("Failed to mark as helpful");
+        }
+      } catch (error) {
+        setReviews(previous);
+        message.error(error?.response?.data?.message || "Failed to mark as helpful");
+      } finally {
+        setHelpfulLoadingId(null);
+      }
+    },
+    [helpfulClickedMap, reviews]
+  );
+
+  const handleSubmitReview = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token || token === "undefined" || token === "null") {
+      message.warning("Please login to write a review");
+      return;
+    }
+    if (!product?.id) return;
+    if (!newReviewComment.trim()) {
+      message.error("Review comment is required");
+      return;
+    }
+    if (newReviewRating < 1 || newReviewRating > 5) {
+      message.error("Rating must be between 1 and 5");
+      return;
+    }
+
+    try {
+      setSubmitReviewLoading(true);
+      const { data } = await axios.post(
+        `/api/products/${product.id}/reviews`,
+        {
+          rating: Number(newReviewRating),
+          comment: newReviewComment.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (data?.success) {
+        setNewReviewComment("");
+        setNewReviewRating(5);
+        message.success(
+          data.message || "Review submitted. It will be visible after admin approval."
+        );
+        fetchReviews();
+      } else {
+        message.error("Failed to submit review");
+      }
+    } catch (error) {
+      message.error(error?.response?.data?.message || "Failed to submit review");
+    } finally {
+      setSubmitReviewLoading(false);
+    }
+  }, [fetchReviews, newReviewComment, newReviewRating, product?.id]);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 400);
@@ -724,7 +886,7 @@ function ProductDetails() {
           className="bg-white rounded-lg shadow-sm p-6"
         >
           <div className="flex gap-8 mb-6 border-b border-gray-200">
-            {["description", "features", "shipping"].map((tab, index) => (
+            {["description", "features", "shipping", "reviews"].map((tab, index) => (
               <motion.button
                 key={tab}
                 initial={{ opacity: 0, y: -10 }}
@@ -817,6 +979,162 @@ function ProductDetails() {
                     </h3>
                     <p className="text-gray-600">{product.returnPolicy}</p>
                   </motion.div>
+                </div>
+              )}
+              {activeTab === "reviews" && (
+                <div className="space-y-5">
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">Write a review</h3>
+                    {!isReviewAuth ? (
+                      <p className="text-sm text-gray-600">
+                        Please login to write a review. Reviews are published only after admin approval.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm text-gray-700">Your rating:</span>
+                          {[1, 2, 3, 4, 5].map((value) => (
+                            <button
+                              key={value}
+                              onClick={() => setNewReviewRating(value)}
+                              className="inline-flex"
+                              type="button"
+                            >
+                              <IconStarFilled
+                                className={`w-5 h-5 ${
+                                  value <= newReviewRating ? "text-yellow-400" : "text-gray-300"
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          value={newReviewComment}
+                          onChange={(e) => setNewReviewComment(e.target.value)}
+                          rows={4}
+                          placeholder="Share your experience with this product"
+                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                        />
+                        <Button
+                          type="primary"
+                          onClick={handleSubmitReview}
+                          loading={submitReviewLoading}
+                          disabled={!newReviewComment.trim()}
+                        >
+                          Submit Review
+                        </Button>
+                        <p className="text-xs text-gray-500">
+                          Your review will appear publicly once approved by admin.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <select
+                      value={reviewRatingFilter}
+                      onChange={(e) => {
+                        setReviewsPagination((p) => ({ ...p, page: 1 }));
+                        setReviewRatingFilter(e.target.value);
+                      }}
+                      className="border border-gray-300 rounded px-3 py-2 text-sm"
+                    >
+                      <option value="">All ratings</option>
+                      <option value="5">5 stars</option>
+                      <option value="4">4 stars</option>
+                      <option value="3">3 stars</option>
+                      <option value="2">2 stars</option>
+                      <option value="1">1 star</option>
+                    </select>
+                    <input
+                      value={reviewSearch}
+                      onChange={(e) => {
+                        setReviewsPagination((p) => ({ ...p, page: 1 }));
+                        setReviewSearch(e.target.value);
+                      }}
+                      placeholder="Search reviews"
+                      className="border border-gray-300 rounded px-3 py-2 text-sm min-w-[240px]"
+                    />
+                  </div>
+
+                  {reviewsLoading ? (
+                    <div className="py-8 flex justify-center">
+                      <Spin />
+                    </div>
+                  ) : reviews.length === 0 ? (
+                    <div className="text-sm text-gray-500 py-6">No reviews found.</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.map((review) => (
+                        <div
+                          key={review.id}
+                          className={`border rounded-lg p-4 ${
+                            (review.helpful?.count || 0) >= 3
+                              ? "border-blue-300 bg-blue-50/40"
+                              : "border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {review.user?.name || "Anonymous"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(review.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <IconStarFilled
+                                  key={s}
+                                  className={`w-4 h-4 ${
+                                    s <= review.rating ? "text-yellow-400" : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="mt-2 text-sm text-gray-700">{review.comment}</p>
+                          <button
+                            onClick={() => handleMarkHelpful(review.id)}
+                            disabled={
+                              helpfulLoadingId === review.id || helpfulClickedMap[review.id]
+                            }
+                            className="mt-3 inline-flex items-center gap-1 text-sm text-blue-600 disabled:text-gray-400"
+                          >
+                            <IconThumbUp className="w-4 h-4" />
+                            Helpful ({review.helpful?.count || 0})
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {reviewsPagination.totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="small"
+                        disabled={reviewsPagination.page <= 1}
+                        onClick={() =>
+                          setReviewsPagination((p) => ({ ...p, page: p.page - 1 }))
+                        }
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm text-gray-600">
+                        Page {reviewsPagination.page} / {reviewsPagination.totalPages}
+                      </span>
+                      <Button
+                        size="small"
+                        disabled={reviewsPagination.page >= reviewsPagination.totalPages}
+                        onClick={() =>
+                          setReviewsPagination((p) => ({ ...p, page: p.page + 1 }))
+                        }
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
