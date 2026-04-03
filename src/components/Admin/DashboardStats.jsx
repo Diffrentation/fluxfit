@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   IconTrendingUp,
@@ -8,96 +8,148 @@ import {
   IconPackage,
   IconCurrencyRupee,
 } from "@tabler/icons-react";
-import { Card, Statistic } from "antd";
+import { Card, Statistic, Spin } from "antd";
+import axios from "axios";
 import { formatPrice } from "@/lib/formatPrice";
 
-const DashboardStats = () => {
-  const [stats, setStats] = useState({
-    totalSales: 0,
-    totalRevenue: 0,
-    totalOrders: 0,
-    totalUsers: 0,
-    growth: {
-      sales: 0,
-      revenue: 0,
-      orders: 0,
-      users: 0,
-    },
-  });
+function readAuthToken() {
+  const raw = localStorage.getItem("token");
+  if (!raw) return null;
+  const token = String(raw).trim();
+  if (!token || token === "undefined" || token === "null") return null;
+  return token;
+}
+
+const DashboardStats = ({ refreshNonce, reportType }) => {
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [error, setError] = useState(null);
+
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = readAuthToken();
+      if (!token) {
+        throw new Error("Please login as admin to view dashboard stats.");
+      }
+      const { data } = await axios.get("/api/admin/dashboard/stats", {
+        params: {
+          period: reportType === "daily" ? "week" : "month",
+          compare: "true",
+        },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!data?.success) {
+        throw new Error(data?.message || "Failed to load dashboard stats");
+      }
+
+      setStats(data.data?.statistics || null);
+    } catch (e) {
+      if (e?.response?.status === 401) {
+        setError(new Error("Session expired. Please login again."));
+        setStats(null);
+        return;
+      }
+      setError(e);
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [reportType]);
 
   useEffect(() => {
-    // Load stats from localStorage (orders)
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    const carts = JSON.parse(localStorage.getItem("cart") || "[]");
-    
-    // Calculate total revenue
-    const totalRevenue = orders.reduce((sum, order) => {
-      return sum + parseFloat(order.orderSummary?.grandTotal || 0);
-    }, 0);
+    let cancelled = false;
+    let attempts = 0;
+    let timer = null;
 
-    // Calculate total orders
-    const totalOrders = orders.length;
+    const run = () => {
+      if (cancelled) return;
+      const token = readAuthToken();
+      if (!token) {
+        attempts += 1;
+        if (attempts <= 10) {
+          timer = setTimeout(run, 250);
+          return;
+        }
+        setError(new Error("Please login as admin to view dashboard stats."));
+        setStats(null);
+        setLoading(false);
+        return;
+      }
 
-    // Calculate total sales (items sold)
-    const totalSales = orders.reduce((sum, order) => {
-      return sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
-    }, 0);
-
-    // Mock user count (in real app, this would come from API)
-    const totalUsers = Math.floor(totalOrders * 1.5); // Estimate
-
-    // Calculate growth (mock data - in real app, compare with previous period)
-    const growth = {
-      sales: 12.5,
-      revenue: 18.3,
-      orders: 8.7,
-      users: 15.2,
+      fetchStats();
     };
 
-    setStats({
-      totalSales,
-      totalRevenue,
-      totalOrders,
-      totalUsers,
-      growth,
-    });
-  }, []);
+    run();
 
-  const statCards = [
-    {
-      title: "Total Sales",
-      value: stats.totalSales,
-      prefix: <IconPackage className="w-6 h-6" />,
-      suffix: "items",
-      growth: stats.growth.sales,
-      color: "blue",
-    },
-    {
-      title: "Total Revenue",
-      value: stats.totalRevenue,
-      prefix: <IconCurrencyRupee className="w-6 h-6" />,
-      suffix: "",
-      growth: stats.growth.revenue,
-      color: "green",
-      isCurrency: true,
-    },
-    {
-      title: "Total Orders",
-      value: stats.totalOrders,
-      prefix: <IconShoppingCart className="w-6 h-6" />,
-      suffix: "orders",
-      growth: stats.growth.orders,
-      color: "purple",
-    },
-    {
-      title: "User Registrations",
-      value: stats.totalUsers,
-      prefix: <IconUsers className="w-6 h-6" />,
-      suffix: "users",
-      growth: stats.growth.users,
-      color: "orange",
-    },
-  ];
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [fetchStats, refreshNonce]);
+
+  const statCards = useMemo(() => {
+    const s = stats;
+    if (!s) return [];
+
+    return [
+      {
+        title: "Total Sales",
+        value: s.revenue?.net ?? 0,
+        prefix: <IconPackage className="w-6 h-6" />,
+        suffix: "net",
+        growth: s.revenue?.growth ?? null,
+        color: "blue",
+        isCurrency: true,
+      },
+      {
+        title: "Total Revenue",
+        value: s.revenue?.total ?? 0,
+        prefix: <IconCurrencyRupee className="w-6 h-6" />,
+        suffix: "",
+        growth: s.revenue?.growth ?? null,
+        color: "green",
+        isCurrency: true,
+      },
+      {
+        title: "Total Orders",
+        value: s.orders?.total ?? 0,
+        prefix: <IconShoppingCart className="w-6 h-6" />,
+        suffix: "orders",
+        growth: s.orders?.growth ?? null,
+        color: "purple",
+      },
+      {
+        title: "User Registrations",
+        value: s.users?.new ?? 0,
+        prefix: <IconUsers className="w-6 h-6" />,
+        suffix: "users",
+        growth: s.users?.growth ?? null,
+        color: "orange",
+      },
+    ];
+  }, [stats]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
+        <Spin />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300">
+        Failed to load dashboard stats.
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
@@ -142,7 +194,7 @@ const DashboardStats = () => {
             <div className="mt-2 flex items-center gap-1 text-xs sm:text-sm">
               <IconTrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 dark:text-green-400" />
               <span className="text-green-600 dark:text-green-400 font-medium">
-                +{stat.growth}%
+                {stat.growth == null ? "+0%" : `+${stat.growth}%`}
               </span>
               <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">vs last period</span>
             </div>

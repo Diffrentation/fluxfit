@@ -1,48 +1,101 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Card, Table, Tag, Avatar } from "antd";
-import { IconPackage, IconTrendingUp } from "@tabler/icons-react";
+import { Card, Table, Spin, Empty } from "antd";
+import { IconPackage } from "@tabler/icons-react";
 import Image from "next/image";
 import { formatPrice } from "@/lib/formatPrice";
+import axios from "axios";
 
-const TopProducts = () => {
+function readAuthToken() {
+  const raw = localStorage.getItem("token");
+  if (!raw) return null;
+  const token = String(raw).trim();
+  if (!token || token === "undefined" || token === "null") return null;
+  return token;
+}
+
+const TopProducts = ({ reportType = "daily", dateRange, refreshNonce }) => {
   const [topProducts, setTopProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchTopProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = readAuthToken();
+      if (!token) {
+        throw new Error("Please login as admin to view top products.");
+      }
+
+      const startDate = dateRange?.[0]
+        ? dateRange[0].toDate?.().toISOString?.() || dateRange[0].toISOString?.()
+        : undefined;
+      const endDate = dateRange?.[1]
+        ? dateRange[1].toDate?.().toISOString?.() || dateRange[1].toISOString?.()
+        : undefined;
+
+      const period = reportType === "daily" ? "month" : "year";
+      const { data } = await axios.get("/api/admin/dashboard/top-products", {
+        params: { period, limit: 10, sort: "revenue", startDate, endDate },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!data?.success) {
+        throw new Error(data?.message || "Failed to load top products");
+      }
+
+      setTopProducts(data.data?.products || []);
+    } catch (e) {
+      if (e?.response?.status === 401) {
+        setError(new Error("Session expired. Please login again."));
+        setTopProducts([]);
+        return;
+      }
+      setError(e);
+      setTopProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange, reportType]);
 
   useEffect(() => {
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    let cancelled = false;
+    let attempts = 0;
+    let timer = null;
 
-    // Calculate product sales
-    const productSales = {};
-
-    orders.forEach((order) => {
-      order.items.forEach((item) => {
-        const key = `${item.id}-${item.size}-${item.color}`;
-        if (!productSales[key]) {
-          productSales[key] = {
-            id: item.id,
-            name: item.name,
-            image: item.image,
-            size: item.size,
-            color: item.color,
-            quantity: 0,
-            revenue: 0,
-          };
+    const run = () => {
+      if (cancelled) return;
+      const token = readAuthToken();
+      if (!token) {
+        attempts += 1;
+        if (attempts <= 10) {
+          timer = setTimeout(run, 250);
+          return;
         }
-        productSales[key].quantity += item.quantity;
-        productSales[key].revenue += parseFloat(item.price) * item.quantity;
-      });
-    });
+        setError(new Error("Please login as admin to view top products."));
+        setLoading(false);
+        setTopProducts([]);
+        return;
+      }
 
-    // Convert to array and sort by quantity
-    const sortedProducts = Object.values(productSales)
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 10);
+      fetchTopProducts();
+    };
 
-    setTopProducts(sortedProducts);
-  }, []);
+    run();
 
-  const columns = [
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [fetchTopProducts, refreshNonce]);
+
+  const columns = useMemo(
+    () => [
     {
       title: "Rank",
       dataIndex: "rank",
@@ -58,26 +111,33 @@ const TopProducts = () => {
       render: (_, record) => (
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
-            <Image
-              src={record.image || ""}
-              alt={record.name}
-              fill
-              className="object-cover"
-            />
+            {record.product?.image ? (
+              <Image
+                src={record.product.image}
+                alt={record.product?.name || "Product"}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-200 dark:bg-gray-600" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">{record.name}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {record.size && record.size !== "One Size" && `Size: ${record.size} • `}
-              {record.color && `Color: ${record.color}`}
+            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">
+              {record.product?.name || "Unnamed product"}
             </div>
+            {record.product?.category?.name ? (
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {record.product.category.name}
+              </div>
+            ) : null}
           </div>
         </div>
       ),
     },
     {
       title: "Quantity Sold",
-      dataIndex: "quantity",
+      dataIndex: ["sales", "quantity"],
       key: "quantity",
       width: 120,
       render: (quantity) => (
@@ -86,7 +146,7 @@ const TopProducts = () => {
     },
     {
       title: "Revenue",
-      dataIndex: "revenue",
+      dataIndex: ["sales", "revenue"],
       key: "revenue",
       width: 120,
       render: (revenue) => (
@@ -95,22 +155,15 @@ const TopProducts = () => {
         </span>
       ),
     },
-    {
-      title: "Status",
-      key: "status",
-      width: 100,
-      render: () => (
-        <Tag color="green" className="font-semibold">
-          Active
-        </Tag>
-      ),
-    },
-  ];
+  ],
+    [],
+  );
 
-  const dataSource = topProducts.map((product, index) => ({
-    key: `${product.id}-${product.size}-${product.color}`,
-    rank: index + 1,
-    ...product,
+  const dataSource = topProducts.map((row) => ({
+    key: row.product?.id || String(row.rank),
+    rank: row.rank,
+    product: row.product,
+    sales: row.sales,
   }));
 
   return (
@@ -128,10 +181,16 @@ const TopProducts = () => {
         }
         className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       >
-        {topProducts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm sm:text-base">
-            No sales data available
+        {loading ? (
+          <div className="h-[260px] flex items-center justify-center">
+            <Spin />
           </div>
+        ) : error ? (
+          <div className="p-4 text-gray-600 dark:text-gray-300">
+            Failed to load top products.
+          </div>
+        ) : topProducts.length === 0 ? (
+          <Empty description="No top products data available" />
         ) : (
           <div className="overflow-x-auto -mx-2 sm:-mx-4 px-2 sm:px-4">
             <Table

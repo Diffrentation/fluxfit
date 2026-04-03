@@ -28,11 +28,12 @@ This document describes which APIs are integrated with which components in the F
 
 - `ProductOverview` (`src/components/Home/ProductOverview.jsx`)
   - Loads catalog via `usePublicProducts` (`src/hooks/usePublicProducts.js`) → Axios `GET /api/products`
-  - Query params built in `buildPublicProductsQuery` (`src/lib/publicProductsApi.js`): `page`, `limit`, `status=active`, `search` (debounced), `category` (slug from nav label), `sort`, `minPrice`/`maxPrice`, `color`, `tags`
+  - Query params built in `buildPublicProductsQuery` (`src/lib/publicProductsApi.js`): `page`, `limit`, `status=active`, `search` (debounced), `category` (categoryId from hierarchical `CategoryNav`; backend resolves), `sort`, `minPrice`/`maxPrice`, `color`, `tags`
   - Aborts in-flight requests on filter change to avoid race conditions
 - `ProductList` page (`src/app/product-list/page.jsx`)
-  - Same hook + helpers; category/color/tag filter options derived from the current result set (memoized)
-  - Debounced search input to reduce API churn while typing
+  - Same hook + helpers; `category`, `minPrice`, `maxPrice`, `color`, `search`, and `sort` are synced to URL query params
+  - Multiple filters are combined (AND) and applied in one backend request; `color`/`tags` option lists are derived from the current result set (memoized)
+- Backend hierarchy semantics: selecting a **top-level parent** includes products from its **descendants**; selecting a nested category filters to that category only.
 - Admin `ProductList` component (`src/components/Admin/Products/ProductList.jsx`)
   - Admin product management: `GET /api/products` with `search` query param (aligned with API), pagination, and filters
 
@@ -410,9 +411,9 @@ This document describes which APIs are integrated with which components in the F
 **Integrated Components:**
 
 - `CategoryNav` component (`src/components/ui/CategoryNav.jsx`)
-  - Displays category navigation
-- `ProductOverview` component (`src/components/Home/ProductOverview.jsx`) <><>
-  - Category filter dropdown
+  - Displays interactive hierarchical category navigation (hover submenu, click selection, breadcrumb)
+- `ProductOverview` component (`src/components/Home/ProductOverview.jsx)`
+  - Category filter using the same hierarchical `CategoryNav` selector
 - Admin `CategoryTree` component (`src/components/Admin/Categories/CategoryTree.jsx`)
   - Admin category management
 
@@ -762,8 +763,10 @@ This document describes which APIs are integrated with which components in the F
 
 **Integrated Components:**
 
+- `UserManagementPage` (`src/app/admin/users/page.jsx`)
+  - Fetches users from `GET /api/admin/users` (pagination + filters) with Bearer auth
 - Admin `UserList` component (`src/components/Admin/Users/UserList.jsx`)
-  - User management table
+  - Displays server data and triggers block/unblock/role actions
 
 #### `GET /api/admin/users/:id`
 
@@ -773,6 +776,8 @@ This document describes which APIs are integrated with which components in the F
 
 - Admin `UserDetails` component (`src/components/Admin/Users/UserDetails.jsx`)
   - Detailed user view
+- `UserManagementPage` (`src/app/admin/users/page.jsx`)
+  - Fetches selected user via `GET /api/admin/users/:id` and refetches after mutations
 
 #### `PUT /api/admin/users/:id/block`
 
@@ -782,6 +787,8 @@ This document describes which APIs are integrated with which components in the F
 
 - Admin `UserDetails` component (`src/components/Admin/Users/UserDetails.jsx`)
   - Block user button
+- `UserManagementPage` (`src/app/admin/users/page.jsx`)
+  - Calls `PUT /api/admin/users/:id/block`, then refetches list + selected user
 
 #### `PUT /api/admin/users/:id/unblock`
 
@@ -791,6 +798,8 @@ This document describes which APIs are integrated with which components in the F
 
 - Admin `UserDetails` component (`src/components/Admin/Users/UserDetails.jsx`)
   - Unblock user button
+- `UserManagementPage` (`src/app/admin/users/page.jsx`)
+  - Calls `PUT /api/admin/users/:id/unblock`, then refetches list + selected user
 
 #### `PUT /api/admin/users/:id/role`
 
@@ -800,6 +809,8 @@ This document describes which APIs are integrated with which components in the F
 
 - Admin `UserDetails` component (`src/components/Admin/Users/UserDetails.jsx`)
   - Role change dropdown
+- `UserManagementPage` (`src/app/admin/users/page.jsx`)
+  - Calls `PUT /api/admin/users/:id/role` and refetches to keep role UI in sync
 
 ### Coupon Management APIs
 
@@ -1005,5 +1016,10 @@ This document describes which APIs are integrated with which components in the F
 - ✅ **Fully Integrated**: APIs that are currently integrated with components
 - 🔄 **Partially Integrated**: APIs that are partially integrated (may use local storage as fallback)
 - ⏳ **Pending Integration**: APIs that exist but are not yet integrated with components
+
+**This iteration completion (scope implemented in this chat):**
+- Storefront hierarchical category filter (hover + click) with dynamic backend fetching + URL sync: ✅ Completed
+- Admin user management (list/details + block/unblock + role updates) with real API integration + refetch: ✅ Completed
+- **Completion:** `2 / 2` modules = **100%** for the changes applied in this conversation.
 
 **Note**: This document reflects the intended API-component integration. Some components may currently use mock data or local storage and need to be migrated to use the actual APIs.

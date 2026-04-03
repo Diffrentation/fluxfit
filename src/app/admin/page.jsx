@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   IconTrendingUp,
@@ -12,6 +12,7 @@ import {
   IconRefresh,
 } from "@tabler/icons-react";
 import { Card, Statistic, DatePicker, Button, Select, message } from "antd";
+import axios from "axios";
 import DashboardStats from "@/components/Admin/DashboardStats";
 import RevenueChart from "@/components/Admin/RevenueChart";
 import OrdersChart from "@/components/Admin/OrdersChart";
@@ -20,13 +21,9 @@ import AbandonedCartStats from "@/components/Admin/AbandonedCartStats";
 import UserRegistrations from "@/components/Admin/UserRegistrations";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
-import { format } from "date-fns";
 import {
   exportToCSV,
   exportToExcel,
-  prepareSalesData,
-  prepareOrdersData,
-  prepareProductsData,
 } from "@/lib/exportData";
 
 const { RangePicker } = DatePicker;
@@ -37,75 +34,140 @@ const AdminDashboard = () => {
   const [reportType, setReportType] = useState("daily"); // daily or monthly
   const [loading, setLoading] = useState(false);
   const [exportDataType, setExportDataType] = useState("sales");
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
-  // Load analytics data
-  const loadAnalyticsData = () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      message.success("Analytics data refreshed");
-    }, 1000);
+  const readAuthToken = () => {
+    const raw = localStorage.getItem("token");
+    if (!raw) return null;
+    const token = String(raw).trim();
+    if (!token || token === "undefined" || token === "null") return null;
+    return token;
   };
 
-  useEffect(() => {
-    // Load analytics data when filters change
-    const timer = setTimeout(() => {
-      setLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setLoading(false);
-        message.success("Analytics data refreshed");
-      }, 1000);
-    }, 0);
+  const toISO = (d) => {
+    if (!d) return undefined;
+    if (typeof d === "string") return d;
+    if (d.toDate) return d.toDate().toISOString();
+    if (d.toISOString) return d.toISOString();
+    return undefined;
+  };
 
-    return () => clearTimeout(timer);
-  }, [dateRange, reportType]);
+  // Load analytics data (real refetch is handled inside components).
+  const loadAnalyticsData = () => {
+    setLoading(true);
+    setRefreshNonce((n) => n + 1);
+    setTimeout(() => setLoading(false), 500);
+  };
+
+  // Components refetch automatically when `reportType` or `dateRange` changes.
 
   const handleExport = (formatType, dataType = "sales") => {
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-
-    let data = [];
-    let filename = "";
-
-    switch (dataType) {
-      case "sales":
-        data = prepareSalesData(orders);
-        filename = "sales_report";
-        break;
-      case "orders":
-        data = prepareOrdersData(orders);
-        filename = "orders_report";
-        break;
-      case "products":
-        data = prepareProductsData(orders);
-        filename = "products_report";
-        break;
-      default:
-        data = prepareSalesData(orders);
-        filename = "sales_report";
-    }
-
-    if (data.length === 0) {
-      message.warning("No data available to export");
-      return;
-    }
-
-    message.loading(
-      `Exporting ${dataType} data as ${formatType.toUpperCase()}...`,
-      1
-    );
-
-    setTimeout(() => {
-      if (formatType === "csv") {
-        exportToCSV(data, filename);
-      } else {
-        exportToExcel(data, filename);
+    const runExport = async () => {
+      const token = readAuthToken();
+      if (!token) {
+        message.error("Please login as admin to export reports");
+        return;
       }
-      message.success(
-        `Data exported successfully as ${formatType.toUpperCase()}`
-      );
-    }, 500);
+
+      const startDate = dateRange?.[0] ? toISO(dateRange[0]) : undefined;
+      const endDate = dateRange?.[1] ? toISO(dateRange[1]) : undefined;
+      const period = reportType === "daily" ? "month" : "year";
+
+      const loaderKey = "dashboard-export";
+      message.loading({
+        content: `Exporting ${dataType} data as ${formatType.toUpperCase()}...`,
+        key: loaderKey,
+        duration: 0,
+      });
+
+      try {
+        let data = [];
+        let filename = "";
+
+        if (dataType === "sales") {
+          const res = await axios.get("/api/admin/dashboard/revenue", {
+            params: { period: reportType, startDate, endDate },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const points = res?.data?.data?.revenue || [];
+          data = points.map((p) => ({
+            Date: p.date,
+            Revenue: p.revenue ?? 0,
+            Discount: p.discount ?? 0,
+            Net: p.net ?? 0,
+            Orders: p.orders ?? 0,
+            Items: p.items ?? 0,
+            AverageOrderValue: p.averageOrderValue ?? 0,
+          }));
+          filename = "sales_report";
+        } else if (dataType === "orders") {
+          const res = await axios.get("/api/admin/dashboard/orders", {
+            params: { period, startDate, endDate },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const byStatus = res?.data?.data?.byStatus || [];
+          data = byStatus.map((s) => ({
+            Status: s.status || "unknown",
+            Count: s.count ?? 0,
+            Revenue: s.revenue ?? 0,
+            Percentage: s.percentage ?? 0,
+          }));
+          filename = "orders_report";
+        } else if (dataType === "products") {
+          const res = await axios.get("/api/admin/dashboard/top-products", {
+            params: { period, limit: 50, sort: "revenue", startDate, endDate },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const products = res?.data?.data?.products || [];
+          data = products.map((row) => ({
+            Rank: row.rank,
+            ProductId: row.product?.id || "",
+            ProductName: row.product?.name || "",
+            Category: row.product?.category?.name || "",
+            QuantitySold: row.sales?.quantity ?? 0,
+            Revenue: row.sales?.revenue ?? 0,
+            Orders: row.sales?.orders ?? 0,
+            AveragePrice: row.sales?.averagePrice ?? 0,
+          }));
+          filename = "products_report";
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+          message.warning({ content: "No data available to export", key: loaderKey });
+          return;
+        }
+
+        if (formatType === "csv") {
+          exportToCSV(data, filename);
+        } else {
+          exportToExcel(data, filename);
+        }
+        message.success({
+          content: `Data exported successfully as ${formatType.toUpperCase()}`,
+          key: loaderKey,
+        });
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          message.error({ content: "Session expired. Please login again.", key: loaderKey });
+          return;
+        }
+        message.error({
+          content: error?.response?.data?.message || "Export failed. Please try again.",
+          key: loaderKey,
+        });
+      }
+    };
+
+    runExport();
   };
 
   return (
@@ -187,29 +249,42 @@ const AdminDashboard = () => {
             </motion.div>
 
             {/* Dashboard Stats */}
-            <DashboardStats />
+            <DashboardStats refreshNonce={refreshNonce} reportType={reportType} />
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-              <RevenueChart reportType={reportType} dateRange={dateRange} />
-              <OrdersChart reportType={reportType} dateRange={dateRange} />
+              <RevenueChart
+                reportType={reportType}
+                dateRange={dateRange}
+                refreshNonce={refreshNonce}
+              />
+              <OrdersChart
+                reportType={reportType}
+                dateRange={dateRange}
+                refreshNonce={refreshNonce}
+              />
             </div>
 
             {/* Bottom Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
               <div className="lg:col-span-2">
-                <TopProducts />
+                <TopProducts
+                  reportType={reportType}
+                  dateRange={dateRange}
+                  refreshNonce={refreshNonce}
+                />
               </div>
               <div>
                 <UserRegistrations
                   reportType={reportType}
                   dateRange={dateRange}
+                  refreshNonce={refreshNonce}
                 />
               </div>
             </div>
 
             {/* Abandoned Cart Stats */}
-            <AbandonedCartStats />
+            <AbandonedCartStats refreshNonce={refreshNonce} />
           </div>
         </AdminContent>
       </div>

@@ -1,51 +1,104 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Card, Statistic, Progress } from "antd";
+import { Card, Statistic, Spin, Empty } from "antd";
 import { IconShoppingCart, IconX } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
+import axios from "axios";
 
-const AbandonedCartStats = () => {
-  const [stats, setStats] = useState({
-    totalCarts: 0,
-    abandonedCarts: 0,
-    recoveredCarts: 0,
-    totalValue: 0,
-    abandonedValue: 0,
-    recoveryRate: 0,
-  });
+function readAuthToken() {
+  const raw = localStorage.getItem("token");
+  if (!raw) return null;
+  const token = String(raw).trim();
+  if (!token || token === "undefined" || token === "null") return null;
+  return token;
+}
+
+function toNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+const AbandonedCartStats = ({ refreshNonce }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [byDays, setByDays] = useState([]);
+
+  const fetchAbandoned = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = readAuthToken();
+      if (!token) {
+        throw new Error("Please login as admin to view abandoned cart stats.");
+      }
+      const { data } = await axios.get("/api/admin/dashboard/abandoned-carts", {
+        params: { page: 1, limit: 20, days: 7, sort: "newest" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!data?.success) {
+        throw new Error(data?.message || "Failed to load abandoned carts");
+      }
+
+      const s = data.data?.statistics || {};
+      setStats({
+        totalAbandonedCarts: toNumber(s.totalAbandonedCarts),
+        totalAbandonedValue: toNumber(s.totalAbandonedValue),
+        averageAbandonedValue: toNumber(s.averageAbandonedValue),
+      });
+      setByDays((s.byDays || []).map((r) => ({ range: r.range, count: r.count, totalValue: r.totalValue })));
+    } catch (e) {
+      if (e?.response?.status === 401) {
+        setError(new Error("Session expired. Please login again."));
+        setStats(null);
+        setByDays([]);
+        return;
+      }
+      setError(e);
+      setStats(null);
+      setByDays([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Get current cart items (abandoned carts)
-    const currentCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    let cancelled = false;
+    let attempts = 0;
+    let timer = null;
 
-    // Calculate abandoned cart value
-    const abandonedValue = currentCart.reduce((sum, item) => {
-      return sum + parseFloat(item.price) * item.quantity;
-    }, 0);
+    const run = () => {
+      if (cancelled) return;
+      const token = readAuthToken();
+      if (!token) {
+        attempts += 1;
+        if (attempts <= 10) {
+          timer = setTimeout(run, 250);
+          return;
+        }
+        setError(new Error("Please login as admin to view abandoned cart stats."));
+        setLoading(false);
+        setStats(null);
+        setByDays([]);
+        return;
+      }
+      fetchAbandoned();
+    };
 
-    // Mock data for total carts (in real app, this would track all cart sessions)
-    const totalCarts = orders.length + currentCart.length;
-    const abandonedCarts = currentCart.length > 0 ? 1 : 0;
-    const recoveredCarts = orders.length;
+    run();
 
-    // Calculate recovery rate
-    const recoveryRate = totalCarts > 0 
-      ? ((recoveredCarts / totalCarts) * 100).toFixed(1)
-      : 0;
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [fetchAbandoned, refreshNonce]);
 
-    setStats({
-      totalCarts,
-      abandonedCarts,
-      recoveredCarts,
-      totalValue: abandonedValue + orders.reduce((sum, order) => 
-        sum + parseFloat(order.orderSummary?.grandTotal || 0), 0
-      ),
-      abandonedValue,
-      recoveryRate: parseFloat(recoveryRate),
-    });
-  }, []);
+  const empty = useMemo(() => !loading && !error && (!stats || stats.totalAbandonedCarts === 0), [loading, error, stats]);
 
   return (
     <motion.div
@@ -62,52 +115,73 @@ const AbandonedCartStats = () => {
         }
         className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-          <div>
-            <Statistic
-              title="Total Cart Sessions"
-              value={stats.totalCarts}
-              prefix={<IconShoppingCart className="w-5 h-5 text-blue-500" />}
-              formatter={(value) => <span className="text-blue-500 text-2xl font-bold">{value}</span>}
-            />
+        {loading ? (
+          <div className="h-[240px] flex items-center justify-center">
+            <Spin />
           </div>
-          <div>
-            <Statistic
-              title="Abandoned Carts"
-              value={stats.abandonedCarts}
-              prefix={<IconX className="w-5 h-5 text-red-500" />}
-              formatter={(value) => <span className="text-red-500 text-2xl font-bold">{value}</span>}
-            />
+        ) : error ? (
+          <div className="p-4 text-gray-600 dark:text-gray-300">
+            Failed to load abandoned cart stats.
           </div>
-          <div>
-            <Statistic
-              title="Abandoned Cart Value"
-              value={stats.abandonedValue}
-              prefix="₹"
-              formatter={(value) => <span className="text-orange-500 text-2xl font-bold">{formatPrice(value)}</span>}
-            />
+        ) : empty ? (
+          <div className="p-4">
+            <Empty description="No abandoned cart activity found" />
           </div>
-          <div>
-            <Statistic
-              title="Recovery Rate"
-              value={stats.recoveryRate}
-              suffix="%"
-              formatter={(value) => <span className="text-emerald-500 text-2xl font-bold">{value}</span>}
-            />
-            <Progress
-              percent={stats.recoveryRate}
-              strokeColor="#10b981"
-              showInfo={false}
-              className="mt-2"
-            />
-          </div>
-        </div>
-        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
-            <strong>Tip:</strong> Send reminder emails to customers with abandoned carts to recover potential sales.
-            Current recovery rate is {stats.recoveryRate}%.
-          </p>
-        </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+              <div>
+                <Statistic
+                  title="Abandoned Carts"
+                  value={stats.totalAbandonedCarts}
+                  prefix={<IconX className="w-5 h-5 text-red-500" />}
+                  formatter={(value) => <span className="text-red-500 text-2xl font-bold">{value}</span>}
+                />
+              </div>
+              <div>
+                <Statistic
+                  title="Total Abandoned Value"
+                  value={stats.totalAbandonedValue}
+                  prefix="₹"
+                  formatter={(value) => <span className="text-orange-500 text-2xl font-bold">{formatPrice(value)}</span>}
+                />
+              </div>
+              <div>
+                <Statistic
+                  title="Average Abandoned Cart Value"
+                  value={stats.averageAbandonedValue}
+                  prefix="₹"
+                  formatter={(value) => <span className="text-emerald-500 text-2xl font-bold">{formatPrice(value)}</span>}
+                />
+              </div>
+              <div>
+                <Statistic
+                  title="Activity Ranges"
+                  value={byDays?.length || 0}
+                  formatter={(value) => <span className="text-blue-500 text-2xl font-bold">{value}</span>}
+                />
+              </div>
+            </div>
+            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+                <strong>Tip:</strong> Send cart recovery emails based on the most abandoned value ranges.
+              </p>
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {byDays.slice(0, 4).map((r) => (
+                  <div key={r.range} className="bg-white/60 dark:bg-black/20 rounded p-2 border border-blue-200 dark:border-blue-800">
+                    <div className="text-[11px] sm:text-xs text-blue-900 dark:text-blue-200">{r.range}</div>
+                    <div className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100">
+                      {r.count} carts
+                    </div>
+                    <div className="text-[11px] sm:text-xs text-blue-700 dark:text-blue-200">
+                      ₹{formatPrice(r.totalValue)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </Card>
     </motion.div>
   );

@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Card } from "antd";
+import { Card, Spin, Empty } from "antd";
 import {
   LineChart,
   Line,
@@ -12,66 +12,115 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { IconUsers } from "@tabler/icons-react";
-import { format, subDays, subMonths, eachDayOfInterval, eachMonthOfInterval } from "date-fns";
+import axios from "axios";
 
-const UserRegistrations = ({ reportType = "daily", dateRange }) => {
+function readAuthToken() {
+  const raw = localStorage.getItem("token");
+  if (!raw) return null;
+  const token = String(raw).trim();
+  if (!token || token === "undefined" || token === "null") return null;
+  return token;
+}
+
+function toISO(d) {
+  if (!d) return undefined;
+  if (typeof d === "string") return d;
+  if (d.toDate) return d.toDate().toISOString();
+  if (d.toISOString) return d.toISOString();
+  return undefined;
+}
+
+const UserRegistrations = ({ reportType = "daily", dateRange, refreshNonce }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
 
-  useEffect(() => {
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    
-    // Estimate users based on orders (in real app, this would come from user database)
-    const estimatedUsers = Math.floor(orders.length * 1.5);
-    setTotalUsers(estimatedUsers);
+  const fetchRegistrations = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = readAuthToken();
+      if (!token) {
+        throw new Error("Please login as admin to view registrations chart.");
+      }
+      const startDate = dateRange?.[0] ? toISO(dateRange[0]) : undefined;
+      const endDate = dateRange?.[1] ? toISO(dateRange[1]) : undefined;
 
-    let data = [];
-    
-    if (reportType === "daily") {
-      const days = eachDayOfInterval({
-        start: subDays(new Date(), 29),
-        end: new Date(),
+      const { data } = await axios.get("/api/admin/dashboard/user-registrations", {
+        params: {
+          period: reportType, // daily | monthly | yearly
+          startDate,
+          endDate,
+        },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      data = days.map((day) => {
-        const dayStr = format(day, "yyyy-MM-dd");
-        const dayOrders = orders.filter((order) => {
-          const orderDate = format(new Date(order.orderDate), "yyyy-MM-dd");
-          return orderDate === dayStr;
-        });
+      if (!data?.success) {
+        throw new Error(data?.message || "Failed to load user registrations");
+      }
 
-        // Estimate 1.5 users per order
-        const users = Math.floor(dayOrders.length * 1.5);
+      const trends = data.data?.trends || [];
+      const summary = data.data?.summary || {};
 
-        return {
-          date: format(day, "MMM dd"),
-          users: users,
-        };
-      });
-    } else {
-      const months = eachMonthOfInterval({
-        start: subMonths(new Date(), 11),
-        end: new Date(),
-      });
-
-      data = months.map((month) => {
-        const monthStr = format(month, "yyyy-MM");
-        const monthOrders = orders.filter((order) => {
-          const orderDate = format(new Date(order.orderDate), "yyyy-MM");
-          return orderDate === monthStr;
-        });
-
-        const users = Math.floor(monthOrders.length * 1.5);
-
-        return {
-          date: format(month, "MMM yyyy"),
-          users: users,
-        };
-      });
+      setTotalUsers(summary.newUsers ?? 0);
+      setChartData(
+        trends.map((t) => ({
+          date: t.date,
+          users: t.count,
+        })),
+      );
+    } catch (e) {
+      if (e?.response?.status === 401) {
+        setError(new Error("Session expired. Please login again."));
+        setTotalUsers(0);
+        setChartData([]);
+        return;
+      }
+      setError(e);
+      setTotalUsers(0);
+      setChartData([]);
+    } finally {
+      setLoading(false);
     }
+  }, [dateRange, reportType]);
 
-    setChartData(data);
-  }, [reportType, dateRange]);
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+    let timer = null;
+
+    const run = () => {
+      if (cancelled) return;
+      const token = readAuthToken();
+      if (!token) {
+        attempts += 1;
+        if (attempts <= 10) {
+          timer = setTimeout(run, 250);
+          return;
+        }
+        setError(new Error("Please login as admin to view registrations chart."));
+        setLoading(false);
+        setChartData([]);
+        setTotalUsers(0);
+        return;
+      }
+
+      fetchRegistrations();
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [fetchRegistrations, refreshNonce]);
+
+  const empty = useMemo(() => !loading && chartData.length === 0, [loading, chartData.length]);
 
   return (
     <motion.div
@@ -93,35 +142,45 @@ const UserRegistrations = ({ reportType = "daily", dateRange }) => {
         }
         className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       >
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-            <XAxis
-              dataKey="date"
-              tick={{ fill: "#6b7280", fontSize: 10 }}
-              className="dark:text-gray-400"
-            />
-            <YAxis
-              tick={{ fill: "#6b7280", fontSize: 10 }}
-              className="dark:text-gray-400"
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="users"
-              stroke="#f97316"
-              strokeWidth={2}
-              dot={{ fill: "#f97316", r: 4 }}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {loading ? (
+          <div className="h-[250px] flex items-center justify-center">
+            <Spin />
+          </div>
+        ) : error ? (
+          <div className="p-4 text-gray-600 dark:text-gray-300">
+            Failed to load user registration trends.
+          </div>
+        ) : empty ? (
+          <Empty description="No registration data available" />
+        ) : (
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={chartData}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#e5e7eb"
+                className="dark:stroke-gray-700"
+              />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: "#6b7280", fontSize: 10 }}
+                className="dark:text-gray-400"
+              />
+              <YAxis
+                tick={{ fill: "#6b7280", fontSize: 10 }}
+                className="dark:text-gray-400"
+              />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="users"
+                stroke="#f97316"
+                strokeWidth={2}
+                dot={{ fill: "#f97316", r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
         <div className="mt-3 sm:mt-4 text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           New user registrations over time
         </div>
