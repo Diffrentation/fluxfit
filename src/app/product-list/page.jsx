@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ui/ProductCard";
@@ -19,6 +19,9 @@ import { Button, Spin } from "antd";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 import { usePublicProducts } from "@/hooks/usePublicProducts";
 import { getProductDetailPath } from "@/lib/publicProductsApi";
+
+/** Avoid static prerender issues with useSearchParams + ensure build succeeds */
+export const dynamic = "force-dynamic";
 
 const sortOptions = [
   { value: "default", label: "Default" },
@@ -71,7 +74,7 @@ function getUniqueTagsFromProducts(products) {
   return Array.from(tagSet);
 }
 
-function ProductListPage() {
+function ProductListPageContent() {
   const router = useRouter();
   const [selectedTags, setSelectedTags] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -181,7 +184,8 @@ function ProductListPage() {
     updateUrlParams({ search: next || null });
   }, [debouncedSearch, updateUrlParams, urlSearch]);
 
-  const totalCount = pagination?.total ?? products.length;
+  const totalCount =
+    pagination?.total != null ? pagination.total : (Array.isArray(products) ? products.length : 0);
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pt-10 transition-colors duration-300">
@@ -334,9 +338,9 @@ function ProductListPage() {
           <>
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 3xl:grid-cols-5 gap-0 sm:gap-4 md:gap-5 lg:gap-6">
               <AnimatePresence mode="popLayout">
-                {products.map((product, index) => (
+                {(Array.isArray(products) ? products : []).map((product, index) => (
                   <motion.div
-                    key={product.id}
+                    key={product?.id ?? index}
                     layout={false}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -383,4 +387,18 @@ function ProductListPage() {
   );
 }
 
-export default ProductListPage;
+function ProductListFallback() {
+  return (
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pt-10 flex justify-center items-center">
+      <Spin size="large" tip="Loading..." />
+    </div>
+  );
+}
+
+export default function ProductListPage() {
+  return (
+    <Suspense fallback={<ProductListFallback />}>
+      <ProductListPageContent />
+    </Suspense>
+  );
+}

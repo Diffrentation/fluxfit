@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import axios from "axios";
 import {
   buildPublicProductsQuery,
   normalizeProductForCard,
 } from "@/lib/publicProductsApi";
+import { publicApiUrl } from "@/lib/apiBaseUrl";
 
 /**
  * Fetches catalog products from GET /api/products with stable request cancellation.
@@ -68,23 +68,29 @@ export function usePublicProducts({
     setLoading(true);
     setError(null);
     try {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("[usePublicProducts] GET /api/products params:", queryParams);
-      }
-      const { data } = await axios.get("/api/products", {
-        params: queryParams,
-        signal,
+      const qs = new URLSearchParams();
+      Object.entries(queryParams || {}).forEach(([k, v]) => {
+        if (v === undefined || v === null || v === "") return;
+        if (Array.isArray(v)) {
+          v.forEach((item) => qs.append(k, String(item)));
+        } else {
+          qs.set(k, String(v));
+        }
       });
-      if (!data?.success) {
-        throw new Error(data?.message || "Failed to load products");
+      const url = `${publicApiUrl("/api/products")}?${qs.toString()}`;
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[usePublicProducts] GET", url);
       }
-      const raw = data.data.products || [];
-      setProducts(
-        raw.map(normalizeProductForCard).filter(Boolean)
-      );
-      setPagination(data.data.pagination || null);
+      const res = await fetch(url, { cache: "no-store", signal });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || `Failed to load products (${res.status})`);
+      }
+      const raw = data.data?.products || [];
+      setProducts(raw.map(normalizeProductForCard).filter(Boolean));
+      setPagination(data.data?.pagination || null);
     } catch (e) {
-      if (axios.isCancel?.(e) || e.name === "CanceledError" || e.code === "ERR_CANCELED") {
+      if (e.name === "AbortError") {
         return;
       }
       console.error("usePublicProducts:", e);
@@ -103,6 +109,7 @@ export function usePublicProducts({
 
   // Let admin screens force-refresh public storefront lists immediately after edits.
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const handleRefresh = () => {
       fetchProducts();
     };

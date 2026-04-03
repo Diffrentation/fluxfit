@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Button, Input, message, Modal, Select, Space, Spin, Table } from "antd";
+import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminContent from "@/components/Admin/AdminContent";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
@@ -231,89 +233,100 @@ export default function AdminReviewsPage() {
   );
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Review Management</h1>
-      <div className="flex flex-wrap gap-3">
-        <Select
-          value={status}
-          onChange={(value) => {
-            setPage(1);
-            setStatus(value);
-          }}
-          style={{ width: 180 }}
-          options={[
-            { value: "all", label: "All statuses" },
-            { value: "pending", label: "Pending" },
-            { value: "approved", label: "Approved" },
-            { value: "rejected", label: "Rejected" },
-            { value: "spam", label: "Spam" },
-          ]}
-        />
-        <Input
-          value={search}
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-          placeholder="Search review text"
-          style={{ width: 260 }}
-        />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <div className="flex">
+        <AdminSidebar activeItem="reviews" />
+        <AdminContent>
+          <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
+            <div className="p-4 sm:p-6 space-y-4 max-w-[1600px]">
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                Review Management
+              </h1>
+              <div className="flex flex-wrap gap-3">
+                <Select
+                  value={status}
+                  onChange={(value) => {
+                    setPage(1);
+                    setStatus(value);
+                  }}
+                  style={{ width: 180 }}
+                  options={[
+                    { value: "all", label: "All statuses" },
+                    { value: "pending", label: "Pending" },
+                    { value: "approved", label: "Approved" },
+                    { value: "rejected", label: "Rejected" },
+                    { value: "spam", label: "Spam" },
+                  ]}
+                />
+                <Input
+                  value={search}
+                  onChange={(e) => {
+                    setPage(1);
+                    setSearch(e.target.value);
+                  }}
+                  placeholder="Search review text"
+                  style={{ width: 260 }}
+                />
+              </div>
+
+              {loading ? (
+                <div className="py-8 flex justify-center">
+                  <Spin />
+                </div>
+              ) : (
+                <Table
+                  rowKey="id"
+                  dataSource={reviews}
+                  columns={columns}
+                  pagination={{
+                    current: page,
+                    pageSize: limit,
+                    total: pagination.total || 0,
+                    onChange: setPage,
+                  }}
+                />
+              )}
+
+              <Modal
+                open={editOpen}
+                title="Edit review"
+                onCancel={() => setEditOpen(false)}
+                onOk={handleUpdate}
+                confirmLoading={actionLoadingId === selectedReview?.id}
+              >
+                <div className="space-y-3">
+                  <Select
+                    value={editRating}
+                    onChange={setEditRating}
+                    style={{ width: "100%" }}
+                    options={[1, 2, 3, 4, 5].map((value) => ({
+                      value,
+                      label: `${value} star${value > 1 ? "s" : ""}`,
+                    }))}
+                  />
+                  <Input.TextArea
+                    value={editComment}
+                    onChange={(e) => setEditComment(e.target.value)}
+                    rows={5}
+                    placeholder="Review comment"
+                  />
+                  <Select
+                    value={editStatus}
+                    onChange={setEditStatus}
+                    style={{ width: "100%" }}
+                    options={[
+                      { value: "pending", label: "Pending" },
+                      { value: "approved", label: "Approved" },
+                      { value: "rejected", label: "Rejected" },
+                      { value: "spam", label: "Spam" },
+                    ]}
+                  />
+                </div>
+              </Modal>
+            </div>
+          </div>
+        </AdminContent>
       </div>
-
-      {loading ? (
-        <div className="py-8 flex justify-center">
-          <Spin />
-        </div>
-      ) : (
-        <Table
-          rowKey="id"
-          dataSource={reviews}
-          columns={columns}
-          pagination={{
-            current: page,
-            pageSize: limit,
-            total: pagination.total || 0,
-            onChange: setPage,
-          }}
-        />
-      )}
-
-      <Modal
-        open={editOpen}
-        title="Edit review"
-        onCancel={() => setEditOpen(false)}
-        onOk={handleUpdate}
-        confirmLoading={actionLoadingId === selectedReview?.id}
-      >
-        <div className="space-y-3">
-          <Select
-            value={editRating}
-            onChange={setEditRating}
-            style={{ width: "100%" }}
-            options={[1, 2, 3, 4, 5].map((value) => ({
-              value,
-              label: `${value} star${value > 1 ? "s" : ""}`,
-            }))}
-          />
-          <Input.TextArea
-            value={editComment}
-            onChange={(e) => setEditComment(e.target.value)}
-            rows={5}
-            placeholder="Review comment"
-          />
-          <Select
-            value={editStatus}
-            onChange={setEditStatus}
-            style={{ width: "100%" }}
-            options={[
-              { value: "pending", label: "Pending" },
-              { value: "approved", label: "Approved" },
-              { value: "rejected", label: "Rejected" },
-              { value: "spam", label: "Spam" },
-            ]}
-          />
-        </div>
-      </Modal>
     </div>
   );
 }

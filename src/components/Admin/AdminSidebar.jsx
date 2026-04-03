@@ -309,31 +309,30 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
             </ul>
           </nav>
 
-          {/* Logout */}
-          <AnimatePresence mode="wait">
-            {!isCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30,
-                }}
-                className="border-t border-gray-800 dark:border-gray-700 overflow-hidden"
-              >
-                <div className="p-3 sm:p-4">
-                  <button className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base">
-                    <IconLogout className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                    <span className="whitespace-nowrap overflow-hidden">
-                      Log out
-                    </span>
-                  </button>
-                </div>
-              </motion.div>
+          {/* Logout — icon-only when collapsed so the rail always stays visible */}
+          <div className="border-t border-gray-800 dark:border-gray-700 overflow-hidden mt-auto shrink-0">
+            {isCollapsed ? (
+              <div className="p-2 sm:p-3 flex justify-center">
+                <button
+                  type="button"
+                  title="Log out"
+                  className="flex items-center justify-center p-2 sm:p-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white w-full transition-colors"
+                >
+                  <IconLogout className="w-5 h-5 shrink-0" />
+                </button>
+              </div>
+            ) : (
+              <div className="p-3 sm:p-4">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base"
+                >
+                  <IconLogout className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="whitespace-nowrap overflow-hidden">Log out</span>
+                </button>
+              </div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
       </motion.aside>
 
