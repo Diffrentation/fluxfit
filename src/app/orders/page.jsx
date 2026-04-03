@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { motion } from "framer-motion";
 import {
   IconChevronRight,
@@ -21,7 +22,7 @@ import { fetchMyOrders, getOrdersAuthHeaders } from "@/lib/orders-api-client";
 const { Search } = Input;
 const { Option } = Select;
 
-const OrdersPage = () => {
+const OrdersPageContent = () => {
   const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -392,4 +393,10 @@ const OrdersPage = () => {
   );
 };
 
-export default OrdersPage;
+export default function OrdersPage() {
+  return (
+    <ProtectedRoute>
+      <OrdersPageContent />
+    </ProtectedRoute>
+  );
+}

@@ -11,16 +11,16 @@ import {
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
 import { useMemo, useState } from "react";
-import { IconShoppingCart } from "@tabler/icons-react";
+import { IconShoppingCart, IconUser, IconChevronDown } from "@tabler/icons-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Herobanner from "../Home/Herobanner.jsx";
 import { useRouter } from "next/navigation";
+import { Dropdown, Avatar } from "antd";
 
 export function Nav() {
-  const { user, hydrated } = useAuth();
+  const { user, hydrated, isAuthenticated, logout } = useAuth();
 
   const desktopNavItems = useMemo(() => {
     const items = [
@@ -51,20 +51,96 @@ export function Nav() {
     return items;
   }, [hydrated, user?.role]);
 
+  const displayName = useMemo(() => {
+    if (!user) return "";
+    const full = [user.firstname, user.lastname].filter(Boolean).join(" ").trim();
+    if (full) return full;
+    return user.username || user.email || "Account";
+  }, [user]);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { getCartCount } = useCart();
   const cartCount = getCartCount();
   const router = useRouter();
+
+  const profileMenu = {
+    items: [
+      {
+        key: "profile",
+        label: "My Profile",
+        onClick: () => {
+          router.push("/profile");
+          setIsMobileMenuOpen(false);
+        },
+      },
+      {
+        key: "orders",
+        label: "Orders",
+        onClick: () => {
+          router.push("/orders");
+          setIsMobileMenuOpen(false);
+        },
+      },
+      { type: "divider" },
+      {
+        key: "logout",
+        label: "Logout",
+        danger: true,
+        onClick: () => {
+          setIsMobileMenuOpen(false);
+          logout();
+        },
+      },
+    ],
+  };
+
+  const showAuthChrome = hydrated && isAuthenticated && user;
+
   return (
     <div className="relative w-full">
       <Navbar>
-        {/* Desktop Navigation */}
         <NavBody>
           <NavbarLogo />
           <NavItems items={desktopNavItems} />
-          <div className="flex items-center gap-4">
-            <NavbarButton onClick={() => router.push("/auth/login")} variant="secondary">Login</NavbarButton>
-            <NavbarButton onClick={() => router.push("/auth/register")} variant="primary">Register</NavbarButton>
+          <div className="flex items-center gap-2 sm:gap-4">
+            {!showAuthChrome ? (
+              <>
+                <NavbarButton
+                  onClick={() => router.push("/auth/login")}
+                  variant="secondary"
+                >
+                  Login
+                </NavbarButton>
+                <NavbarButton
+                  onClick={() => router.push("/auth/register")}
+                  variant="primary"
+                >
+                  Register
+                </NavbarButton>
+              </>
+            ) : (
+              <Dropdown
+                menu={profileMenu}
+                trigger={["click"]}
+                placement="bottomRight"
+              >
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  <Avatar
+                    size={36}
+                    src={user.profileimage || undefined}
+                    icon={!user.profileimage ? <IconUser className="h-5 w-5" /> : undefined}
+                    className="shrink-0"
+                  />
+                  <span className="hidden sm:inline max-w-[120px] truncate">
+                    {displayName}
+                  </span>
+                  <IconChevronDown className="h-4 w-4 opacity-70 hidden sm:block" />
+                </button>
+              </Dropdown>
+            )}
             <Link href="/cart" className="inline-block">
               <NavbarButton
                 variant="primary"
@@ -98,7 +174,6 @@ export function Nav() {
           </div>
         </NavBody>
 
-        {/* Mobile Navigation */}
         <MobileNav>
           <MobileNavHeader>
             <NavbarLogo />
@@ -121,27 +196,73 @@ export function Nav() {
                 <span className="block">{item.name}</span>
               </Link>
             ))}
-            <div className="flex w-full flex-col gap-4">
-              <NavbarButton
-                onClick={() => setIsMobileMenuOpen(false)}
-                variant="primary"
-                className="w-full"
-              >
-                Login
-              </NavbarButton>
-              <NavbarButton
-                onClick={() => setIsMobileMenuOpen(false)}
-                variant="primary"
-                className="w-full"
-              >
-                Register
-              </NavbarButton>
+            <div className="flex w-full flex-col gap-3 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+              {!showAuthChrome ? (
+                <>
+                  <NavbarButton
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      router.push("/auth/login");
+                    }}
+                    variant="primary"
+                    className="w-full"
+                  >
+                    Login
+                  </NavbarButton>
+                  <NavbarButton
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      router.push("/auth/register");
+                    }}
+                    variant="primary"
+                    className="w-full"
+                  >
+                    Register
+                  </NavbarButton>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 px-1 py-2">
+                    <Avatar
+                      size={40}
+                      src={user.profileimage || undefined}
+                      icon={!user.profileimage ? <IconUser className="h-6 w-6" /> : undefined}
+                    />
+                    <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">
+                      {displayName}
+                    </span>
+                  </div>
+                  <Link
+                    href="/profile"
+                    className="text-neutral-700 dark:text-neutral-300 text-sm py-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    My Profile
+                  </Link>
+                  <Link
+                    href="/orders"
+                    className="text-neutral-700 dark:text-neutral-300 text-sm py-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Orders
+                  </Link>
+                  <NavbarButton
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      logout();
+                    }}
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    Logout
+                  </NavbarButton>
+                </>
+              )}
             </div>
           </MobileNavMenu>
         </MobileNav>
       </Navbar>
       <DummyContent />
-      {/* Navbar */}
     </div>
   );
 }

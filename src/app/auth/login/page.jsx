@@ -1,5 +1,5 @@
 "use client";
-import React, { Suspense, useState } from "react";
+import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { FaRegEyeSlash, FaRegEye } from "react-icons/fa6";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
+import GuestRoute from "@/components/auth/GuestRoute";
 
 function Login() {
   const { login: authLogin } = useAuth();
@@ -38,7 +39,7 @@ function Login() {
           response?.data?.data?.accessToken || response?.data?.data?.token;
         const userPayload = response?.data?.data?.user;
         if (token && userPayload) {
-          authLogin(token, userPayload);
+          authLogin(userPayload, token);
         }
 
         router.push("/");
@@ -156,15 +157,9 @@ function Login() {
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-[50vh] flex items-center justify-center text-gray-500">
-          Loading…
-        </div>
-      }
-    >
+    <GuestRoute>
       <Login />
-    </Suspense>
+    </GuestRoute>
   );
 }
 

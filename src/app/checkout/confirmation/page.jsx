@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { motion } from "framer-motion";
 import { mapApiOrderToLegacyUi } from "@/lib/order-display";
 import {
@@ -404,17 +405,19 @@ const OrderConfirmationContent = () => {
 
 const OrderConfirmationPage = () => {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gray-50 pt-24 pb-12 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-gray-600">Loading order details...</p>
+    <ProtectedRoute>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-gray-50 pt-24 pb-12 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-gray-600">Loading order details...</p>
+            </div>
           </div>
-        </div>
-      }
-    >
-      <OrderConfirmationContent />
-    </Suspense>
+        }
+      >
+        <OrderConfirmationContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 };
 

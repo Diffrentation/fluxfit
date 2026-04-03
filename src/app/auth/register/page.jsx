@@ -8,8 +8,9 @@ import { FaRegEyeSlash, FaRegEye, FaCamera, FaUser } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useEffect } from "react";
 import axios from "axios";
+import GuestRoute from "@/components/auth/GuestRoute";
 
-export default function Signup() {
+function Signup() {
   const [showPass, setShowPass] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
   const [logoError, setLogoError] = useState(false);
@@ -395,3 +396,11 @@ const LabelInputContainer = ({ children, className }) => (
     {children}
   </div>
 );
+
+export default function RegisterPage() {
+  return (
+    <GuestRoute>
+      <Signup />
+    </GuestRoute>
+  );
+}

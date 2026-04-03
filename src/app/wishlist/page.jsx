@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { productDatabase } from "@/lib/productDatabase";
@@ -21,7 +22,7 @@ const formatPrice = (price) => {
   return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const WishlistPage = () => {
+const WishlistPageContent = () => {
   const router = useRouter();
   const {
     addToCart,
@@ -487,5 +488,11 @@ const WishlistPage = () => {
   );
 };
 
-export default WishlistPage;
+export default function WishlistPage() {
+  return (
+    <ProtectedRoute>
+      <WishlistPageContent />
+    </ProtectedRoute>
+  );
+}
 

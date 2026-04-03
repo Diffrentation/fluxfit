@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useCart } from "@/context/CartContext";
 import { isLoggedInForCheckout } from "@/lib/checkout-order";
 import {
@@ -18,7 +19,7 @@ import ReviewStep from "@/components/Checkout/ReviewStep";
 
 const { Step } = Steps;
 
-const CheckoutPage = () => {
+const CheckoutPageContent = () => {
   const router = useRouter();
   const { cartItems, getCartTotal, getFinalTotal, getDiscountAmount } =
     useCart();
@@ -310,4 +311,10 @@ const CheckoutPage = () => {
   );
 };
 
-export default CheckoutPage;
+export default function CheckoutPage() {
+  return (
+    <ProtectedRoute>
+      <CheckoutPageContent />
+    </ProtectedRoute>
+  );
+}

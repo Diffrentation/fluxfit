@@ -96,11 +96,10 @@ function OTPPageContent() {
           response?.data?.token;
         const user = response?.data?.data?.user || response?.data?.user;
 
-        if (token && user && apiType === "email-verification") {
-          authLogin(token, user);
-        } else {
-          if (token) localStorage.setItem("token", token);
-          if (user) localStorage.setItem("user", JSON.stringify(user));
+        if (token && user) {
+          authLogin(user, token);
+        } else if (token) {
+          localStorage.setItem("token", token);
         }
 
         toast.success(response?.data?.message || "OTP verified successfully ✅");

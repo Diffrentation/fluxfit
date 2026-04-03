@@ -6,27 +6,26 @@ import { Spin } from "antd";
 import { useAuth } from "@/context/AuthContext";
 
 /**
- * Client-side guard for routes outside /admin (middleware only covers /admin).
- * Redirects to login if there is no access token after hydration.
+ * Client-side guard for routes that require authentication.
  */
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, hydrated } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (isInitializing) return;
     if (!isAuthenticated) {
       router.replace(
         `/auth/login?redirect=${encodeURIComponent(pathname || "/")}`
       );
     }
-  }, [hydrated, isAuthenticated, router, pathname]);
+  }, [isInitializing, isAuthenticated, router, pathname]);
 
-  if (!hydrated) {
+  if (isInitializing) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center">
-        <Spin size="large" />
+        <Spin size="large" tip="Loading session…" />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -42,7 +43,7 @@ const { TextArea } = Input;
 const { Option } = Select;
 const { Step } = Steps;
 
-const OrderDetailsPage = () => {
+const OrderDetailsPageContent = () => {
   const params = useParams();
   const router = useRouter();
   const [order, setOrder] = useState(null);
@@ -811,4 +812,10 @@ const OrderDetailsPage = () => {
   );
 };
 
-export default OrderDetailsPage;
+export default function OrderDetailsPage() {
+  return (
+    <ProtectedRoute>
+      <OrderDetailsPageContent />
+    </ProtectedRoute>
+  );
+}

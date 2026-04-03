@@ -26,7 +26,7 @@ const REFRESH_BUFFER_MS = 60 * 1000;
 
 export function AuthProvider({ children }) {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUserState] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -34,6 +34,9 @@ export function AuthProvider({ children }) {
   const refreshInFlightRef = useRef(null);
   const refreshRef = useRef(async () => {});
   const logoutRef = useRef(async () => {});
+
+  const isInitializing = !hydrated;
+  const isAuthenticated = Boolean(accessToken && user);
 
   const clearExpiryTimer = useCallback(() => {
     if (timerRef.current) {
@@ -76,7 +79,7 @@ export function AuthProvider({ children }) {
       clearExpiryTimer();
       const prevToken =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      setUser(null);
+      setUserState(null);
       setAccessToken(null);
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
@@ -103,13 +106,31 @@ export function AuthProvider({ children }) {
     [clearExpiryTimer, router]
   );
 
-  const login = useCallback((token, userObj) => {
+  /**
+   * @param {object} userObj - User payload to store
+   * @param {string} token - Access JWT
+   */
+  const login = useCallback((userObj, token) => {
     if (typeof window !== "undefined") {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(userObj));
     }
     setAccessToken(token);
-    setUser(userObj);
+    setUserState(userObj);
+  }, []);
+
+  const setUser = useCallback((value) => {
+    setUserState((prev) => {
+      const next = typeof value === "function" ? value(prev) : value;
+      if (typeof window !== "undefined") {
+        if (next) {
+          localStorage.setItem("user", JSON.stringify(next));
+        } else {
+          localStorage.removeItem("user");
+        }
+      }
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -117,7 +138,6 @@ export function AuthProvider({ children }) {
     logoutRef.current = logout;
   }, [refreshAccessToken, logout]);
 
-  // Hydrate from storage on mount (client only)
   useEffect(() => {
     const t = localStorage.getItem("token");
     const u = localStorage.getItem("user");
@@ -127,7 +147,7 @@ export function AuthProvider({ children }) {
       }
       if (u) {
         try {
-          setUser(JSON.parse(u));
+          setUserState(JSON.parse(u));
         } catch {
           /* ignore */
         }
@@ -136,7 +156,17 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  // Proactive refresh before access JWT expires
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    console.debug("[Auth]", {
+      hydrated,
+      isAuthenticated,
+      hasToken: !!accessToken,
+      userId: user?._id,
+      email: user?.email,
+    });
+  }, [hydrated, isAuthenticated, accessToken, user]);
+
   useEffect(() => {
     if (!hydrated || !accessToken) {
       clearExpiryTimer();
@@ -156,12 +186,11 @@ export function AuthProvider({ children }) {
     return () => clearExpiryTimer();
   }, [hydrated, accessToken, clearExpiryTimer]);
 
-  // Other tabs: logout sync
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key !== AUTH_LOGOUT_STORAGE_KEY || e.newValue == null) return;
       clearExpiryTimer();
-      setUser(null);
+      setUserState(null);
       setAccessToken(null);
       router.push("/auth/login");
     };
@@ -171,7 +200,6 @@ export function AuthProvider({ children }) {
     }
   }, [router, clearExpiryTimer]);
 
-  // Axios: credentials + 401 → refresh → retry (once)
   useEffect(() => {
     const reqId = axios.interceptors.request.use((config) => {
       config.withCredentials = true;
@@ -195,7 +223,10 @@ export function AuthProvider({ children }) {
           return Promise.reject(error);
         }
         const url = original.url || "";
-        if (url.includes("/api/auth/refresh") || url.includes("/api/auth/login")) {
+        if (
+          url.includes("/api/auth/refresh") ||
+          url.includes("/api/auth/login")
+        ) {
           return Promise.reject(error);
         }
         if (original._retry) {
@@ -228,13 +259,25 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       accessToken,
-      isAuthenticated: !!accessToken,
+      isAuthenticated,
+      isInitializing,
       hydrated,
       login,
       logout,
+      setUser,
       refreshAccessToken,
     }),
-    [user, accessToken, hydrated, login, logout, refreshAccessToken]
+    [
+      user,
+      accessToken,
+      isAuthenticated,
+      isInitializing,
+      hydrated,
+      login,
+      logout,
+      setUser,
+      refreshAccessToken,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
