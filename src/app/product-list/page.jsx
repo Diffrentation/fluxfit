@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ui/ProductCard";
 import CategoryNav from "@/components/ui/CategoryNav";
 import SortByFilter from "@/components/ui/SortByFilter";
@@ -71,46 +71,93 @@ function getUniqueTagsFromProducts(products) {
   return Array.from(tagSet);
 }
 
-function getUniqueCategoriesFromProducts(products) {
-  const categorySet = new Set(["All Products"]);
-  products.forEach((product) => {
-    if (product.category) categorySet.add(product.category);
-  });
-  return Array.from(categorySet);
-}
-
 function ProductListPage() {
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState("All Products");
-  const [sortBy, setSortBy] = useState("newness");
-  const [priceFilter, setPriceFilter] = useState("all");
-  const [colorFilter, setColorFilter] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const debouncedSearch = useDebouncedValue(searchQuery.trim(), 400);
+  const urlCategory = searchParams.get("category"); // backend slug or id
+  const urlSortBy = searchParams.get("sort") || "newness";
+  const urlColor = searchParams.get("color");
+  const urlMinPrice = searchParams.get("minPrice");
+  const urlMaxPrice = searchParams.get("maxPrice");
+  const urlSearch = searchParams.get("search") || "";
+
+  const priceFilterFromUrl = useMemo(() => {
+    const min = urlMinPrice != null ? parseFloat(urlMinPrice) : null;
+    const max = urlMaxPrice != null ? parseFloat(urlMaxPrice) : null;
+    if (min == null && max == null) return "all";
+
+    const options = ["0-50", "50-100", "100-150", "150-200", "200+"];
+    for (const v of options) {
+      if (v.endsWith("+")) {
+        const targetMin = parseFloat(v.replace("+", ""));
+        if (Number.isFinite(min) && min === targetMin && max == null) return v;
+      } else {
+        const [a, b] = v.split("-").map((x) => parseFloat(x));
+        if (
+          Number.isFinite(min) &&
+          Number.isFinite(max) &&
+          min === a &&
+          max === b
+        ) {
+          return v;
+        }
+      }
+    }
+    return "all";
+  }, [urlMinPrice, urlMaxPrice]);
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
+
+  // If the user navigates (back/forward) or reloads, sync the input.
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
+
+  const debouncedSearch = useDebouncedValue(searchInput.trim(), 400);
+
+  const updateUrlParams = useCallback(
+    (updates) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === "" || value === "all") {
+          params.delete(key);
+        } else {
+          params.set(key, String(value));
+        }
+      });
+
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
 
   const { products, pagination, loading } = usePublicProducts({
     page: 1,
     limit: 48,
-    categoryLabel: activeCategory,
+    category: urlCategory,
     debouncedSearch,
-    sortBy,
-    priceFilter,
-    colorFilter,
+    sortBy: urlSortBy,
+    priceFilter: priceFilterFromUrl,
+    minPrice: urlMinPrice,
+    maxPrice: urlMaxPrice,
+    colorFilter: urlColor,
     selectedTags,
   });
 
-  const colors = useMemo(
-    () => getUniqueColorsFromProducts(products),
-    [products]
-  );
+  const colors = useMemo(() => getUniqueColorsFromProducts(products), [products]);
   const tags = useMemo(() => getUniqueTagsFromProducts(products), [products]);
-  const categories = useMemo(
-    () => getUniqueCategoriesFromProducts(products),
-    [products]
-  );
+
+  const colorOptions = useMemo(() => {
+    const base = colors.length > 0 ? colors : ["Black", "White", "Blue"];
+    if (!urlColor) return base;
+    return base.includes(urlColor) ? base : [...base, urlColor];
+  }, [colors, urlColor]);
 
   const handleQuickView = useCallback(
     (product) => {
@@ -121,13 +168,18 @@ function ProductListPage() {
   );
 
   const resetFilters = useCallback(() => {
-    setActiveCategory("All Products");
-    setSortBy("newness");
-    setPriceFilter("all");
-    setColorFilter(null);
+    setSearchInput("");
     setSelectedTags([]);
-    setSearchQuery("");
-  }, []);
+    // Clear URL query params
+    router.replace(pathname);
+  }, [pathname, router]);
+
+  // Keep URL in sync for `search` (debounced).
+  useEffect(() => {
+    const next = debouncedSearch || "";
+    if ((urlSearch || "") === next) return;
+    updateUrlParams({ search: next || null });
+  }, [debouncedSearch, updateUrlParams, urlSearch]);
 
   const totalCount = pagination?.total ?? products.length;
 
@@ -141,9 +193,10 @@ function ProductListPage() {
 
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4 px-3 sm:px-0">
             <CategoryNav
-              categories={categories}
-              activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
+              activeCategory={urlCategory}
+              onCategoryChange={(categoryIdOrNull) =>
+                updateUrlParams({ category: categoryIdOrNull || null })
+              }
             />
             <div className="flex items-center gap-4 w-full md:w-auto">
               <motion.button
@@ -174,8 +227,8 @@ function ProductListPage() {
                 <input
                   type="search"
                   placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition-all duration-200 w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   aria-label="Search products"
                 />
@@ -212,21 +265,51 @@ function ProductListPage() {
                     Reset Filters
                   </Button>
                 </div>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {(urlMinPrice || urlMaxPrice) && (
+                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs sm:text-sm font-medium">
+                      Price: ₹{urlMinPrice || "0"}
+                      {urlMaxPrice ? ` - ₹${urlMaxPrice}` : "+"}
+                    </span>
+                  )}
+                  {urlColor && (
+                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs sm:text-sm font-medium">
+                      Color: {urlColor}
+                    </span>
+                  )}
+                  {urlSearch && (
+                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs sm:text-sm font-medium">
+                      Search: &quot;{urlSearch}&quot;
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                   <SortByFilter
-                    value={sortBy}
-                    onChange={setSortBy}
+                    value={urlSortBy}
+                    onChange={(v) => updateUrlParams({ sort: v })}
                     options={sortOptions}
                   />
                   <PriceFilter
-                    value={priceFilter}
-                    onChange={setPriceFilter}
+                    value={priceFilterFromUrl}
+                    onChange={(v) => {
+                      if (v === "all") {
+                        updateUrlParams({ minPrice: null, maxPrice: null });
+                        return;
+                      }
+                      if (v.endsWith("+")) {
+                        const min = parseFloat(v.replace("+", ""));
+                        updateUrlParams({ minPrice: min, maxPrice: null });
+                        return;
+                      }
+                      const [min, max] = v.split("-").map((x) => parseFloat(x));
+                      updateUrlParams({ minPrice: min, maxPrice: max });
+                    }}
                     options={priceOptions}
                   />
                   <ColorFilter
-                    value={colorFilter}
-                    onChange={setColorFilter}
-                    colors={colors.length > 0 ? colors : ["Black", "White", "Blue"]}
+                    value={urlColor}
+                    onChange={(c) => updateUrlParams({ color: c || null })}
+                    colors={colorOptions}
                   />
                   <TagsFilter
                     selectedTags={selectedTags}

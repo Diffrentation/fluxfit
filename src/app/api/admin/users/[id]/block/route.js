@@ -96,9 +96,7 @@ export async function PUT(request, { params }) {
       {
         success: true,
         message: "User blocked successfully",
-        data: {
-          user: formattedUser,
-        },
+        user: formattedUser,
       },
       { status: 200 }
     );

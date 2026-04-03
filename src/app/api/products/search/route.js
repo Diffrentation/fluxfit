@@ -85,13 +85,16 @@ export async function GET(request) {
       }
     }
 
-    // Price range filter
-    if (minPrice || maxPrice) {
+    // Price range filter (allow 0)
+    if (
+      (minPrice !== null && minPrice !== undefined && String(minPrice).trim() !== "") ||
+      (maxPrice !== null && maxPrice !== undefined && String(maxPrice).trim() !== "")
+    ) {
       query.basePrice = {};
-      if (minPrice) {
+      if (minPrice !== null && minPrice !== undefined && String(minPrice).trim() !== "") {
         query.basePrice.$gte = parseFloat(minPrice);
       }
-      if (maxPrice) {
+      if (maxPrice !== null && maxPrice !== undefined && String(maxPrice).trim() !== "") {
         query.basePrice.$lte = parseFloat(maxPrice);
       }
     }

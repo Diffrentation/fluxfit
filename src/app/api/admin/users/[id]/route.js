@@ -69,9 +69,7 @@ export async function GET(request, { params }) {
       {
         success: true,
         message: "User details retrieved successfully",
-        data: {
-          user: formattedUser,
-        },
+        user: formattedUser,
       },
       { status: 200 }
     );

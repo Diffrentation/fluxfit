@@ -53,13 +53,65 @@ export async function GET(request) {
     if (status) query.status = status;
     if (search?.trim()) query.$text = { $search: search.trim() };
     
-    // Category Logic: Handle both ID and Slug
+    // Category Logic (hierarchy-aware):
+    // - Resolve incoming `category` (id or slug) -> categoryId
+    // - Always include selected category + all descendants using $graphLookup
+    //   so selecting a parent includes products from its whole subtree.
     if (category) {
+      let categoryId = null;
+
       if (mongoose.Types.ObjectId.isValid(category)) {
-        query.category = new mongoose.Types.ObjectId(category);
+        categoryId = new mongoose.Types.ObjectId(category);
       } else {
-        const categoryDoc = await Category.findOne({ slug: category });
-        if (categoryDoc) query.category = categoryDoc._id;
+        const categoryDoc = await Category.findOne({
+          slug: category,
+          isDeleted: false,
+        }).select("_id");
+        if (categoryDoc) categoryId = categoryDoc._id;
+      }
+
+      if (categoryId) {
+        const selectedCategoryDoc = await Category.findOne({
+          _id: categoryId,
+          isDeleted: false,
+        }).select("parent");
+
+        // Match your click semantics:
+        // - clicking a top-level parent category (parent === null) includes descendants
+        // - clicking a nested subcategory filters only that category
+        const isTopLevelParent = !selectedCategoryDoc?.parent;
+
+        if (isTopLevelParent) {
+          const categoryTree = await Category.aggregate([
+            { $match: { _id: categoryId, isDeleted: false } },
+            {
+              $graphLookup: {
+                from: "categories",
+                startWith: "$_id",
+                connectFromField: "_id",
+                connectToField: "parent",
+                as: "descendants",
+                restrictSearchWithMatch: { isDeleted: false },
+              },
+            },
+            {
+              $project: {
+                descendantIds: {
+                  $concatArrays: [["$_id"], "$descendants._id"],
+                },
+              },
+            },
+          ]);
+
+          const descendantIds =
+            categoryTree?.[0]?.descendantIds?.map(
+              (id) => new mongoose.Types.ObjectId(id),
+            ) || [categoryId];
+
+          query.category = { $in: descendantIds };
+        } else {
+          query.category = categoryId;
+        }
       }
     }
 
@@ -67,10 +119,18 @@ export async function GET(request) {
       query.brand = new mongoose.Types.ObjectId(brand);
     }
 
-    if (minPrice || maxPrice) {
+    // Price filter: allow 0 values (use explicit checks, not truthiness)
+    if (
+      (minPrice !== null && minPrice !== undefined && String(minPrice).trim() !== "") ||
+      (maxPrice !== null && maxPrice !== undefined && String(maxPrice).trim() !== "")
+    ) {
       query.basePrice = {};
-      if (minPrice) query.basePrice.$gte = parseFloat(minPrice);
-      if (maxPrice) query.basePrice.$lte = parseFloat(maxPrice);
+      if (minPrice !== null && minPrice !== undefined && String(minPrice).trim() !== "") {
+        query.basePrice.$gte = parseFloat(minPrice);
+      }
+      if (maxPrice !== null && maxPrice !== undefined && String(maxPrice).trim() !== "") {
+        query.basePrice.$lte = parseFloat(maxPrice);
+      }
     }
 
     if (color) query.colors = { $in: [color] };

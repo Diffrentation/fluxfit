@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -37,28 +37,36 @@ const UserDetails = ({
   onBlock,
   onUnblock,
   onClose,
+  isMutating,
 }) => {
   const [isRoleModalVisible, setIsRoleModalVisible] = useState(false);
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
   const [roleForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
 
+  // Keep modal form value in sync when switching between users.
+  useEffect(() => {
+    if (!user?.role) return;
+    roleForm.setFieldsValue({ role: user.role });
+  }, [user?.role, roleForm]);
+
   const getRoleColor = (role) => {
     const colors = {
-      customer: "blue",
+      user: "blue",
       admin: "red",
-      vendor: "green",
     };
     return colors[role] || "default";
   };
 
   const handleRoleUpdate = (values) => {
+    if (isMutating) return;
     onRoleChange(user.id, values.role);
     setIsRoleModalVisible(false);
     roleForm.resetFields();
   };
 
   const handlePasswordReset = (values) => {
+    if (isMutating) return;
     onResetPassword(user.id);
     setIsPasswordModalVisible(false);
     passwordForm.resetFields();
@@ -206,6 +214,7 @@ const UserDetails = ({
               onClick={() => setIsRoleModalVisible(true)}
               size="large"
               className="text-xs sm:text-sm"
+              disabled={!!isMutating}
             >
               Change Role
             </Button>
@@ -215,6 +224,7 @@ const UserDetails = ({
               onClick={() => setIsPasswordModalVisible(true)}
               size="large"
               className="text-xs sm:text-sm"
+              disabled={!!isMutating}
             >
               Reset Password
             </Button>
@@ -230,6 +240,7 @@ const UserDetails = ({
                 }}
                 size="large"
                 className="text-xs sm:text-sm"
+                disabled={!!isMutating}
               >
                 Block User
               </Button>
@@ -244,6 +255,7 @@ const UserDetails = ({
                 }}
                 size="large"
                 className="text-xs sm:text-sm"
+                disabled={!!isMutating}
               >
                 Unblock User
               </Button>
@@ -279,14 +291,13 @@ const UserDetails = ({
             rules={[{ required: true, message: "Please select role" }]}
           >
             <Select placeholder="Select role">
-              <Option value="customer">Customer</Option>
+              <Option value="user">User</Option>
               <Option value="admin">Admin</Option>
-              <Option value="vendor">Vendor</Option>
             </Select>
           </Form.Item>
           <div className="flex justify-end gap-2">
             <Button onClick={() => setIsRoleModalVisible(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" disabled={!!isMutating}>
               Update Role
             </Button>
           </div>

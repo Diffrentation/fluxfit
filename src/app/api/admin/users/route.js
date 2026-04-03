@@ -123,23 +123,21 @@ export async function GET(request) {
       {
         success: true,
         message: "Users retrieved successfully",
-        data: {
-          users: formattedUsers,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit),
-            hasNextPage: page < Math.ceil(total / limit),
-            hasPrevPage: page > 1,
-          },
-          filters: {
-            search: search || null,
-            role: role || null,
-            isBlocked: isBlocked || null,
-            isVerified: isVerified || null,
-            sort,
-          },
+        users: formattedUsers,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPrevPage: page > 1,
+        },
+        filters: {
+          search: search || null,
+          role: role || null,
+          isBlocked: isBlocked || null,
+          isVerified: isVerified || null,
+          sort,
         },
       },
       { status: 200 }

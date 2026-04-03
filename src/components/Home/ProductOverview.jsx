@@ -39,7 +39,7 @@ const priceOptions = [
 
 const colors = ["Black", "Grey", "Green", "Red", "Blue", "White"];
 const tags = ["Fashion", "Lifestyle", "Denim", "Streetstyle", "Crafts"];
-const categories = ["All Products", "Women", "Men", "Bag", "Shoes", "Watches"];
+// CategoryNav pulls categories from the backend; no hardcoded category list needed.
 
 /** Debounce search input to limit GET /api/products calls while typing */
 function useDebouncedValue(value, delayMs = 400) {
@@ -53,7 +53,8 @@ function useDebouncedValue(value, delayMs = 400) {
 
 function ProductOverview() {
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState("All Products");
+  // backend category `slug` or null for "All Products"
+  const [activeCategory, setActiveCategory] = useState(null);
   const [sortBy, setSortBy] = useState("newness");
   const [priceFilter, setPriceFilter] = useState("all");
   const [colorFilter, setColorFilter] = useState(null);
@@ -66,7 +67,7 @@ function ProductOverview() {
   const { products, pagination, loading } = usePublicProducts({
     page: 1,
     limit: 24,
-    categoryLabel: activeCategory,
+    category: activeCategory,
     debouncedSearch,
     sortBy,
     priceFilter,
@@ -83,7 +84,7 @@ function ProductOverview() {
   );
 
   const resetFilters = useCallback(() => {
-    setActiveCategory("All Products");
+    setActiveCategory(null);
     setSortBy("newness");
     setPriceFilter("all");
     setColorFilter(null);
@@ -101,7 +102,6 @@ function ProductOverview() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div className="w-full sm:flex-1">
             <CategoryNav
-              categories={categories}
               activeCategory={activeCategory}
               onCategoryChange={setActiveCategory}
             />

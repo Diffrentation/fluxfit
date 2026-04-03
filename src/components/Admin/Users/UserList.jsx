@@ -1,18 +1,28 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Table, Tag, Avatar, Button, Dropdown, Badge, Card, Pagination } from "antd";
 import { IconDots, IconEye, IconBan, IconCheck } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
+import { format } from "date-fns";
 
-const UserList = ({ users, onSelect, selectedUserId, onBlock, onUnblock }) => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+const UserList = ({
+  users,
+  pagination,
+  onPageChange,
+  onSelect,
+  selectedUserId,
+  onBlock,
+  onUnblock,
+  isMutating,
+}) => {
+  const currentPage = pagination?.page ?? 1;
+  const pageSize = pagination?.limit ?? 10;
+  const total = pagination?.total ?? users.length;
   const getRoleColor = (role) => {
     const colors = {
-      customer: "blue",
+      user: "blue",
       admin: "red",
-      vendor: "green",
     };
     return colors[role] || "default";
   };
@@ -62,13 +72,15 @@ const UserList = ({ users, onSelect, selectedUserId, onBlock, onUnblock }) => {
       ),
     },
     {
-      title: "Orders",
-      dataIndex: "totalOrders",
-      key: "orders",
-      width: 100,
-      render: (orders) => (
-        <span className="text-gray-600 dark:text-gray-300">{orders || 0}</span>
-      ),
+      title: "Created",
+      dataIndex: "registeredAt",
+      key: "createdAt",
+      width: 140,
+      render: (registeredAt) => {
+        if (!registeredAt) return <span>-</span>;
+        const d = new Date(registeredAt);
+        return <span className="text-gray-600 dark:text-gray-300">{format(d, "MMM dd, yyyy")}</span>;
+      },
     },
     {
       title: "Total Spent",
@@ -105,12 +117,14 @@ const UserList = ({ users, onSelect, selectedUserId, onBlock, onUnblock }) => {
                     label: "Block User",
                     icon: <IconBan className="w-4 h-4" />,
                     danger: true,
+                    disabled: !!isMutating,
                     onClick: () => onBlock(record.id),
                   }
                 : {
                     key: "unblock",
                     label: "Unblock User",
                     icon: <IconCheck className="w-4 h-4" />,
+                    disabled: !!isMutating,
                     onClick: () => onUnblock(record.id),
                   },
             ],
@@ -126,11 +140,6 @@ const UserList = ({ users, onSelect, selectedUserId, onBlock, onUnblock }) => {
       ),
     },
   ];
-
-  // Calculate pagination
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedUsers = users.slice(startIndex, endIndex);
 
   const renderUserCard = (user) => (
     <motion.div
@@ -222,9 +231,11 @@ const UserList = ({ users, onSelect, selectedUserId, onBlock, onUnblock }) => {
             </div>
             <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
               <div>
-                <span className="text-gray-500 dark:text-gray-400">Orders:</span>
+                <span className="text-gray-500 dark:text-gray-400">Created:</span>
                 <span className="ml-1 font-semibold text-gray-900 dark:text-white">
-                  {user.totalOrders || 0}
+                  {user.registeredAt
+                    ? format(new Date(user.registeredAt), "MMM dd, yyyy")
+                    : "-"}
                 </span>
               </div>
               <div>
@@ -252,10 +263,15 @@ const UserList = ({ users, onSelect, selectedUserId, onBlock, onUnblock }) => {
           dataSource={users.map((u) => ({ ...u, key: u.id }))}
           columns={columns}
           pagination={{
-            pageSize: 10,
+            current: currentPage,
+            pageSize: pageSize,
+            total: total,
             showSizeChanger: true,
-            showTotal: (total) => `Total ${total} users`,
+            showTotal: (t) => `Total ${t} users`,
             responsive: true,
+            onChange: (page, size) => {
+              onPageChange?.(page, size);
+            },
           }}
           scroll={{ x: 1000 }}
           onRow={(record) => ({
@@ -272,23 +288,22 @@ const UserList = ({ users, onSelect, selectedUserId, onBlock, onUnblock }) => {
       <div className="lg:hidden p-2 sm:p-3 md:p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
           <AnimatePresence mode="popLayout">
-            {paginatedUsers.map((user) => renderUserCard(user))}
+            {users.map((user) => renderUserCard(user))}
           </AnimatePresence>
         </div>
 
-        {users.length > pageSize && (
+        {pagination && total > pageSize && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Showing {startIndex + 1} to {Math.min(endIndex, users.length)} of{" "}
-              {users.length} users
+              Showing {(currentPage - 1) * pageSize + 1} to{" "}
+              {Math.min(currentPage * pageSize, total)} of {total} users
             </div>
             <Pagination
               current={currentPage}
               pageSize={pageSize}
-              total={users.length}
+              total={total}
               onChange={(page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
+                onPageChange?.(page, size);
               }}
               showSizeChanger
               showQuickJumper={false}

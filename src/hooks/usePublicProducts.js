@@ -14,10 +14,13 @@ import {
 export function usePublicProducts({
   page = 1,
   limit = 24,
+  category,
   categoryLabel,
   debouncedSearch = "",
   sortBy,
   priceFilter,
+  minPrice,
+  maxPrice,
   colorFilter,
   selectedTags,
 }) {
@@ -32,10 +35,13 @@ export function usePublicProducts({
       buildPublicProductsQuery({
         page,
         limit,
+        category,
         categoryLabel,
         search: debouncedSearch,
         sortBy,
         priceFilter,
+        minPrice,
+        maxPrice,
         color: colorFilter,
         tags: selectedTags,
       }),
@@ -43,9 +49,12 @@ export function usePublicProducts({
       page,
       limit,
       categoryLabel,
+      category,
       debouncedSearch,
       sortBy,
       priceFilter,
+      minPrice,
+      maxPrice,
       colorFilter,
       selectedTags,
     ]
@@ -59,6 +68,9 @@ export function usePublicProducts({
     setLoading(true);
     setError(null);
     try {
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[usePublicProducts] GET /api/products params:", queryParams);
+      }
       const { data } = await axios.get("/api/products", {
         params: queryParams,
         signal,

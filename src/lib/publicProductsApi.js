@@ -238,7 +238,11 @@ export function normalizeProductDetailForPage(raw) {
   };
 }
 
-/** Category nav label → API `category` slug (ID also accepted by API). */
+/**
+ * Category label -> API `category` query value (slug or ID).
+ * Prefer passing the backend slug/ID directly; this function is kept for legacy
+ * components that still pass display names.
+ */
 export function categoryLabelToQueryValue(label) {
   if (!label || label === "All Products") return null;
   return String(label)
@@ -288,10 +292,13 @@ export function priceFilterToMinMax(priceFilter) {
 export function buildPublicProductsQuery({
   page = 1,
   limit = 24,
+  category,
   categoryLabel,
   search = "",
   sortBy = "newness",
   priceFilter = "all",
+  minPrice,
+  maxPrice,
   color = null,
   tags = [],
 }) {
@@ -302,18 +309,30 @@ export function buildPublicProductsQuery({
     status: "active",
   };
 
-  const cat = categoryLabelToQueryValue(categoryLabel);
+  const cat = category || categoryLabelToQueryValue(categoryLabel);
   if (cat) params.category = cat;
 
   const q = typeof search === "string" ? search.trim() : "";
   if (q) params.search = q;
 
-  const { minPrice, maxPrice } = priceFilterToMinMax(priceFilter);
-  if (minPrice !== undefined) params.minPrice = minPrice;
-  if (maxPrice !== undefined) params.maxPrice = maxPrice;
+  const derived = priceFilterToMinMax(priceFilter);
+
+  const finalMin =
+    minPrice != null && minPrice !== ""
+      ? parseFloat(minPrice)
+      : derived.minPrice;
+  const finalMax =
+    maxPrice != null && maxPrice !== ""
+      ? parseFloat(maxPrice)
+      : derived.maxPrice;
+
+  if (Number.isFinite(finalMin)) params.minPrice = finalMin;
+  if (Number.isFinite(finalMax)) params.maxPrice = finalMax;
 
   if (color && String(color).trim()) {
-    params.color = String(color).trim().toLowerCase();
+    // Color matching is case-sensitive in the backend query,
+    // so preserve the exact casing provided by the UI/backend payload.
+    params.color = String(color).trim();
   }
 
   if (Array.isArray(tags) && tags.length > 0) {

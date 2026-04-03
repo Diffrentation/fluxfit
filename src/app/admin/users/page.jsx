@@ -1,12 +1,13 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import UserList from "@/components/Admin/Users/UserList";
 import UserDetails from "@/components/Admin/Users/UserDetails";
-import { Input, Select, Button, message, Modal } from "antd";
-import { IconSearch, IconPlus } from "@tabler/icons-react";
+import { Input, Select, Spin, message, Modal } from "antd";
+import { IconSearch } from "@tabler/icons-react";
+import axios from "axios";
 
 const { Search } = Input;
 const { Option } = Select;
@@ -14,155 +15,217 @@ const { Option } = Select;
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // roleFilter maps to backend role: buyer/admin
+  // display values: all/user/admin
   const [roleFilter, setRoleFilter] = useState("all");
+  // statusFilter maps to backend isBlocked:
+  // display values: all/active/blocked
   const [statusFilter, setStatusFilter] = useState("all");
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [isMutating, setIsMutating] = useState(false);
 
-  // Load users from localStorage on mount
-  useEffect(() => {
+  const getAuthHeaders = useCallback(() => {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    };
+  }, []);
+
+  const mapApiUserToUi = useCallback((u) => {
+    const firstname = u.firstname || "";
+    const lastname = u.lastname || "";
+    const name = `${firstname} ${lastname}`.trim();
+
+    return {
+      id: u.id,
+      name,
+      email: u.email,
+      phone: u.phone || null,
+      role: u.role === "buyer" ? "user" : u.role, // UI uses user/admin
+      status: u.isblocked ? "blocked" : "active",
+      registeredAt: u.createdAt,
+      createdAt: u.createdAt,
+      totalOrders: 0,
+      totalSpent: 0,
+    };
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    setLoadingUsers(true);
     try {
-      const storedUsers = localStorage.getItem("adminUsers");
-      if (storedUsers) {
-        const parsedUsers = JSON.parse(storedUsers);
-        if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
-          setUsers(parsedUsers);
-          return;
-        }
+      const roleForApi = roleFilter === "all" ? undefined : roleFilter === "user" ? "buyer" : roleFilter;
+      const isBlockedForApi =
+        statusFilter === "all"
+          ? undefined
+          : statusFilter === "blocked"
+            ? "true"
+            : "false";
+
+      const { data } = await axios.get("/api/admin/users", {
+        params: {
+          page: pagination.page,
+          limit: pagination.limit,
+          search: searchQuery ? searchQuery : undefined,
+          role: roleForApi,
+          isBlocked: isBlockedForApi,
+          sort: "newest",
+        },
+        headers: getAuthHeaders(),
+      });
+
+      if (!data?.success) throw new Error(data?.message || "Failed to load users");
+
+      const mappedUsers = (data.users || []).map(mapApiUserToUi);
+      setUsers(mappedUsers);
+
+      if (data.pagination) {
+        setPagination((prev) => ({
+          ...prev,
+          ...data.pagination,
+        }));
       }
     } catch (error) {
-      console.error("Error loading users from localStorage:", error);
+      console.error("Fetch users error:", error);
+      message.error(error.response?.data?.message || error.message || "Failed to load users");
+    } finally {
+      setLoadingUsers(false);
     }
+  }, [getAuthHeaders, mapApiUserToUi, pagination.page, pagination.limit, searchQuery, roleFilter, statusFilter]);
 
-    // Initialize with mock data if no stored data
-    const mockUsers = [
-      {
-        id: 1,
-        name: "John Doe",
-        email: "john@example.com",
-        phone: "+91 9876543210",
-        role: "customer",
-        status: "active",
-        registeredAt: "2024-01-15",
-        totalOrders: 5,
-        totalSpent: 15000,
-      },
-      {
-        id: 2,
-        name: "Jane Smith",
-        email: "jane@example.com",
-        phone: "+91 9876543211",
-        role: "customer",
-        status: "active",
-        registeredAt: "2024-02-20",
-        totalOrders: 3,
-        totalSpent: 8000,
-      },
-      {
-        id: 3,
-        name: "Admin User",
-        email: "admin@example.com",
-        phone: "+91 9876543212",
-        role: "admin",
-        status: "active",
-        registeredAt: "2024-01-01",
-        totalOrders: 0,
-        totalSpent: 0,
-      },
-    ];
-    setUsers(mockUsers);
-  }, []);
-
-  // Save users to localStorage whenever users state changes
-  useEffect(() => {
-    if (users.length > 0) {
+  const fetchUserDetails = useCallback(
+    async (userId) => {
+      if (!userId) return;
+      setLoadingUserDetails(true);
       try {
-        localStorage.setItem("adminUsers", JSON.stringify(users));
+        const { data } = await axios.get(`/api/admin/users/${userId}`, {
+          headers: getAuthHeaders(),
+        });
+
+        if (!data?.success) throw new Error(data?.message || "Failed to load user");
+
+        const user = data.user;
+        setSelectedUser(mapApiUserToUi(user));
       } catch (error) {
-        console.error("Error saving users to localStorage:", error);
+        console.error("Fetch user details error:", error);
+        message.error(error.response?.data?.message || error.message || "Failed to load user details");
+      } finally {
+        setLoadingUserDetails(false);
       }
-    }
-  }, [users]);
+    },
+    [getAuthHeaders, mapApiUserToUi],
+  );
 
-  // Update selected user when users change
   useEffect(() => {
-    if (selectedUser) {
-      const updatedUser = users.find((u) => u.id === selectedUser.id);
-      if (
-        updatedUser &&
-        JSON.stringify(updatedUser) !== JSON.stringify(selectedUser)
-      ) {
-        setSelectedUser(updatedUser);
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handlePageChange = useCallback((page, limit) => {
+    setPagination((prev) => ({ ...prev, page, limit }));
+  }, []);
+
+  const handleBlockUser = useCallback(
+    async (userId) => {
+      if (!userId) return;
+      if (isMutating) return;
+      setIsMutating(true);
+      try {
+        const { data } = await axios.put(
+          `/api/admin/users/${userId}/block`,
+          {},
+          { headers: getAuthHeaders() },
+        );
+        if (!data?.success) throw new Error(data?.message || "Failed to block user");
+        message.success(data?.message || "User blocked successfully");
+        await fetchUsers();
+        if (selectedUser?.id === userId) await fetchUserDetails(userId);
+      } catch (error) {
+        console.error("Block user error:", error);
+        message.error(error.response?.data?.message || error.message || "Failed to block user");
+      } finally {
+        setIsMutating(false);
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users]);
+    },
+    [fetchUsers, fetchUserDetails, getAuthHeaders, isMutating, selectedUser?.id],
+  );
 
-  // Filter users using useMemo for better performance
-  const filteredUsers = useMemo(() => {
-    let filtered = [...users];
+  const handleUnblockUser = useCallback(
+    async (userId) => {
+      if (!userId) return;
+      if (isMutating) return;
+      setIsMutating(true);
+      try {
+        const { data } = await axios.put(
+          `/api/admin/users/${userId}/unblock`,
+          {},
+          { headers: getAuthHeaders() },
+        );
+        if (!data?.success) throw new Error(data?.message || "Failed to unblock user");
+        message.success(data?.message || "User unblocked successfully");
+        await fetchUsers();
+        if (selectedUser?.id === userId) await fetchUserDetails(userId);
+      } catch (error) {
+        console.error("Unblock user error:", error);
+        message.error(
+          error.response?.data?.message || error.message || "Failed to unblock user",
+        );
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [fetchUsers, fetchUserDetails, getAuthHeaders, isMutating, selectedUser?.id],
+  );
 
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (user) =>
-          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.phone?.includes(searchQuery)
-      );
-    }
+  const handleRoleChange = useCallback(
+    async (userId, newRole) => {
+      if (!userId) return;
+      if (isMutating) return;
+      setIsMutating(true);
+      try {
+        const apiRole =
+          newRole === "user" ? "buyer" : newRole === "admin" ? "admin" : undefined;
+        if (!apiRole) throw new Error("Invalid role");
 
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((user) => user.role === roleFilter);
-    }
-
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((user) => user.status === statusFilter);
-    }
-
-    return filtered;
-  }, [users, searchQuery, roleFilter, statusFilter]);
-
-  const handleBlockUser = useCallback((userId) => {
-    setUsers((prevUsers) => {
-      const updatedUsers = prevUsers.map((user) =>
-        user.id === userId ? { ...user, status: "blocked" } : user
-      );
-      return updatedUsers;
-    });
-    message.success("User blocked successfully");
-  }, []);
-
-  const handleUnblockUser = useCallback((userId) => {
-    setUsers((prevUsers) => {
-      const updatedUsers = prevUsers.map((user) =>
-        user.id === userId ? { ...user, status: "active" } : user
-      );
-      return updatedUsers;
-    });
-    message.success("User unblocked successfully");
-  }, []);
-
-  const handleRoleChange = useCallback((userId, newRole) => {
-    setUsers((prevUsers) => {
-      const updatedUsers = prevUsers.map((user) =>
-        user.id === userId ? { ...user, role: newRole } : user
-      );
-      return updatedUsers;
-    });
-    message.success("User role updated successfully");
-  }, []);
+        const { data } = await axios.put(
+          `/api/admin/users/${userId}/role`,
+          { role: apiRole },
+          { headers: getAuthHeaders() },
+        );
+        if (!data?.success) throw new Error(data?.message || "Failed to update role");
+        message.success(data?.message || "User role updated successfully");
+        await fetchUsers();
+        if (selectedUser?.id === userId) await fetchUserDetails(userId);
+      } catch (error) {
+        console.error("Role update error:", error);
+        message.error(error.response?.data?.message || error.message || "Failed to update role");
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [fetchUsers, fetchUserDetails, getAuthHeaders, isMutating, selectedUser?.id],
+  );
 
   const handleResetPassword = useCallback((userId) => {
     message.success("Password reset email sent successfully");
   }, []);
 
-  const handleSelectUser = useCallback((user) => {
-    setSelectedUser(user);
-    // Show modal on mobile/tablet
-    if (window.innerWidth < 1024) {
-      setIsDetailsModalVisible(true);
-    }
-  }, []);
+  const handleSelectUser = useCallback(
+    (user) => {
+      if (!user?.id) return;
+
+      // Show modal on mobile/tablet immediately for better UX.
+      if (window.innerWidth < 1024) {
+        setIsDetailsModalVisible(true);
+      }
+
+      setSelectedUser(user); // optimistic until details load
+      fetchUserDetails(user.id);
+    },
+    [fetchUserDetails],
+  );
 
   const handleCloseDetails = useCallback(() => {
     setIsDetailsModalVisible(false);
@@ -215,9 +278,8 @@ const UserManagementPage = () => {
                     className="w-full"
                   >
                     <Option value="all">All Roles</Option>
-                    <Option value="customer">Customer</Option>
+                    <Option value="user">User</Option>
                     <Option value="admin">Admin</Option>
-                    <Option value="vendor">Vendor</Option>
                   </Select>
                   <Select
                     value={statusFilter}
@@ -236,23 +298,39 @@ const UserManagementPage = () => {
               {/* Desktop Layout: Side by side */}
               <div className="hidden lg:grid lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
-                  <UserList
-                    users={filteredUsers}
-                    onSelect={handleSelectUser}
-                    selectedUserId={selectedUser?.id}
-                    onBlock={handleBlockUser}
-                    onUnblock={handleUnblockUser}
-                  />
+                  {loadingUsers ? (
+                    <div className="p-6">
+                      <Spin />
+                    </div>
+                  ) : (
+                    <UserList
+                      users={users}
+                      pagination={pagination}
+                      onPageChange={handlePageChange}
+                      onSelect={handleSelectUser}
+                      selectedUserId={selectedUser?.id}
+                      onBlock={handleBlockUser}
+                      onUnblock={handleUnblockUser}
+                      isMutating={isMutating}
+                    />
+                  )}
                 </div>
                 <div className="lg:col-span-1">
                   {selectedUser ? (
-                    <UserDetails
-                      user={selectedUser}
-                      onRoleChange={handleRoleChange}
-                      onResetPassword={handleResetPassword}
-                      onBlock={handleBlockUser}
-                      onUnblock={handleUnblockUser}
-                    />
+                    loadingUserDetails ? (
+                      <div className="p-6">
+                        <Spin />
+                      </div>
+                    ) : (
+                      <UserDetails
+                        user={selectedUser}
+                        onRoleChange={handleRoleChange}
+                        onResetPassword={handleResetPassword}
+                        onBlock={handleBlockUser}
+                        onUnblock={handleUnblockUser}
+                        isMutating={isMutating}
+                      />
+                    )
                   ) : (
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
                       Select a user to view details
@@ -264,11 +342,14 @@ const UserManagementPage = () => {
               {/* Mobile/Tablet Layout: Full width list */}
               <div className="lg:hidden">
                 <UserList
-                  users={filteredUsers}
+                  users={users}
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
                   onSelect={handleSelectUser}
                   selectedUserId={selectedUser?.id}
                   onBlock={handleBlockUser}
                   onUnblock={handleUnblockUser}
+                  isMutating={isMutating}
                 />
               </div>
             </motion.div>
@@ -288,14 +369,21 @@ const UserManagementPage = () => {
         centered
       >
         {selectedUser && (
-          <UserDetails
-            user={selectedUser}
-            onRoleChange={handleRoleChange}
-            onResetPassword={handleResetPassword}
-            onBlock={handleBlockUser}
-            onUnblock={handleUnblockUser}
-            onClose={handleCloseDetails}
-          />
+          loadingUserDetails ? (
+            <div className="p-6">
+              <Spin />
+            </div>
+          ) : (
+            <UserDetails
+              user={selectedUser}
+              onRoleChange={handleRoleChange}
+              onResetPassword={handleResetPassword}
+              onBlock={handleBlockUser}
+              onUnblock={handleUnblockUser}
+              onClose={handleCloseDetails}
+              isMutating={isMutating}
+            />
+          )
         )}
       </Modal>
     </div>
