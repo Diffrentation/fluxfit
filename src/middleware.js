@@ -36,7 +36,31 @@ export async function middleware(request) {
       return NextResponse.redirect(login);
     }
 
-    if (payload.role !== "admin") {
+    // Fast path: JWT includes admin (new refresh tokens).
+    // Otherwise verify against DB (legacy tokens without role, or role promoted in DB).
+    if (payload.role === "admin") {
+      return NextResponse.next();
+    }
+
+    const verifyUrl = new URL(
+      "/api/auth/verify-admin-session",
+      request.url
+    );
+    let isAdmin = false;
+    try {
+      const verifyRes = await fetch(verifyUrl, {
+        headers: {
+          cookie: request.headers.get("cookie") ?? "",
+        },
+        cache: "no-store",
+      });
+      const data = await verifyRes.json();
+      isAdmin = data?.admin === true;
+    } catch {
+      isAdmin = false;
+    }
+
+    if (!isAdmin) {
       const home = new URL("/", request.url);
       home.searchParams.set("admin_denied", "1");
       return NextResponse.redirect(home);
