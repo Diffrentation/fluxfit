@@ -64,6 +64,12 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
   const [categories, setCategories] = useState([]);
   const searchTimeoutRef = useRef(null);
   const previousFiltersRef = useRef({});
+  const filtersRef = useRef(filters);
+
+  // Keep an always-fresh ref for event-driven refreshes.
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -232,6 +238,18 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
       }
     };
   }, []); // Empty dependency array - only run once on mount
+
+  // When a product is edited in `ProductForm`, refresh this table + its filters.
+  useEffect(() => {
+    const handleRefreshEvent = () => {
+      fetchProducts(filtersRef.current);
+    };
+
+    window.addEventListener("products:refresh", handleRefreshEvent);
+    return () => {
+      window.removeEventListener("products:refresh", handleRefreshEvent);
+    };
+  }, [fetchProducts]);
 
   // Show delete confirmation modal
   const showDeleteConfirm = (product) => {

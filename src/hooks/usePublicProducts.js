@@ -89,5 +89,15 @@ export function usePublicProducts({
     return () => abortRef.current?.abort();
   }, [fetchProducts]);
 
+  // Let admin screens force-refresh public storefront lists immediately after edits.
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchProducts();
+    };
+
+    window.addEventListener("products:refresh", handleRefresh);
+    return () => window.removeEventListener("products:refresh", handleRefresh);
+  }, [fetchProducts]);
+
   return { products, pagination, loading, error, refetch: fetchProducts };
 }

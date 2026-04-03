@@ -292,7 +292,20 @@ export async function PUT(request, { params }) {
       } else if (!mongoose.Types.ObjectId.isValid(category)) {
         errors.push({ field: "category", message: "Invalid category ID" });
       } else {
-        updateData.category = category;
+        // Ensure referenced category exists (soft-delete aware).
+        const categoryDoc = await Category.findOne({
+          _id: category,
+          isDeleted: false,
+        }).select("_id");
+
+        if (!categoryDoc) {
+          errors.push({
+            field: "category",
+            message: "Category not found",
+          });
+        } else {
+          updateData.category = categoryDoc._id;
+        }
       }
     }
 

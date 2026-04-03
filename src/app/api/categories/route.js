@@ -121,7 +121,27 @@ export async function GET(request) {
 
     // Add product counts if requested
     if (includeProductCount) {
-      const categoryIds = categories.map((cat) => cat.id);
+      // Collect ALL category ids in the tree (top-level + nested),
+      // otherwise subcategories always show `0` products.
+      const collectCategoryIds = (cats) => {
+        const ids = [];
+        const walk = (arr) => {
+          if (!Array.isArray(arr)) return;
+          arr.forEach((cat) => {
+            if (cat?.id) ids.push(cat.id);
+            if (Array.isArray(cat?.children) && cat.children.length > 0) {
+              walk(cat.children);
+            }
+          });
+        };
+        walk(cats);
+        return ids;
+      };
+
+      const categoryIdsRaw = collectCategoryIds(categories);
+      const categoryIds = Array.from(
+        new Set(categoryIdsRaw.map((id) => String(id)))
+      ).map((id) => new mongoose.Types.ObjectId(id));
       
       // Get product counts for all categories
       const productCounts = await Product.aggregate([

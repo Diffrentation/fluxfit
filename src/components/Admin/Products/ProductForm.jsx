@@ -6,6 +6,7 @@ import {
   Form,
   Input,
   Select,
+  Cascader,
   InputNumber,
   Switch,
   Button,
@@ -15,7 +16,13 @@ import {
   Divider,
   Space,
 } from "antd";
-import { IconUpload, IconX, IconPlus, IconTrash } from "@tabler/icons-react";
+import {
+  IconUpload,
+  IconX,
+  IconPlus,
+  IconTrash,
+  IconChevronRight,
+} from "@tabler/icons-react";
 import { uploadImage } from "@/lib/upload-client";
 
 const { TextArea } = Input;
@@ -34,13 +41,143 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const buildCategoryTreeData = useCallback(() => {
+    const nodeById = new Map();
+    const childrenByParentId = new Map();
+
+    const getId = (cat) => String(cat?.id ?? cat?._id ?? "");
+    const getParentId = (cat) => {
+      const p = cat?.parent ?? null;
+      if (!p) return null;
+      return String(p);
+    };
+
+    (categories || []).forEach((cat) => {
+      const id = getId(cat);
+      if (!id) return;
+
+      const name = cat?.name ? String(cat.name) : id;
+      const parentId = getParentId(cat);
+
+      nodeById.set(id, { id, name, parentId });
+
+      if (parentId) {
+        const existing = childrenByParentId.get(parentId) || [];
+        childrenByParentId.set(parentId, [...existing, id]);
+      }
+    });
+
+    const roots = [...nodeById.values()]
+      .filter((n) => n.parentId === null)
+      .map((n) => n.id);
+
+    const pathById = {};
+    const hasChildrenById = {};
+
+    const buildOption = (id, path, stack) => {
+      // Cycle guard (should never happen, but prevents infinite recursion).
+      if (stack.has(id)) {
+        console.warn("Cycle detected in category tree:", id);
+        pathById[id] = path;
+        hasChildrenById[id] = false;
+        return { value: id, label: nodeById.get(id)?.name || id };
+      }
+
+      const childrenIds = childrenByParentId.get(id) || [];
+      hasChildrenById[id] = childrenIds.length > 0;
+      pathById[id] = path;
+
+      const nextStack = new Set(stack);
+      nextStack.add(id);
+
+      const children =
+        childrenIds.length > 0
+          ? childrenIds.map((childId) =>
+              buildOption(childId, [...path, childId], nextStack),
+            )
+          : undefined;
+
+      return children && children.length > 0
+        ? { value: id, label: nodeById.get(id)?.name || id, children }
+        : { value: id, label: nodeById.get(id)?.name || id };
+    };
+
+    const options = roots.map((rootId) =>
+      buildOption(rootId, [rootId], new Set()),
+    );
+
+    return { options, pathById, hasChildrenById };
+  }, [categories]);
+
+  const { options: categoryOptions, pathById, hasChildrenById } = useMemo(
+    () => buildCategoryTreeData(),
+    [buildCategoryTreeData],
+  );
+
+  // Wrapper around Cascader so Form can store the *leaf* category id string,
+  // while Cascader internally needs the full value path array.
+  const CategoryHierarchyCascader = useCallback(
+    ({ value, onChange }) => {
+      const leafId = value ? String(value) : null;
+      const cascaderValue =
+        leafId && pathById?.[leafId] ? pathById[leafId] : [];
+
+      return (
+        <Cascader
+          options={categoryOptions}
+          loading={!categories.length}
+          placeholder="Select category"
+          expandTrigger="hover"
+          changeOnSelect={false}
+          value={cascaderValue}
+          displayRender={(labels) => labels.join(" > ")}
+          expandIcon={(meta) => (
+            <IconChevronRight
+              className="text-gray-500"
+              style={{
+                transform: meta?.expanded ? "rotate(90deg)" : "rotate(0deg)",
+              }}
+            />
+          )}
+          onChange={(valuePath) => {
+            const pathArr = Array.isArray(valuePath) ? valuePath : [];
+            const nextLeafId = pathArr.length
+              ? String(pathArr[pathArr.length - 1])
+              : null;
+            if (!nextLeafId) return;
+
+            // Defensive: only allow leaf nodes as final selection.
+            if (hasChildrenById?.[nextLeafId]) {
+              message.warning("Please select a final (leaf) category");
+              return;
+            }
+
+            onChange?.(nextLeafId);
+          }}
+        />
+      );
+    },
+    [categoryOptions, categories.length, hasChildrenById, pathById],
+  );
+
+  const normalizeCategoryId = useCallback((cat) => {
+    if (!cat) return null;
+    if (typeof cat === "string") return cat;
+    if (typeof cat === "object") return String(cat.id ?? cat._id ?? "");
+    return null;
+  }, []);
+
   /** Normalized slug loaded for edit; omit `slug` on PUT when unchanged so URLs stay stable */
   const initialEditSlugRef = useRef("");
 
   /* ---------------- FETCH CATEGORIES ---------------- */
   const fetchCategories = useCallback(async () => {
     try {
-      const { data } = await axios.get("/api/categories?format=flat");
+      // Include inactive so edit prefill doesn't fail when a product still references
+      // a category that is currently inactive.
+      const { data } = await axios.get(
+        "/api/categories?format=flat&includeInactive=true",
+      );
       if (data.success) {
         setCategories(data.data.categories);
       }
@@ -78,7 +215,10 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               lowStockThreshold: productData.lowStockThreshold || 10,
             };
 
-            form.setFieldsValue(formattedProduct);
+            form.setFieldsValue({
+              ...formattedProduct,
+              category: normalizeCategoryId(formattedProduct.category),
+            });
             initialEditSlugRef.current = String(
               productData.slug || "",
             )
@@ -95,7 +235,10 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           console.error("Failed to fetch product details:", error);
           message.error("Failed to load latest product details");
           // Fallback to passed product data if API fails
-          form.setFieldsValue(product);
+          form.setFieldsValue({
+            ...product,
+            category: normalizeCategoryId(product?.category),
+          });
           initialEditSlugRef.current = String(product?.slug || "")
             .trim()
             .toLowerCase();
@@ -110,7 +253,10 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         }
       } else if (product) {
         // Fallback for cases where we might not have _id (e.g. legacy data)
-        form.setFieldsValue(product);
+        form.setFieldsValue({
+          ...product,
+          category: normalizeCategoryId(product?.category),
+        });
         initialEditSlugRef.current = String(product?.slug || "")
           .trim()
           .toLowerCase();
@@ -234,6 +380,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             : "Product saved successfully 🎉",
         );
         onSave?.(data.data.product);
+
+        // Ensure other admin screens (category tree, product list) update instantly.
+        window.dispatchEvent(new Event("products:refresh"));
+        window.dispatchEvent(new Event("categories:refresh"));
+
         onClose();
       } catch (error) {
         const res = error.response;
@@ -324,16 +475,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               label="Category"
               rules={[{ required: true, message: "Please select category" }]}
             >
-              <Select
-                placeholder="Select category"
-                loading={!categories.length}
-              >
-                {categories.map((cat) => (
-                  <Option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </Option>
-                ))}
-              </Select>
+              <CategoryHierarchyCascader />
             </Form.Item>
 
             <Form.Item
