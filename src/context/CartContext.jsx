@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { addItemToServerCart } from "@/lib/cart-api-client";
 
 const CartContext = createContext();
 
@@ -53,37 +54,45 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product, options = {}) => {
     const { size, color, quantity = 1 } = options;
+    const productId = product?.id ?? product?._id;
 
     setCartItems((prevItems) => {
-      // Check if item already exists with same product, size, and color
       const existingItemIndex = prevItems.findIndex(
         (item) =>
-          item.id === product.id && item.size === size && item.color === color
+          item.id === productId && item.size === size && item.color === color,
       );
 
       if (existingItemIndex >= 0) {
-        // Update quantity if item exists
         const updatedItems = [...prevItems];
         updatedItems[existingItemIndex] = {
           ...updatedItems[existingItemIndex],
           quantity: updatedItems[existingItemIndex].quantity + quantity,
         };
         return updatedItems;
-      } else {
-        // Add new item
-        return [
-          ...prevItems,
-          {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            image: product.image || product.images?.[0],
-            size: size,
-            color: color,
-            quantity: quantity,
-          },
-        ];
       }
+
+      return [
+        ...prevItems,
+        {
+          id: productId,
+          slug: product.slug,
+          name: product.name,
+          price: product.price,
+          image: product.image || product.images?.[0],
+          size,
+          color,
+          quantity,
+        },
+      ];
+    });
+
+    queueMicrotask(() => {
+      addItemToServerCart(productId, { size, color, quantity }).catch((err) => {
+        console.warn(
+          "[cart] Server cart sync failed (local cart still updated):",
+          err?.response?.data?.message || err?.message || err,
+        );
+      });
     });
   };
 

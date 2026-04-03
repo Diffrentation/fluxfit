@@ -1,7 +1,43 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/order.model";
+import "@/models/category.model";
+import "@/models/brand.model";
 import { authenticateUser } from "@/lib/auth";
+import { isStrictMongoObjectIdString } from "@/lib/mongoose-id";
+
+/**
+ * Same rules as Order.calculateTotals — computed on the server from line items + cart coupon + shipping.
+ */
+function computeOrderPricingFromLineItems(orderItems, cartCoupon, shippingCost) {
+  const subtotal = orderItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+
+  let discount = 0;
+  if (cartCoupon?.code) {
+    const raw = Number(cartCoupon.discount ?? 0);
+    if (cartCoupon.type === "percentage") {
+      discount = (subtotal * raw) / 100;
+    } else {
+      discount = raw;
+    }
+  }
+  if (discount < 0) discount = 0;
+  if (discount > subtotal) discount = subtotal;
+
+  const taxableAmount = subtotal - discount;
+  const gst = (taxableAmount * 18) / 100;
+  const total = taxableAmount + gst + shippingCost;
+
+  return {
+    subtotal,
+    discount,
+    tax: { gst, total: gst },
+    total,
+  };
+}
 
 /**
  * GET /api/orders
@@ -116,6 +152,13 @@ export async function GET(request) {
       Order.countDocuments(query),
     ]);
 
+    console.log("[api/orders] GET list", {
+      userId: String(user._id),
+      count: orders.length,
+      total,
+      page,
+    });
+
     // Format orders for response
     const formattedOrders = orders.map((order) => {
       // Get primary image for each item
@@ -184,6 +227,7 @@ export async function GET(request) {
           paidAt: order.payment.paidAt || null,
         },
         status: order.status,
+        statusHistory: order.statusHistory || [],
         delivery: {
           partner: order.delivery.partner || null,
           trackingNumber: order.delivery.trackingNumber || null,
@@ -202,11 +246,12 @@ export async function GET(request) {
       };
     });
 
-    // Return response
+    // Return response (top-level `orders` + `data` for client compatibility)
     return NextResponse.json(
       {
         success: true,
         message: "Orders retrieved successfully",
+        orders: formattedOrders,
         data: {
           orders: formattedOrders,
           pagination: {
@@ -242,120 +287,75 @@ export async function GET(request) {
 
 /**
  * POST /api/orders
- * Create new order from cart
+ * Creates an order from the authenticated user's server cart (line prices from DB products).
+ * Body: shippingAddressId (required), paymentMethod (required), shippingCost (optional number),
+ * optional billingAddressId, shippingMethod, clearCart, paymentId, transactionId, notes.
+ * Ignores any client-supplied subtotal, total, or orderNumber — those are computed server-side.
  */
 export async function POST(request) {
   try {
-    // Authenticate user
     const { error, user } = await authenticateUser(request);
     if (error) {
       return error;
     }
 
-    // Connect to database
-    await connectDB();
+    if (!user?._id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Authentication required",
+          errors: [
+            { field: "auth", message: "User could not be resolved" },
+          ],
+        },
+        { status: 401 },
+      );
+    }
 
-    // Import required models
-    const Cart = (await import("@/models/cart.model")).default;
-    const Product = (await import("@/models/product.model")).default;
-    const Address = (await import("@/models/address.model")).default;
+    const userId = user._id.toString();
 
-    // Parse request body
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid JSON body",
+          errors: [{ field: "body", message: "Request body must be valid JSON" }],
+        },
+        { status: 400 },
+      );
+    }
+
     const {
       shippingAddressId,
       billingAddressId,
-      shippingAddress,
-      billingAddress,
       paymentMethod,
       paymentId,
       transactionId,
       shippingMethod = "standard",
-      shippingCost = 0,
+      shippingCost: shippingCostRaw = 0,
       notes,
       clearCart = true,
     } = body;
 
-    // Validate required fields
     const errors = [];
+    const shippingIdStr =
+      shippingAddressId != null ? String(shippingAddressId).trim() : "";
 
-    // Validate addresses
-    let shippingAddr = null;
-    let billingAddr = null;
-
-    if (shippingAddressId) {
-      shippingAddr = await Address.findOne({
-        _id: shippingAddressId,
-        user: user._id,
-        isDeleted: false,
-      });
-
-      if (!shippingAddr) {
-        errors.push({
-          field: "shippingAddressId",
-          message: "Shipping address not found",
-        });
-      }
-    } else if (shippingAddress) {
-      // Validate shipping address object
-      if (
-        !shippingAddress.name ||
-        !shippingAddress.phone ||
-        !shippingAddress.addressLine1 ||
-        !shippingAddress.city ||
-        !shippingAddress.state ||
-        !shippingAddress.pincode
-      ) {
-        errors.push({
-          field: "shippingAddress",
-          message: "Shipping address is incomplete",
-        });
-      } else {
-        shippingAddr = shippingAddress;
-      }
-    } else {
+    if (!shippingIdStr) {
       errors.push({
-        field: "shippingAddress",
-        message: "Shipping address is required",
+        field: "shippingAddressId",
+        message: "Shipping address ID is required",
+      });
+    } else if (!isStrictMongoObjectIdString(shippingIdStr)) {
+      errors.push({
+        field: "shippingAddressId",
+        message: "Invalid shipping address ID format",
       });
     }
 
-    if (billingAddressId) {
-      billingAddr = await Address.findOne({
-        _id: billingAddressId,
-        user: user._id,
-        isDeleted: false,
-      });
-
-      if (!billingAddr) {
-        errors.push({
-          field: "billingAddressId",
-          message: "Billing address not found",
-        });
-      }
-    } else if (billingAddress) {
-      // Validate billing address object
-      if (
-        !billingAddress.name ||
-        !billingAddress.phone ||
-        !billingAddress.addressLine1 ||
-        !billingAddress.city ||
-        !billingAddress.state ||
-        !billingAddress.pincode
-      ) {
-        errors.push({
-          field: "billingAddress",
-          message: "Billing address is incomplete",
-        });
-      } else {
-        billingAddr = billingAddress;
-      }
-    } else {
-      // Use shipping address as billing address if not provided
-      billingAddr = shippingAddr;
-    }
-
-    // Validate payment method
     const validPaymentMethods = [
       "card",
       "upi",
@@ -377,7 +377,6 @@ export async function POST(request) {
       });
     }
 
-    // Return validation errors if any
     if (errors.length > 0) {
       return NextResponse.json(
         {
@@ -385,16 +384,21 @@ export async function POST(request) {
           message: "Validation failed",
           errors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Get user's cart
+    await connectDB();
+
+    const Cart = (await import("@/models/cart.model")).default;
+    const Address = (await import("@/models/address.model")).default;
+
     const cart = await Cart.findOne({ user: user._id }).populate(
-      "items.product"
+      "items.product",
     );
 
-    if (!cart || !cart.items || cart.items.length === 0) {
+    if (!cart?.items?.length) {
+      console.warn("[api/orders] POST empty cart", { userId });
       return NextResponse.json(
         {
           success: false,
@@ -406,9 +410,65 @@ export async function POST(request) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
+
+    const shippingAddr = await Address.findOne({
+      _id: shippingIdStr,
+      user: user._id,
+      isDeleted: false,
+    });
+
+    if (!shippingAddr) {
+      console.warn("[api/orders] POST shipping address not found", {
+        userId,
+        shippingAddressId: shippingIdStr,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Shipping address not found",
+          errors: [
+            {
+              field: "shippingAddressId",
+              message: "No saved address found for this account",
+            },
+          ],
+        },
+        { status: 404 },
+      );
+    }
+
+    let billingAddr = shippingAddr;
+    if (billingAddressId != null && String(billingAddressId).trim()) {
+      const bid = String(billingAddressId).trim();
+      if (isStrictMongoObjectIdString(bid)) {
+        const bDoc = await Address.findOne({
+          _id: bid,
+          user: user._id,
+          isDeleted: false,
+        });
+        if (!bDoc) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Billing address not found",
+              errors: [
+                {
+                  field: "billingAddressId",
+                  message: "No saved address found for this account",
+                },
+              ],
+            },
+            { status: 404 },
+          );
+        }
+        billingAddr = bDoc;
+      }
+    }
+
+    const shippingCostNum = Math.max(0, Number(shippingCostRaw) || 0);
 
     // Validate cart items and prepare order items
     const orderItems = [];
@@ -417,8 +477,28 @@ export async function POST(request) {
     for (const cartItem of cart.items) {
       const product = cartItem.product;
 
+      if (!product || typeof product !== "object" || !product._id) {
+        console.warn("[api/orders] POST cart line missing populated product", {
+          userId,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Cart contains an invalid product reference",
+            errors: [
+              {
+                field: "cart",
+                message:
+                  "A cart item could not be loaded. Remove it and add the product again.",
+              },
+            ],
+          },
+          { status: 400 },
+        );
+      }
+
       // Check if product exists and is available
-      if (!product || product.isDeleted || product.status !== "active") {
+      if (product.isDeleted || product.status !== "active") {
         return NextResponse.json(
           {
             success: false,
@@ -551,15 +631,48 @@ export async function POST(request) {
       pincode: billingAddr.pincode,
     };
 
-    // Create order
+    const cartCoupon =
+      cart.coupon && cart.coupon.code
+        ? {
+            code: cart.coupon.code,
+            discount: cart.coupon.discount,
+            type: cart.coupon.type,
+          }
+        : null;
+
+    const pricing = computeOrderPricingFromLineItems(
+      orderItems,
+      cartCoupon,
+      shippingCostNum,
+    );
+
+    const orderNumber = Order.generateOrderNumber();
+
+    console.log("[api/orders] POST creating order", {
+      userId,
+      cartLineCount: cart.items.length,
+      orderLineCount: orderItems.length,
+      subtotal: pricing.subtotal,
+      discount: pricing.discount,
+      shippingCost: shippingCostNum,
+      tax: pricing.tax.total,
+      total: pricing.total,
+      orderNumber,
+    });
+
     const orderData = {
+      orderNumber,
       user: user._id,
       items: orderItems,
+      subtotal: pricing.subtotal,
+      discount: pricing.discount,
+      total: pricing.total,
+      tax: pricing.tax,
       shippingAddress: formattedShippingAddress,
       billingAddress: formattedBillingAddress,
       shipping: {
         method: shippingMethod,
-        cost: shippingCost,
+        cost: shippingCostNum,
         estimatedDays: shippingMethod === "express" ? 1 : 3,
       },
       payment: {
@@ -575,16 +688,14 @@ export async function POST(request) {
       },
     };
 
-    // Add coupon if applied
-    if (cart.coupon && cart.coupon.code) {
+    if (cartCoupon) {
       orderData.coupon = {
-        code: cart.coupon.code,
-        discount: cart.coupon.discount,
-        type: cart.coupon.type,
+        code: cartCoupon.code,
+        discount: cartCoupon.discount,
+        type: cartCoupon.type,
       };
     }
 
-    // Create order (totals will be calculated by pre-save hook)
     const newOrder = new Order(orderData);
     await newOrder.save();
 

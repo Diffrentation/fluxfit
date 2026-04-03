@@ -12,6 +12,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
+      // Legacy URLs stored/served as http still resolve to this host
+      {
+        protocol: "http",
+        hostname: "res.cloudinary.com",
+      },
     ],
   },
   // Webpack config for --webpack flag

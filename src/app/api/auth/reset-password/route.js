@@ -24,7 +24,7 @@ export async function POST(request) {
           success: false,
           message: "Please provide both userId and newPassword",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function POST(request) {
           success: false,
           message: "Password must be between 8 and 32 characters long",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -51,7 +51,7 @@ export async function POST(request) {
           success: false,
           message: "User not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -62,7 +62,7 @@ export async function POST(request) {
           success: false,
           message: "Account is blocked. Please contact support.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -81,7 +81,7 @@ export async function POST(request) {
           message:
             "Please verify OTP first using /api/auth/verify-forgot-pass-otp",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -92,7 +92,7 @@ export async function POST(request) {
           success: false,
           message: "Account is blocked. Please contact support.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -117,7 +117,7 @@ export async function POST(request) {
           email: user.email,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Reset password error:", error);
@@ -129,7 +129,7 @@ export async function POST(request) {
           success: false,
           message: "Invalid user ID format",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -142,7 +142,7 @@ export async function POST(request) {
           message: "Validation error",
           errors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -152,7 +152,7 @@ export async function POST(request) {
         success: false,
         message: error.message || "Password reset failed. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

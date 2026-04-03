@@ -180,9 +180,7 @@ refundSchema.methods.markCompleted = function (refundId = null, transactionId = 
   return this.save();
 };
 
-// Pre-save middleware
-refundSchema.pre("save", function (next) {
-  // Add initial status to history
+refundSchema.pre("save", function () {
   if (this.isNew) {
     this.statusHistory.push({
       status: this.status,
@@ -190,7 +188,6 @@ refundSchema.pre("save", function (next) {
       note: "Refund requested",
     });
   }
-  next();
 });
 
 const Refund = mongoose.model("Refund", refundSchema);

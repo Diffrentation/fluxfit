@@ -146,7 +146,7 @@ const userSchema = new mongoose.Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
 // Hash password before saving (for both admin and buyer)
@@ -180,12 +180,12 @@ userSchema.methods.generateAuthToken = function () {
     role: this.role,
   };
 
+  // Long-lived session token; override with JWT_EXPIRES_IN (e.g. "90d", "365d", "730d")
+  const expiresIn = process.env.JWT_EXPIRES_IN || "365d";
   const token = jwt.sign(
     payload,
     process.env.JWT_SECRET || "your-secret-key-change-in-production",
-    {
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-    }
+    { expiresIn },
   );
 
   this.token = token;
@@ -197,7 +197,7 @@ userSchema.methods.generatePasswordResetToken = function () {
   const resetToken = jwt.sign(
     { userId: this._id, type: "password-reset" },
     process.env.JWT_SECRET || "your-secret-key-change-in-production",
-    { expiresIn: "1h" }
+    { expiresIn: "1h" },
   );
 
   this.resetPasswordToken = resetToken;
@@ -208,7 +208,7 @@ userSchema.methods.generatePasswordResetToken = function () {
 // Method to generate OTP for email verification (uses separate OTP model)
 userSchema.methods.generateOTP = async function (
   type = "email-verification",
-  expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || "5")
+  expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || "5"),
 ) {
   return await OTP.generateOTP(this._id, this.email, type, expiryMinutes);
 };
@@ -216,7 +216,7 @@ userSchema.methods.generateOTP = async function (
 // Method to verify OTP (uses separate OTP model)
 userSchema.methods.verifyOTP = async function (
   enteredOTP,
-  type = "email-verification"
+  type = "email-verification",
 ) {
   return await OTP.verifyOTP(this.email, enteredOTP, type);
 };
@@ -224,7 +224,7 @@ userSchema.methods.verifyOTP = async function (
 // Static method to find user by email or username (for login)
 userSchema.statics.findByCredentials = async function (
   emailOrUsername,
-  password
+  password,
 ) {
   // Try to find by email first, then by username
   let user = await this.findOne({
@@ -260,7 +260,7 @@ userSchema.statics.findByCredentials = async function (
 // Static method to find admin user
 userSchema.statics.findAdminByCredentials = async function (
   emailOrUsername,
-  password
+  password,
 ) {
   const user = await this.findByCredentials(emailOrUsername, password);
 
@@ -274,7 +274,7 @@ userSchema.statics.findAdminByCredentials = async function (
 // Static method to find buyer/local user
 userSchema.statics.findBuyerByCredentials = async function (
   emailOrUsername,
-  password
+  password,
 ) {
   const user = await this.findByCredentials(emailOrUsername, password);
 
@@ -321,7 +321,7 @@ userSchema.index(
       isverified: false,
       verificationExpiresAt: { $exists: true },
     },
-  }
+  },
 );
 
 // Static method to manually delete expired unverified users (backup cleanup)
@@ -337,13 +337,13 @@ userSchema.statics.deleteExpiredUnverifiedUsers = async function () {
 // Static method to set verification expiry for a user
 userSchema.statics.setVerificationExpiry = async function (
   userId,
-  expiryMinutes = parseInt(process.env.USER_EXPIRY_MINUTES || "5")
+  expiryMinutes = parseInt(process.env.USER_EXPIRY_MINUTES || "5"),
 ) {
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
   return await this.findByIdAndUpdate(
     userId,
     { verificationExpiresAt: expiresAt },
-    { new: true }
+    { new: true },
   );
 };
 

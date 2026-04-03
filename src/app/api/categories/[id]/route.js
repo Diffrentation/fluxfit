@@ -425,13 +425,22 @@ export async function PUT(request, { params }) {
       }
     }
 
-    // Meta keywords
+    // Meta keywords (array or comma-separated string)
     if (metaKeywords !== undefined) {
-      updateData.metaKeywords = metaKeywords
-        ? metaKeywords
+      let normalized = [];
+      if (metaKeywords != null && metaKeywords !== "") {
+        if (Array.isArray(metaKeywords)) {
+          normalized = metaKeywords
+            .map((keyword) => String(keyword).trim().toLowerCase())
+            .filter((keyword) => keyword.length > 0);
+        } else if (typeof metaKeywords === "string") {
+          normalized = metaKeywords
+            .split(",")
             .map((keyword) => keyword.trim().toLowerCase())
-            .filter((keyword) => keyword.length > 0)
-        : [];
+            .filter((keyword) => keyword.length > 0);
+        }
+      }
+      updateData.metaKeywords = normalized;
     }
 
     // Return validation errors if any

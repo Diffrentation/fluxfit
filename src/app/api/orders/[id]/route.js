@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/order.model";
+import "@/models/category.model";
+import "@/models/brand.model";
 import { authenticateUser } from "@/lib/auth";
-import mongoose from "mongoose";
+import { isStrictMongoObjectIdString } from "@/lib/mongoose-id";
 
 /**
  * GET /api/orders/:id
@@ -39,13 +41,20 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Build query - try as ObjectId first, then as order number
+    const idStr = decodeURIComponent(String(id).trim());
+
     let query;
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      query = { _id: id, user: user._id };
+    if (isStrictMongoObjectIdString(idStr)) {
+      query = { _id: idStr, user: user._id };
     } else {
-      query = { orderNumber: id, user: user._id };
+      query = { orderNumber: idStr, user: user._id };
     }
+
+    console.log("[api/orders/:id] GET", {
+      userId: String(user._id),
+      ref: idStr,
+      byId: isStrictMongoObjectIdString(idStr),
+    });
 
     // Find order
     const order = await Order.findOne(query)

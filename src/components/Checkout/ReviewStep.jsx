@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { productDatabase } from "@/lib/productDatabase";
 import {
+  syncLocalCartToServer,
+  createOrderFromServerCart,
+  isLoggedInForCheckout,
+} from "@/lib/checkout-order";
+import { mapApiOrderToLegacyUi } from "@/lib/order-display";
+import {
   IconArrowLeft,
   IconCheck,
   IconMapPin,
@@ -24,7 +30,7 @@ const ReviewStep = ({
   orderSummary,
 }) => {
   const router = useRouter();
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, appliedCoupon } = useCart();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
@@ -59,39 +65,46 @@ const ReviewStep = ({
       return;
     }
 
+    if (!isLoggedInForCheckout()) {
+      message.warning("Please sign in to place your order");
+      router.push("/auth/login?returnUrl=/checkout");
+      return;
+    }
+
+    const shippingAddressId = address?.id || address?._id;
+    if (!shippingAddressId) {
+      message.error("Selected address is missing an ID. Save the address again or pick another.");
+      return;
+    }
+
     setIsPlacingOrder(true);
 
-    // Simulate order placement
-    setTimeout(() => {
-      const orderId = `ORD-${Date.now()}`;
-      const order = {
-        orderId,
-        items: cartItems,
-        address,
+    try {
+      await syncLocalCartToServer(cartItems, appliedCoupon);
+
+      const apiOrder = await createOrderFromServerCart({
+        shippingAddressId: String(shippingAddressId),
         paymentMethod,
-        paymentDetails,
-        orderSummary,
-        orderDate: new Date().toISOString(),
-        status: "confirmed",
-        statusHistory: [
-          {
-            status: "confirmed",
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      };
+        shippingCost: Number(orderSummary?.shipping) || 0,
+        shippingMethod: "standard",
+        clearCart: true,
+      });
 
-      // Save order to localStorage (dummy)
-      const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-      orders.push(order);
-      localStorage.setItem("orders", JSON.stringify(orders));
-
-      // Clear cart
       clearCart();
-
+      const orderUi = {
+        ...mapApiOrderToLegacyUi(apiOrder),
+        paymentDetails: paymentDetails || {},
+      };
+      onOrderPlace(orderUi);
+    } catch (err) {
+      console.error("Place order error:", err);
+      const res = err.response?.data;
+      const first =
+        res?.errors?.[0]?.message || res?.message || err.message;
+      message.error(first || "Failed to place order");
+    } finally {
       setIsPlacingOrder(false);
-      onOrderPlace(order);
-    }, 2000);
+    }
   };
 
   if (!address || !paymentMethod) {

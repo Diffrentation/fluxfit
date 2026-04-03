@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Modal,
   Form,
@@ -18,11 +18,56 @@ import { uploadImage } from "@/lib/upload-client";
 const { TextArea } = Input;
 const { Option } = Select;
 
-const CategoryForm = ({ visible, category, categories, onClose, onSuccess }) => {
+/** Plain string for JSON body (avoids React/DOM refs reaching axios JSON.stringify). */
+function asText(v) {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return "";
+}
+
+/** Parent id for API: Select may store labelInValue `{ value, label }` or a populated parent object. */
+function asParentId(v) {
+  if (v == null || v === "") return null;
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  if (typeof v === "object" && v !== null) {
+    if ("value" in v && v.value != null && v.value !== "") return String(v.value);
+    if ("id" in v && v.id != null && v.id !== "") return String(v.id);
+    if ("_id" in v && v._id != null && v._id !== "") return String(v._id);
+  }
+  return null;
+}
+
+function asKeywordList(v) {
+  if (v == null || v === "") return [];
+  if (Array.isArray(v)) {
+    return v.map((k) => asText(k).trim()).filter(Boolean);
+  }
+  return asText(v)
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+}
+
+function asUrlOrNull(v) {
+  if (v == null) return null;
+  if (typeof v === "string") {
+    const t = v.trim();
+    return t.length ? t : null;
+  }
+  return null;
+}
+
+const CategoryForm = ({ visible, category, categories, onClose, onSuccess, onSave }) => {
   const [form] = Form.useForm();
   const [imageList, setImageList] = useState([]);
   const [bannerList, setBannerList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const editingCategoryId = useMemo(
+    () => category?.id || category?._id || null,
+    [category]
+  );
+  const isEditMode = Boolean(editingCategoryId);
 
   // Reset form when modal visibility changes
   useEffect(() => {
@@ -33,48 +78,94 @@ const CategoryForm = ({ visible, category, categories, onClose, onSuccess }) => 
     }
   }, [visible, form]);
 
-  // Populate form when editing
+  // Populate form when editing with latest backend data (including parent)
   useEffect(() => {
-    if (category && visible) {
-      // Handle both ID formats (id or _id)
-      const categoryId = category.id || category._id;
-      
-      // Format the category data for the form
-      const formData = {
-        name: category.name || "",
-        slug: category.slug || "",
-        description: category.description || "",
-        parentId: category.parentId || category.parent?.id || category.parent?._id || null,
-        sortOrder: category.sortOrder || 0,
-        isActive: category.isActive ?? true,
-        isFeatured: category.isFeatured ?? false,
-        metaTitle: category.metaTitle || "",
-        metaDescription: category.metaDescription || "",
-        metaKeywords: Array.isArray(category.metaKeywords) 
-          ? category.metaKeywords.join(", ") 
-          : category.metaKeywords || "",
-      };
+    const prefillCategory = async () => {
+      if (!visible) {
+        return;
+      }
 
-      form.setFieldsValue(formData);
-
-      // Set image and banner lists
-      if (category.image) {
-        setImageList([typeof category.image === 'string' ? category.image : category.image.url]);
-      } else {
+      // Create mode: preserve parent category when opened via "Add Subcategory"
+      if (!editingCategoryId) {
+        form.resetFields();
         setImageList([]);
+        setBannerList([]);
+        form.setFieldsValue({
+          parentId:
+            category?.parentId ||
+            category?.parent?.id ||
+            category?.parent?._id ||
+            null,
+          sortOrder: 0,
+          isActive: true,
+          isFeatured: false,
+        });
+        return;
       }
 
-      if (category.banner) {
-        setBannerList([typeof category.banner === 'string' ? category.banner : category.banner.url]);
-      } else {
-        setBannerList([]);
+      try {
+        setLoading(true);
+        const { data } = await axios.get(
+          `/api/categories/${editingCategoryId}?includeParent=true`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        const categoryData = data?.data?.category;
+        if (!data?.success || !categoryData) {
+          throw new Error(data?.message || "Failed to fetch category details");
+        }
+
+        const formData = {
+          name: categoryData.name || "",
+          slug: categoryData.slug || "",
+          description: categoryData.description || "",
+          parentId:
+            categoryData.parent?.id ||
+            categoryData.parent?._id ||
+            categoryData.parent ||
+            null,
+          sortOrder: categoryData.sortOrder || 0,
+          isActive: categoryData.isActive ?? true,
+          isFeatured: categoryData.isFeatured ?? false,
+          metaTitle: categoryData.metaTitle || "",
+          metaDescription: categoryData.metaDescription || "",
+          metaKeywords: Array.isArray(categoryData.metaKeywords)
+            ? categoryData.metaKeywords.join(", ")
+            : categoryData.metaKeywords || "",
+        };
+
+        form.setFieldsValue(formData);
+        setImageList(
+          categoryData.image
+            ? [typeof categoryData.image === "string" ? categoryData.image : categoryData.image.url]
+            : []
+        );
+        setBannerList(
+          categoryData.banner
+            ? [typeof categoryData.banner === "string" ? categoryData.banner : categoryData.banner.url]
+            : []
+        );
+      } catch (error) {
+        console.error("Category prefetch error:", error);
+        message.error("Failed to prefill category details");
+      } finally {
+        setLoading(false);
       }
+    };
+
+    if (visible) {
+      prefillCategory();
     } else {
       form.resetFields();
       setImageList([]);
       setBannerList([]);
     }
-  }, [category, visible, form]);
+  }, [editingCategoryId, visible, form, category]);
 
   const generateSlug = (name) => {
     return name
@@ -87,26 +178,27 @@ const CategoryForm = ({ visible, category, categories, onClose, onSuccess }) => 
     try {
       setLoading(true);
 
-      // Prepare the payload
+      const name = asText(values.name).trim();
+      const slugBase = asText(values.slug) || generateSlug(name);
+
+      // Prepare the payload (strictly JSON-serializable — no Select/React objects)
       const payload = {
-        name: values.name,
-        slug: values.slug || generateSlug(values.name),
-        description: values.description || "",
-        parentId: values.parentId || null,
-        image: imageList[0] || null,
-        banner: bannerList[0] || null,
-        sortOrder: values.sortOrder || 0,
+        name,
+        slug: slugBase,
+        description: asText(values.description),
+        parent: asParentId(values.parentId),
+        image: asUrlOrNull(imageList[0]),
+        banner: asUrlOrNull(bannerList[0]),
+        sortOrder: Number(values.sortOrder) || 0,
         isActive: values.isActive ?? true,
         isFeatured: values.isFeatured ?? false,
-        metaTitle: values.metaTitle || "",
-        metaDescription: values.metaDescription || "",
-        metaKeywords: values.metaKeywords 
-          ? values.metaKeywords.split(",").map(k => k.trim()).filter(k => k)
-          : [],
+        metaTitle: asText(values.metaTitle),
+        metaDescription: asText(values.metaDescription),
+        metaKeywords: asKeywordList(values.metaKeywords),
       };
 
       // Determine if we're creating or updating
-      const categoryId = category?.id || category?._id;
+      const categoryId = editingCategoryId;
       const url = categoryId 
         ? `/api/categories/${categoryId}` 
         : "/api/categories";
@@ -134,8 +226,16 @@ const CategoryForm = ({ visible, category, categories, onClose, onSuccess }) => 
         setImageList([]);
         setBannerList([]);
         
-        // Call onSuccess with the updated/created category
-        onSuccess?.(data.data.category);
+        // Support both callback names used across screens.
+        const savedCategory = data.data?.category;
+        onSuccess?.(savedCategory);
+        try {
+          await Promise.resolve(onSave?.(savedCategory));
+        } catch (callbackErr) {
+          console.error("Category onSave error:", callbackErr);
+        }
+        // Notify category tree to refetch from backend.
+        window.dispatchEvent(new Event("categories:refresh"));
         onClose();
       } else {
         message.error(data.message || "Failed to save category");
@@ -148,8 +248,9 @@ const CategoryForm = ({ visible, category, categories, onClose, onSuccess }) => 
       // Handle validation errors
       if (res?.data?.errors) {
         res.data.errors.forEach((e) => {
+          const fieldName = e.field === "parent" ? "parentId" : e.field;
           form.setFields([{ 
-            name: e.field, 
+            name: fieldName, 
             errors: [e.message] 
           }]);
         });
@@ -230,7 +331,7 @@ const CategoryForm = ({ visible, category, categories, onClose, onSuccess }) => 
 
   return (
     <Modal
-      title={category ? "Edit Category" : "Add New Category"}
+      title={isEditMode ? "Edit Category" : "Add New Category"}
       open={visible}
       onCancel={onClose}
       footer={null}
@@ -297,13 +398,23 @@ const CategoryForm = ({ visible, category, categories, onClose, onSuccess }) => 
             showSearch
             optionFilterProp="children"
           >
-            {categories
-              ?.filter(cat => cat.id !== category?.id && cat._id !== category?._id) // Prevent self-parenting
-              .map((cat) => (
-                <Option key={cat.id || cat._id} value={cat.id || cat._id}>
-                  {cat.name}
-                </Option>
-              ))}
+            {(categories || [])
+              .filter((cat) => {
+                const cid = cat.id ?? cat._id;
+                return cid != null && String(cid) !== "";
+              })
+              .filter(
+                (cat) =>
+                  String(cat.id ?? cat._id) !== String(category?.id ?? category?._id ?? "")
+              )
+              .map((cat) => {
+                const cid = String(cat.id ?? cat._id);
+                return (
+                  <Option key={cid} value={cid}>
+                    {cat.name}
+                  </Option>
+                );
+              })}
           </Select>
         </Form.Item>
 
@@ -418,7 +529,7 @@ const CategoryForm = ({ visible, category, categories, onClose, onSuccess }) => 
             loading={loading}
             size="large"
           >
-            {category ? "Update Category" : "Create Category"}
+            {isEditMode ? "Update Category" : "Create Category"}
           </Button>
         </div>
       </Form>

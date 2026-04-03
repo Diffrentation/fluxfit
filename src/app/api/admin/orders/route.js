@@ -155,6 +155,13 @@ export async function GET(request) {
       Order.countDocuments(query),
     ]);
 
+    console.log("[api/admin/orders] GET", {
+      adminId: String(user._id),
+      role: user.role,
+      count: orders.length,
+      total,
+    });
+
     // Format orders for response
     const formattedOrders = orders.map((order) => {
       // Get primary image for each item
@@ -268,6 +275,7 @@ export async function GET(request) {
       {
         success: true,
         message: "Orders retrieved successfully",
+        orders: formattedOrders,
         data: {
           orders: formattedOrders,
           pagination: {

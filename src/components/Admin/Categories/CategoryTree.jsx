@@ -15,17 +15,68 @@ import {
 } from "@tabler/icons-react";
 
 const CategoryTree = ({
+  categories: categoriesProp,
   onEdit,
   onDelete,
   onAddSubcategory,
   onMoveUp,
   onMoveDown,
 }) => {
-  const [categories, setCategories] = useState([]);
+  const [fetchedCategories, setFetchedCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState([]);
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState({});
+
+  const categories = fetchedCategories.length > 0 ? fetchedCategories : (categoriesProp || []);
+  const getCategoryId = useCallback((category) => category?.id ?? category?._id, []);
+
+  const getCategoryActionItems = useCallback(
+    (category) => {
+      const categoryId = getCategoryId(category);
+      return [
+        {
+          key: "add-sub",
+          label: "Add Subcategory",
+          icon: <IconPlus className="w-4 h-4" />,
+          onClick: () => onAddSubcategory?.(categoryId),
+        },
+        {
+          key: "edit",
+          label: "Edit",
+          icon: <IconEdit className="w-4 h-4" />,
+          onClick: () => onEdit?.(category),
+        },
+        {
+          key: "move-up",
+          label: "Move Up",
+          icon: <IconArrowUp className="w-4 h-4" />,
+          onClick: () => onMoveUp?.(categoryId),
+        },
+        {
+          key: "move-down",
+          label: "Move Down",
+          icon: <IconArrowDown className="w-4 h-4" />,
+          onClick: () => onMoveDown?.(categoryId),
+        },
+        { type: "divider" },
+        {
+          key: "delete",
+          label: "Delete",
+          icon: <IconTrash className="w-4 h-4" />,
+          danger: true,
+          onClick: () => {
+            if (category.children?.length > 0) {
+              message.warning("Cannot delete category with subcategories");
+            } else {
+              onDelete?.(categoryId);
+            }
+          },
+        },
+      ];
+    },
+    [getCategoryId, onAddSubcategory, onDelete, onEdit, onMoveDown, onMoveUp]
+  );
 
   /* ---------------- FETCH CATEGORIES ---------------- */
   const fetchCategories = useCallback(async () => {
@@ -45,7 +96,7 @@ const CategoryTree = ({
       });
 
       if (!data.success) throw new Error(data.message);
-      setCategories(data.data.categories);
+      setFetchedCategories(data.data.categories);
     } catch (error) {
       console.error(error);
       message.error("Failed to load categories");
@@ -56,6 +107,16 @@ const CategoryTree = ({
 
   useEffect(() => {
     fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchCategories();
+    };
+    window.addEventListener("categories:refresh", handleRefresh);
+    return () => {
+      window.removeEventListener("categories:refresh", handleRefresh);
+    };
   }, [fetchCategories]);
 
   /* ---------------- DESKTOP TREE VIEW ---------------- */
@@ -85,61 +146,20 @@ const CategoryTree = ({
             )}
           </div>
 
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: "add-sub",
-                  label: "Add Subcategory",
-                  icon: <IconPlus className="w-4 h-4" />,
-                  onClick: () => onAddSubcategory?.(category.id),
-                },
-                {
-                  key: "edit",
-                  label: "Edit",
-                  icon: <IconEdit className="w-4 h-4" />,
-                  onClick: () => onEdit?.(category),
-                },
-                {
-                  key: "move-up",
-                  label: "Move Up",
-                  icon: <IconArrowUp className="w-4 h-4" />,
-                  onClick: () => onMoveUp?.(category.id),
-                },
-                {
-                  key: "move-down",
-                  label: "Move Down",
-                  icon: <IconArrowDown className="w-4 h-4" />,
-                  onClick: () => onMoveDown?.(category.id),
-                },
-                { type: "divider" },
-                {
-                  key: "delete",
-                  label: "Delete",
-                  icon: <IconTrash className="w-4 h-4" />,
-                  danger: true,
-                  onClick: () => {
-                    if (category.children?.length > 0) {
-                      message.warning("Cannot delete category with subcategories");
-                    } else {
-                      onDelete?.(category.id);
-                    }
-                  },
-                },
-              ],
-            }}
-            trigger={["click"]}
-          >
+          <Dropdown menu={{ items: getCategoryActionItems(category) }} trigger={["click"]}>
             <Button
               type="text"
               icon={<IconDots className="w-4 h-4" />}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
             />
           </Dropdown>
         </div>
       ),
-      key: category.id.toString(),
-      children: category.children ? buildTreeData(category.children) : undefined,
+      key: getCategoryId(category).toString(),
+      children:
+        category.children && category.children.length > 0
+          ? buildTreeData(category.children)
+          : undefined,
     }));
 
   const treeData = buildTreeData(categories);
@@ -152,17 +172,18 @@ const CategoryTree = ({
     }));
   };
 
-  const renderCategoryCard = (category, level = 0) => {
+  const CategorySubTree = ({ category, level = 0 }) => {
     const hasChildren = category.children?.length > 0;
-    const isExpanded = expandedCategories[category.id];
+    const categoryId = getCategoryId(category);
+    const isExpanded = expandedCategories[categoryId];
 
     return (
-      <motion.div key={category.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <Card
           className={`mb-2 border hover:shadow-md ${level > 0 ? "ml-6" : ""}`}
           bodyStyle={{ padding: "12px 16px" }}
         >
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-2">
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 {hasChildren && (
@@ -170,7 +191,7 @@ const CategoryTree = ({
                     type="text"
                     size="small"
                     icon={isExpanded ? <IconChevronDown /> : <IconChevronRight />}
-                    onClick={() => toggleCategoryExpand(category.id)}
+                    onClick={() => toggleCategoryExpand(categoryId)}
                   />
                 )}
                 <h3 className="font-semibold m-0">{category.name}</h3>
@@ -183,12 +204,31 @@ const CategoryTree = ({
                 <p className="text-sm text-gray-500 mt-2">{category.description}</p>
               )}
             </div>
+            <Dropdown menu={{ items: getCategoryActionItems(category) }} trigger={["click"]}>
+              <Button
+                type="text"
+                size="small"
+                icon={<IconDots className="w-4 h-4" />}
+                className="shrink-0"
+              />
+            </Dropdown>
           </div>
 
           <AnimatePresence>
             {hasChildren && isExpanded && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-3 space-y-2">
-                {category.children.map((child) => renderCategoryCard(child, level + 1))}
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 space-y-2"
+              >
+                {category.children.map((child) => (
+                  <CategorySubTree
+                    key={child.id?.toString?.() ?? child.id}
+                    category={child}
+                    level={level + 1}
+                  />
+                ))}
               </motion.div>
             )}
           </AnimatePresence>
@@ -223,7 +263,12 @@ const CategoryTree = ({
 
           {/* Mobile Cards */}
           <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {categories.map((category) => renderCategoryCard(category))}
+            {categories.map((category) => (
+              <CategorySubTree
+                key={category.id?.toString?.() ?? category.id}
+                category={category}
+              />
+            ))}
           </div>
         </>
       )}

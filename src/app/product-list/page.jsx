@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useMemo } from "react";
+
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ui/ProductCard";
@@ -14,17 +15,10 @@ import {
   IconFilter,
   IconRefresh,
 } from "@tabler/icons-react";
-import { Button } from "antd";
-import { productDatabase } from "@/lib/productDatabase";
+import { Button, Spin } from "antd";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
-
-// Convert productDatabase object to array and add image property
-const getAllProducts = () => {
-  return Object.values(productDatabase).map((product) => ({
-    ...product,
-    image: product.images?.[0] || "", // Use first image for ProductCard
-  }));
-};
+import { usePublicProducts } from "@/hooks/usePublicProducts";
+import { getProductDetailPath } from "@/lib/publicProductsApi";
 
 const sortOptions = [
   { value: "default", label: "Default" },
@@ -44,23 +38,30 @@ const priceOptions = [
   { value: "200+", label: "₹200.00+" },
 ];
 
-// Extract unique colors from products
-const getUniqueColors = (products) => {
+function useDebouncedValue(value, delayMs = 400) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+function getUniqueColorsFromProducts(products) {
   const colorSet = new Set();
   products.forEach((product) => {
     if (product.colors && Array.isArray(product.colors)) {
-      product.colors.forEach((color) => colorSet.add(color));
+      product.colors.forEach((c) => colorSet.add(c));
     } else if (product.color) {
       colorSet.add(product.color);
     }
   });
   return Array.from(colorSet).map(
-    (c) => c.charAt(0).toUpperCase() + c.slice(1)
+    (c) => c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()
   );
-};
+}
 
-// Extract unique tags from products
-const getUniqueTags = (products) => {
+function getUniqueTagsFromProducts(products) {
   const tagSet = new Set();
   products.forEach((product) => {
     if (product.tags && Array.isArray(product.tags)) {
@@ -68,23 +69,18 @@ const getUniqueTags = (products) => {
     }
   });
   return Array.from(tagSet);
-};
+}
 
-// Extract unique categories from products
-const getUniqueCategories = (products) => {
+function getUniqueCategoriesFromProducts(products) {
   const categorySet = new Set(["All Products"]);
   products.forEach((product) => {
-    if (product.category) {
-      categorySet.add(product.category);
-    }
+    if (product.category) categorySet.add(product.category);
   });
   return Array.from(categorySet);
-};
+}
 
 function ProductListPage() {
   const router = useRouter();
-  const allProducts = getAllProducts();
-
   const [activeCategory, setActiveCategory] = useState("All Products");
   const [sortBy, setSortBy] = useState("newness");
   const [priceFilter, setPriceFilter] = useState("all");
@@ -93,117 +89,56 @@ function ProductListPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Get filter options from products
-  const colors = useMemo(() => getUniqueColors(allProducts), [allProducts]);
-  const tags = useMemo(() => getUniqueTags(allProducts), [allProducts]);
+  const debouncedSearch = useDebouncedValue(searchQuery.trim(), 400);
+
+  const { products, pagination, loading } = usePublicProducts({
+    page: 1,
+    limit: 48,
+    categoryLabel: activeCategory,
+    debouncedSearch,
+    sortBy,
+    priceFilter,
+    colorFilter,
+    selectedTags,
+  });
+
+  const colors = useMemo(
+    () => getUniqueColorsFromProducts(products),
+    [products]
+  );
+  const tags = useMemo(() => getUniqueTagsFromProducts(products), [products]);
   const categories = useMemo(
-    () => getUniqueCategories(allProducts),
-    [allProducts]
+    () => getUniqueCategoriesFromProducts(products),
+    [products]
   );
 
-  const handleQuickView = (product) => {
-    router.push(`/product-details/${product.id}`);
-  };
+  const handleQuickView = useCallback(
+    (product) => {
+      const path = getProductDetailPath(product);
+      if (path && path !== "/product-list") router.push(path);
+    },
+    [router]
+  );
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setActiveCategory("All Products");
     setSortBy("newness");
     setPriceFilter("all");
     setColorFilter(null);
     setSelectedTags([]);
     setSearchQuery("");
-  };
+  }, []);
 
-  // Filter products based on selected filters
-  const filteredProducts = useMemo(() => {
-    return allProducts.filter((product) => {
-      // Category filter
-      if (
-        activeCategory !== "All Products" &&
-        product.category !== activeCategory
-      ) {
-        return false;
-      }
-
-      // Color filter
-      if (colorFilter) {
-        const productColors =
-          product.colors || (product.color ? [product.color] : []);
-        const hasMatchingColor = productColors.some(
-          (color) => color.toLowerCase() === colorFilter.toLowerCase()
-        );
-        if (!hasMatchingColor) return false;
-      }
-
-      // Tags filter
-      if (selectedTags.length > 0) {
-        const productTags = product.tags || [];
-        const hasMatchingTag = selectedTags.some((tag) =>
-          productTags.includes(tag)
-        );
-        if (!hasMatchingTag) return false;
-      }
-
-      // Price filter
-      if (priceFilter !== "all") {
-        const price = parseFloat(product.price);
-        if (priceFilter === "200+") {
-          if (price < 200) return false;
-        } else {
-          const [min, max] = priceFilter.split("-").map((p) => parseFloat(p));
-          if (price < min || price > max) return false;
-        }
-      }
-
-      // Search filter
-      if (
-        searchQuery &&
-        !product.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [
-    allProducts,
-    activeCategory,
-    colorFilter,
-    selectedTags,
-    priceFilter,
-    searchQuery,
-  ]);
-
-  // Sort products
-  const sortedProducts = useMemo(() => {
-    return [...filteredProducts].sort((a, b) => {
-      switch (sortBy) {
-        case "newness":
-          return b.id - a.id; // Newest first
-        case "popularity":
-          return (b.reviews || 0) - (a.reviews || 0); // Most reviews first
-        case "rating":
-          return (b.rating || 0) - (a.rating || 0); // Highest rating first
-        case "price-low":
-          return parseFloat(a.price) - parseFloat(b.price);
-        case "price-high":
-          return parseFloat(b.price) - parseFloat(a.price);
-        default:
-          return 0;
-      }
-    });
-  }, [filteredProducts, sortBy]);
+  const totalCount = pagination?.total ?? products.length;
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pt-10 transition-colors duration-300">
       <div className="w-full px-0 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 sm:py-8">
-        {/* Header */}
         <div className="mb-6 sm:mb-8 px-3 sm:px-0">
           <h1 className="text-2xl sm:text-3xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
             PRODUCT LIST
           </h1>
 
-          {/* Category Navigation and Search/Filter */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4 px-3 sm:px-0">
             <CategoryNav
               categories={categories}
@@ -212,6 +147,7 @@ function ProductListPage() {
             />
             <div className="flex items-center gap-4 w-full md:w-auto">
               <motion.button
+                type="button"
                 onClick={() => setShowFilters(!showFilters)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -236,18 +172,18 @@ function ProductListPage() {
               >
                 <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
-                  type="text"
+                  type="search"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition-all duration-200 w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                  aria-label="Search products"
                 />
               </motion.div>
             </div>
           </div>
         </div>
 
-        {/* Filters Section */}
         <AnimatePresence>
           {showFilters && (
             <motion.div
@@ -290,12 +226,12 @@ function ProductListPage() {
                   <ColorFilter
                     value={colorFilter}
                     onChange={setColorFilter}
-                    colors={colors}
+                    colors={colors.length > 0 ? colors : ["Black", "White", "Blue"]}
                   />
                   <TagsFilter
                     selectedTags={selectedTags}
                     onChange={setSelectedTags}
-                    tags={tags}
+                    tags={tags.length > 0 ? tags : ["Fashion", "Lifestyle"]}
                   />
                 </div>
               </motion.div>
@@ -303,55 +239,62 @@ function ProductListPage() {
           )}
         </AnimatePresence>
 
-        {/* Products Count */}
         <div className="mb-4 sm:mb-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400 px-3 sm:px-0">
-          Showing {sortedProducts.length} of {allProducts.length} products
+          Showing {products.length} of {totalCount} products
         </div>
 
-        {/* Products Grid */}
-        <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 3xl:grid-cols-5 gap-0 sm:gap-4 md:gap-5 lg:gap-6">
-          <AnimatePresence mode="popLayout">
-            {sortedProducts.map((product, index) => (
-              <motion.div
-                key={product.id}
-                layout={false}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{
-                  duration: 0.3,
-                  delay: index * 0.05,
-                  ease: "easeOut",
-                }}
-              >
-                <ProductCard product={product} onQuickView={handleQuickView} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Empty State */}
-        <AnimatePresence>
-          {sortedProducts.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3 }}
-              className="text-center py-8 sm:py-12"
-            >
-              <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg mb-4">
-                No products found matching your filters.
-              </p>
-              <Button onClick={resetFilters} type="primary">
-                Reset Filters
-              </Button>
+        {loading ? (
+          <div className="flex justify-center py-20 px-3">
+            <Spin size="large" tip="Loading products..." />
+          </div>
+        ) : (
+          <>
+            <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 3xl:grid-cols-5 gap-0 sm:gap-4 md:gap-5 lg:gap-6">
+              <AnimatePresence mode="popLayout">
+                {products.map((product, index) => (
+                  <motion.div
+                    key={product.id}
+                    layout={false}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{
+                      duration: 0.3,
+                      delay: index * 0.05,
+                      ease: "easeOut",
+                    }}
+                  >
+                    <ProductCard
+                      product={product}
+                      onQuickView={handleQuickView}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </motion.div>
-          )}
-        </AnimatePresence>
+
+            <AnimatePresence>
+              {products.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-center py-8 sm:py-12"
+                >
+                  <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg mb-4">
+                    No products found matching your filters.
+                  </p>
+                  <Button onClick={resetFilters} type="primary">
+                    Reset Filters
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
       </div>
 
-      {/* Get In Touch Section */}
       <GetInTouch />
     </div>
   );

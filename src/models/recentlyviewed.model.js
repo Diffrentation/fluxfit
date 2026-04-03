@@ -88,10 +88,8 @@ recentlyViewedSchema.statics.getOrCreate = async function (userId) {
   return recentlyViewed;
 };
 
-// Pre-save middleware
-recentlyViewedSchema.pre("save", function (next) {
+recentlyViewedSchema.pre("save", function () {
   this.lastUpdated = new Date();
-  next();
 });
 
 const RecentlyViewed = mongoose.model("RecentlyViewed", recentlyViewedSchema);

@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 /**
  * POST /api/admin/users/:id/reset-password
  * Reset user password (Admin)
- * 
+ *
  * Body Parameters:
  * - newPassword: New password (required, min 8 characters)
  * - confirmPassword: Confirm new password (required, must match newPassword)
@@ -33,7 +33,7 @@ export async function POST(request, { params }) {
           message: "Invalid user ID",
           errors: [{ field: "id", message: "Valid user ID is required" }],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,10 +49,13 @@ export async function POST(request, { params }) {
           message: "New password and confirm password are required",
           errors: [
             { field: "newPassword", message: "New password is required" },
-            { field: "confirmPassword", message: "Confirm password is required" },
+            {
+              field: "confirmPassword",
+              message: "Confirm password is required",
+            },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -68,7 +71,7 @@ export async function POST(request, { params }) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -84,7 +87,7 @@ export async function POST(request, { params }) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -96,7 +99,7 @@ export async function POST(request, { params }) {
           success: false,
           message: "User not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -127,17 +130,17 @@ export async function POST(request, { params }) {
           user: formattedUser,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Reset user password error:", error);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to reset user password. Please try again.",
+        message:
+          error.message || "Failed to reset user password. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

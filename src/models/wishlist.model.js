@@ -93,10 +93,8 @@ wishlistSchema.statics.getOrCreate = async function (userId) {
   return wishlist;
 };
 
-// Pre-save middleware
-wishlistSchema.pre("save", function (next) {
+wishlistSchema.pre("save", function () {
   this.lastUpdated = new Date();
-  next();
 });
 
 const Wishlist = mongoose.model("Wishlist", wishlistSchema);

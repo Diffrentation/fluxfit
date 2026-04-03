@@ -31,8 +31,12 @@ import {
 } from "antd";
 import Image from "next/image";
 import { format } from "date-fns";
-import { useCart } from "@/context/CartContext";
-import { productDatabase } from "@/lib/productDatabase";
+import axios from "axios";
+import { mapApiOrderToLegacyUi } from "@/lib/order-display";
+import {
+  fetchMyOrderById,
+  getOrdersAuthHeaders,
+} from "@/lib/orders-api-client";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -41,348 +45,258 @@ const { Step } = Steps;
 const OrderDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
-  const { addToCart } = useCart();
   const [order, setOrder] = useState(null);
   const [isCancelModalVisible, setIsCancelModalVisible] = useState(false);
   const [isReturnModalVisible, setIsReturnModalVisible] = useState(false);
   const [cancelForm] = Form.useForm();
   const [returnForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     loadOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
-  const loadOrder = () => {
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    const foundOrder = orders.find((o) => o.orderId === params.id);
-    if (foundOrder) {
-      setOrder(foundOrder);
-    } else {
+  const loadOrder = async () => {
+    const id = params.id;
+    setInitialLoad(true);
+    setOrder(null);
+
+    if (!id) {
       message.error("Order not found");
       router.push("/orders");
+      setInitialLoad(false);
+      return;
+    }
+
+    const headers = getOrdersAuthHeaders();
+    if (!headers.Authorization) {
+      message.warning("Please sign in to view this order");
+      router.push(`/auth/login?returnUrl=/orders/${encodeURIComponent(id)}`);
+      setInitialLoad(false);
+      return;
+    }
+
+    try {
+      const data = await fetchMyOrderById(id);
+      console.log("[OrderDetailsPage] GET /api/orders/:id response", data);
+
+      if (data?.success && data?.data?.order) {
+        setOrder(mapApiOrderToLegacyUi(data.data.order));
+        return;
+      }
+
+      message.error(data?.message || "Order not found");
+      router.push("/orders");
+    } catch (err) {
+      console.error("[OrderDetailsPage] load order", err);
+      const msg =
+        err.response?.data?.message || err.message || "Failed to load order";
+      message.error(msg);
+      router.push("/orders");
+    } finally {
+      setInitialLoad(false);
     }
   };
 
-  const updateOrderStatus = (newStatus, additionalData = {}) => {
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    const updatedOrders = orders.map((o) => {
-      if (o.orderId === params.id) {
-        const updatedOrder = {
-          ...o,
-          status: newStatus,
-          ...additionalData,
-          statusHistory: [
-            ...(o.statusHistory || []),
-            {
-              status: newStatus,
-              timestamp: new Date().toISOString(),
-              ...additionalData,
-            },
-          ],
-        };
-        return updatedOrder;
-      }
-      return o;
-    });
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    setOrder(updatedOrders.find((o) => o.orderId === params.id));
-  };
-
   const handleCancelOrder = async (values) => {
+    const id = params.id;
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      updateOrderStatus("cancelled", {
-        cancellationReason: values.reason,
-        cancellationNote: values.note,
-        cancelledAt: new Date().toISOString(),
-      });
-
+      const reason = [values.reason, values.note].filter(Boolean).join(" — ");
+      const { data } = await axios.post(
+        `/api/orders/${encodeURIComponent(id)}/cancel`,
+        { reason },
+        { headers: getOrdersAuthHeaders() },
+      );
+      if (!data?.success) {
+        message.error(data?.message || "Failed to cancel order");
+        return;
+      }
       message.success("Order cancelled successfully");
       setIsCancelModalVisible(false);
       cancelForm.resetFields();
-    } catch (error) {
-      message.error("Failed to cancel order");
+      await loadOrder();
+    } catch (err) {
+      message.error(
+        err.response?.data?.message || err.message || "Failed to cancel order",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleReturnRequest = async (values) => {
+    const id = params.id;
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      updateOrderStatus("returned", {
-        returnReason: values.reason,
-        returnNote: values.note,
-        returnItems: values.items || [],
-        requestedAt: new Date().toISOString(),
-      });
-
+      const itemIds = Array.isArray(values.items) ? values.items : [];
+      const reason = [values.reason, values.note].filter(Boolean).join(" — ");
+      const { data } = await axios.post(
+        `/api/orders/${encodeURIComponent(id)}/return`,
+        {
+          reason,
+          ...(itemIds.length ? { itemIds } : {}),
+        },
+        { headers: getOrdersAuthHeaders() },
+      );
+      if (!data?.success) {
+        message.error(data?.message || "Failed to submit return request");
+        return;
+      }
       message.success("Return request submitted successfully");
       setIsReturnModalVisible(false);
       returnForm.resetFields();
-    } catch (error) {
-      message.error("Failed to submit return request");
+      await loadOrder();
+    } catch (err) {
+      message.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to submit return request",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleRefundRequest = async () => {
+    message.info("Refund is processed by support after return approval.");
+  };
+
+  const generateInvoice = async () => {
+    if (!order) return;
+    const id = params.id;
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      updateOrderStatus("refunded", {
-        refundedAt: new Date().toISOString(),
-        refundAmount: order.orderSummary.grandTotal,
-      });
-
-      message.success("Refund request submitted successfully");
-    } catch (error) {
-      message.error("Failed to submit refund request");
+      const res = await fetch(
+        `/api/orders/${encodeURIComponent(id)}/invoice`,
+        { headers: getOrdersAuthHeaders() },
+      );
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || `Invoice failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Invoice-${order.orderId}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      message.success("Invoice downloaded");
+    } catch (err) {
+      message.error(err.message || "Failed to download invoice");
     } finally {
       setLoading(false);
     }
   };
 
-  const generateInvoice = () => {
+  const handleReorder = async () => {
     if (!order) return;
-
-    const invoiceHTML = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Invoice - ${order.orderId}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-          .company-info { margin-bottom: 30px; }
-          .order-info { margin-bottom: 20px; background: #f5f5f5; padding: 15px; border-radius: 5px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-          th { background-color: #4a5568; color: white; }
-          .total { text-align: right; font-weight: bold; margin-top: 20px; }
-          .footer { margin-top: 30px; text-align: center; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
-          .status { display: inline-block; padding: 5px 10px; border-radius: 3px; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1 style="margin: 0; color: #2563eb;">FluxFit</h1>
-          <p style="margin: 5px 0; font-size: 18px;">Invoice</p>
-        </div>
-        <div class="company-info">
-          <p><strong>FluxFit E-Commerce</strong></p>
-          <p>123 Business Street, Mumbai, Maharashtra - 400001</p>
-          <p>Email: support@fluxfit.com | Phone: +91 9876543210</p>
-        </div>
-        <div class="order-info">
-          <p><strong>Order ID:</strong> ${order.orderId}</p>
-          <p><strong>Order Date:</strong> ${format(
-            new Date(order.orderDate),
-            "MMMM dd, yyyy 'at' hh:mm a"
-          )}</p>
-          <p><strong>Status:</strong> <span class="status" style="background: ${
-            order.status === "delivered"
-              ? "#10b981"
-              : order.status === "cancelled"
-              ? "#ef4444"
-              : "#3b82f6"
-          }; color: white;">${order.status.toUpperCase()}</span></p>
-        </div>
-        <div>
-          <h3>Shipping Address:</h3>
-          <p>${order.address.name}</p>
-          <p>${order.address.phone}</p>
-          <p>${order.address.addressLine1}, ${order.address.addressLine2}</p>
-          <p>${order.address.city}, ${order.address.state} - ${
-      order.address.pincode
-    }</p>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Size</th>
-              <th>Color</th>
-              <th>Quantity</th>
-              <th>Unit Price</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${order.items
-              .map(
-                (item) => `
-              <tr>
-                <td>${item.name}</td>
-                <td>${item.size || "One Size"}</td>
-                <td>${item.color || "N/A"}</td>
-                <td>${item.quantity}</td>
-                <td>₹${formatPrice(item.price)}</td>
-                <td>₹${formatPrice(parseFloat(item.price) * item.quantity)}</td>
-              </tr>
-            `
-              )
-              .join("")}
-          </tbody>
-        </table>
-        <div class="total">
-          <p>Subtotal: ₹${formatPrice(order.orderSummary.subtotal)}</p>
-          ${
-            order.orderSummary.discount > 0
-              ? `<p>Discount: -₹${formatPrice(order.orderSummary.discount)}</p>`
-              : ""
-          }
-          <p>Shipping: ₹${order.orderSummary.shipping}</p>
-          <p>Tax (GST 18%): ₹${order.orderSummary.tax}</p>
-          <p style="font-size: 20px; color: #2563eb;">Total: ₹${
-            order.orderSummary.grandTotal
-          }</p>
-        </div>
-        <div>
-          <h3>Payment Method:</h3>
-          <p>${
-            order.paymentMethod === "cod"
-              ? "Cash on Delivery"
-              : order.paymentMethod.toUpperCase()
-          }</p>
-        </div>
-        <div class="footer">
-          <p>Thank you for your purchase!</p>
-          <p>This is a computer-generated invoice and does not require a signature.</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob([invoiceHTML], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Invoice-${order.orderId}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    message.success("Invoice downloaded successfully");
-  };
-
-  const handleReorder = () => {
-    if (!order) return;
-
-    order.items.forEach((item) => {
-      const product = productDatabase[item.id];
-      if (product) {
-        addToCart(product, {
-          size: item.size,
-          color: item.color,
-          quantity: item.quantity,
-        });
+    const id = params.id;
+    setLoading(true);
+    try {
+      const { data } = await axios.post(
+        `/api/orders/${encodeURIComponent(id)}/reorder`,
+        {},
+        { headers: getOrdersAuthHeaders() },
+      );
+      if (!data?.success) {
+        message.error(data?.message || "Could not reorder");
+        return;
       }
-    });
-
-    message.success("Items added to cart");
-    router.push("/cart");
+      message.success("Items added to your cart");
+      router.push("/cart");
+    } catch (err) {
+      message.error(
+        err.response?.data?.message || err.message || "Could not reorder",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusSteps = () => {
-    const statusOrder = ["confirmed", "processing", "shipped", "delivered"];
-    const currentIndex = statusOrder.indexOf(order?.status);
+    const statusOrder = [
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+    ];
+    const st = order?.status;
+    const mapForCancelled =
+      st === "cancelled"
+        ? [
+            { title: "Cancelled", status: "error" },
+          ]
+        : null;
+    if (mapForCancelled) return mapForCancelled;
+
+    let currentIndex = statusOrder.indexOf(st);
+    if (currentIndex < 0) currentIndex = 0;
+
     return statusOrder.map((status, index) => ({
       title: status.charAt(0).toUpperCase() + status.slice(1),
       status:
         index < currentIndex
           ? "finish"
           : index === currentIndex
-          ? "process"
-          : "wait",
+            ? "process"
+            : "wait",
     }));
   };
 
   const getStatusTimeline = () => {
     if (!order) return [];
-    const statusHistory = order.statusHistory || [];
-    const timeline = [
+    const raw = order.statusHistory || [];
+    const colorFor = (s) => {
+      if (s === "delivered") return "green";
+      if (s === "shipped") return "purple";
+      if (s === "processing") return "orange";
+      if (s === "cancelled" || s === "returned" || s === "refunded")
+        return "red";
+      if (s === "pending") return "gold";
+      return "blue";
+    };
+    const iconFor = (s) => {
+      if (s === "shipped") return <IconTruck className="w-4 h-4" />;
+      if (s === "cancelled" || s === "returned" || s === "refunded")
+        return <IconX className="w-4 h-4" />;
+      return <IconCheck className="w-4 h-4" />;
+    };
+    if (raw.length > 0) {
+      return raw.map((h) => ({
+        status: h.status,
+        label:
+          (h.status || "").charAt(0).toUpperCase() +
+          (h.status || "").slice(1),
+        icon: iconFor(h.status),
+        color: colorFor(h.status),
+        timestamp: h.timestamp || order.orderDate,
+      }));
+    }
+    return [
       {
-        status: "confirmed",
-        label: "Order Confirmed",
-        icon: <IconCheck className="w-4 h-4" />,
-        color: "blue",
+        status: order.status,
+        label:
+          (order.status || "").charAt(0).toUpperCase() +
+          (order.status || "").slice(1),
+        icon: iconFor(order.status),
+        color: colorFor(order.status),
         timestamp: order.orderDate,
       },
     ];
-
-    if (
-      order.status === "processing" ||
-      order.statusHistory?.some((h) => h.status === "processing")
-    ) {
-      timeline.push({
-        status: "processing",
-        label: "Processing",
-        icon: <IconPackage className="w-4 h-4" />,
-        color: "orange",
-        timestamp:
-          order.statusHistory?.find((h) => h.status === "processing")
-            ?.timestamp || order.orderDate,
-      });
-    }
-
-    if (
-      order.status === "shipped" ||
-      order.statusHistory?.some((h) => h.status === "shipped")
-    ) {
-      timeline.push({
-        status: "shipped",
-        label: "Shipped",
-        icon: <IconTruck className="w-4 h-4" />,
-        color: "purple",
-        timestamp:
-          order.statusHistory?.find((h) => h.status === "shipped")?.timestamp ||
-          order.orderDate,
-      });
-    }
-
-    if (
-      order.status === "delivered" ||
-      order.statusHistory?.some((h) => h.status === "delivered")
-    ) {
-      timeline.push({
-        status: "delivered",
-        label: "Delivered",
-        icon: <IconCheck className="w-4 h-4" />,
-        color: "green",
-        timestamp:
-          order.statusHistory?.find((h) => h.status === "delivered")
-            ?.timestamp || order.orderDate,
-      });
-    }
-
-    if (order.status === "cancelled") {
-      timeline.push({
-        status: "cancelled",
-        label: "Cancelled",
-        icon: <IconX className="w-4 h-4" />,
-        color: "red",
-        timestamp: order.cancelledAt || order.orderDate,
-      });
-    }
-
-    return timeline;
   };
 
   const canCancel = () => {
-    return order && ["confirmed", "processing"].includes(order.status);
+    return (
+      order &&
+      ["pending", "confirmed", "processing"].includes(order.status)
+    );
   };
 
   const canReturn = () => {
@@ -405,7 +319,7 @@ const OrderDetailsPage = () => {
     });
   };
 
-  if (!order) {
+  if (initialLoad || !order) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 sm:pt-24 pb-8 sm:pb-12 flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
@@ -475,9 +389,14 @@ const OrderDetailsPage = () => {
               Order Status
             </h2>
             <Steps
-              current={getStatusSteps().findIndex(
-                (s) => s.status === "process"
-              )}
+              current={(() => {
+                const steps = getStatusSteps();
+                const proc = steps.findIndex((s) => s.status === "process");
+                if (proc >= 0) return proc;
+                const err = steps.findIndex((s) => s.status === "error");
+                if (err >= 0) return err;
+                return 0;
+              })()}
               items={getStatusSteps()}
               className="mb-6"
             />
@@ -490,6 +409,7 @@ const OrderDetailsPage = () => {
                   purple: "bg-purple-500",
                   green: "bg-green-500",
                   red: "bg-red-500",
+                  gold: "bg-amber-500",
                 };
                 return {
                   dot: (
@@ -530,24 +450,29 @@ const OrderDetailsPage = () => {
               </h2>
               <div className="space-y-3 sm:space-y-4">
                 {order.items.map((item, index) => {
-                  const product = productDatabase[item.id];
                   const itemTotal = parseFloat(item.price) * item.quantity;
 
                   return (
                     <motion.div
-                      key={`${item.id}-${item.size}-${item.color}`}
+                      key={`${item.lineItemId || item.id}-${item.size}-${item.color}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                       className="flex gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                     >
                       <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-gray-100 dark:bg-gray-600 rounded-lg overflow-hidden">
-                        <Image
-                          src={item.image || product?.images?.[0] || ""}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                        />
+                        {item.image ? (
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                            —
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1">
@@ -817,11 +742,12 @@ const OrderDetailsPage = () => {
             <Select
               mode="multiple"
               placeholder="Select items to return"
-              options={order.items.map((item, index) => ({
+              options={order.items.map((item) => ({
                 label: `${item.name} (${item.size || "One Size"}, ${
                   item.color || "N/A"
                 })`,
-                value: index,
+                value: item.lineItemId,
+                disabled: !item.lineItemId,
               }))}
             />
           </Form.Item>

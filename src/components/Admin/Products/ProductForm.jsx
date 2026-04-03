@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 import {
   Modal,
@@ -34,6 +34,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  /** Normalized slug loaded for edit; omit `slug` on PUT when unchanged so URLs stay stable */
+  const initialEditSlugRef = useRef("");
 
   /* ---------------- FETCH CATEGORIES ---------------- */
   const fetchCategories = useCallback(async () => {
@@ -54,26 +56,39 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   /* ---------------- PREFILL WHEN EDITING ---------------- */
   useEffect(() => {
     const fetchProductDetails = async () => {
-      if (product?._id) {
+      const productId = product?._id || product?.id;
+      if (productId) {
         try {
           setLoading(true);
-          const { data } = await axios.get(`/api/products/${product._id}`);
+          const { data } = await axios.get(`/api/products/${productId}`);
           if (data.success) {
             const productData = data.data.product;
             // Ensure category is set correctly (handle object vs ID)
             const formattedProduct = {
               ...productData,
               // API returns category as object with id, or just ID if not populated
-              category: productData.category?.id || productData.category?._id || productData.category,
-              keywords: Array.isArray(productData.metaKeywords) 
-                ? productData.metaKeywords.join(", ") 
+              category:
+                productData.category?.id ||
+                productData.category?._id ||
+                productData.category,
+              keywords: Array.isArray(productData.metaKeywords)
+                ? productData.metaKeywords.join(", ")
                 : productData.metaKeywords,
-              status: productData.status || 'draft',
+              status: productData.status || "draft",
               lowStockThreshold: productData.lowStockThreshold || 10,
             };
-            
+
             form.setFieldsValue(formattedProduct);
-            setImageList(productData.images?.map(img => typeof img === 'string' ? img : img.url) || []);
+            initialEditSlugRef.current = String(
+              productData.slug || "",
+            )
+              .trim()
+              .toLowerCase();
+            setImageList(
+              productData.images?.map((img) =>
+                typeof img === "string" ? img : img.url,
+              ) || [],
+            );
             setVariants(productData.variants || []);
           }
         } catch (error) {
@@ -81,7 +96,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           message.error("Failed to load latest product details");
           // Fallback to passed product data if API fails
           form.setFieldsValue(product);
-          setImageList(product.images?.map(img => typeof img === 'string' ? img : img.url) || []);
+          initialEditSlugRef.current = String(product?.slug || "")
+            .trim()
+            .toLowerCase();
+          setImageList(
+            product.images?.map((img) =>
+              typeof img === "string" ? img : img.url,
+            ) || [],
+          );
           setVariants(product.variants || []);
         } finally {
           setLoading(false);
@@ -89,10 +111,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       } else if (product) {
         // Fallback for cases where we might not have _id (e.g. legacy data)
         form.setFieldsValue(product);
+        initialEditSlugRef.current = String(product?.slug || "")
+          .trim()
+          .toLowerCase();
         setImageList(product.images || []);
         setVariants(product.variants || []);
       } else {
         form.resetFields();
+        initialEditSlugRef.current = "";
         setImageList([]);
         setVariants([]);
       }
@@ -103,7 +129,10 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
   /* ---------------- SLUG GENERATOR ---------------- */
   const generateSlug = useCallback((name) => {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
   }, []);
 
   /* ---------------- IMAGE UPLOAD ---------------- */
@@ -114,7 +143,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         folder: "fluxfit/products",
       });
       // Ensure we're storing the URL as a string
-      const imageUrl = typeof result === 'string' ? result : result.url;
+      const imageUrl = typeof result === "string" ? result : result.url;
       setImageList((prev) => [...prev, imageUrl]);
       message.success("Image uploaded successfully");
     } catch (error) {
@@ -153,6 +182,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       try {
         setLoading(true);
 
+        const editingId = product?._id || product?.id;
+        const isEdit = !!editingId;
+
+        const stockNum =
+          values.stock !== null && values.stock !== undefined
+            ? Number(values.stock)
+            : undefined;
+
         const payload = {
           name: values.name,
           description: values.description,
@@ -162,22 +199,40 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           originalPrice: values.originalPrice,
           images: imageList.map((url, i) => ({ url, isPrimary: i === 0 })),
           variants,
-          stock: values.stock,
+          stock: stockNum,
           inStock: values.inStock,
           metaTitle: values.metaTitle,
           metaDescription: values.metaDescription,
-          metaKeywords: typeof values.keywords === 'string' ? values.keywords.split(",").map((k) => k.trim()) : values.keywords,
+          metaKeywords:
+            typeof values.keywords === "string"
+              ? values.keywords.split(",").map((k) => k.trim())
+              : values.keywords,
           status: values.status,
         };
 
-        const { data } = await axios.post("/api/products", payload, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+        const slugNorm = (values.slug || "").trim().toLowerCase();
+        if (!isEdit) {
+          payload.slug = slugNorm;
+        } else if (slugNorm === initialEditSlugRef.current) {
+          // Omit slug so PUT keeps the existing URL slug
+        } else {
+          payload.slug = slugNorm;
+        }
 
-        message.success("Product saved successfully 🎉");
+        const headers = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        };
+
+        const { data } = isEdit
+          ? await axios.put(`/api/products/${editingId}`, payload, { headers })
+          : await axios.post("/api/products", payload, { headers });
+
+        message.success(
+          isEdit
+            ? "Product updated successfully 🎉"
+            : "Product saved successfully 🎉",
+        );
         onSave?.(data.data.product);
         onClose();
       } catch (error) {
@@ -193,14 +248,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         setLoading(false);
       }
     },
-    [imageList, variants, form, onClose, onSave]
+    [imageList, variants, form, onClose, onSave, product],
   );
 
   const uploadFileList = useMemo(
     () =>
       imageList.map((url, index) => {
         // Ensure url is a string
-        const urlString = typeof url === 'string' ? url : (url?.url || '');
+        const urlString = typeof url === "string" ? url : url?.url || "";
         return {
           uid: index.toString(),
           name: `image-${index}.jpg`,
@@ -208,7 +263,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           url: urlString,
         };
       }),
-    [imageList]
+    [imageList],
   );
 
   useEffect(() => {
@@ -216,7 +271,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       form.resetFields();
     }
   }, [visible, form]);
-  
+
   const tabItems = [
     {
       key: "basic",
@@ -226,17 +281,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           <Form.Item
             name="name"
             label="Product Name"
-            rules={[
-              { required: true, message: "Please enter product name" },
-            ]}
+            rules={[{ required: true, message: "Please enter product name" }]}
           >
-            <Input
-              placeholder="Enter product name"
-              onChange={(e) => {
-                const slug = generateSlug(e.target.value);
-                form.setFieldsValue({ slug });
-              }}
-            />
+            <Input placeholder="Enter product name" />
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-4">
@@ -272,12 +319,15 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-          <Form.Item
+            <Form.Item
               name="category"
               label="Category"
               rules={[{ required: true, message: "Please select category" }]}
             >
-              <Select placeholder="Select category" loading={!categories.length}>
+              <Select
+                placeholder="Select category"
+                loading={!categories.length}
+              >
                 {categories.map((cat) => (
                   <Option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -285,7 +335,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 ))}
               </Select>
             </Form.Item>
- 
+
             <Form.Item
               name="status"
               label="Status"
@@ -299,41 +349,18 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               </Select>
             </Form.Item>
           </div>
- 
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              name="stock"
-              label="Stock Quantity"
-              rules={[
-                { required: true, message: "Please enter stock quantity" },
-              ]}
-            >
-              <InputNumber
-                placeholder="0"
-                min={0}
-                style={{ width: "100%" }}
-              />
-            </Form.Item>
-          </div>
 
           <Form.Item
             name="description"
             label="Description"
-            rules={[
-              { required: true, message: "Please enter description" },
-            ]}
+            rules={[{ required: true, message: "Please enter description" }]}
           >
             <TextArea rows={4} placeholder="Enter product description" />
           </Form.Item>
 
-          <Form.Item
-            name="inStock"
-            label="In Stock"
-            valuePropName="checked"
-            initialValue={true}
-          >
-            <Switch />
-          </Form.Item>
+          <p className="text-xs text-gray-500 -mt-2 mb-0">
+            Stock and availability are set in the Inventory tab.
+          </p>
         </div>
       ),
     },
@@ -352,13 +379,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               onChange={handleImageUpload}
               onRemove={(file) => {
                 // Handle both string URLs and file objects
-                const fileUrl = typeof file === 'string' ? file : (file.url || file.response?.url);
-                const index = imageList.findIndex(
-                  (url) => {
-                    const urlString = typeof url === 'string' ? url : url?.url;
-                    return urlString === fileUrl;
-                  }
-                );
+                const fileUrl =
+                  typeof file === "string"
+                    ? file
+                    : file.url || file.response?.url;
+                const index = imageList.findIndex((url) => {
+                  const urlString = typeof url === "string" ? url : url?.url;
+                  return urlString === fileUrl;
+                });
                 if (index !== -1) {
                   handleRemoveImage(index);
                 }
@@ -374,8 +402,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               )}
             </Upload>
             <p className="text-xs text-gray-500 mt-2">
-              Upload up to 5 images. First image will be the main product
-              image.
+              Upload up to 5 images. First image will be the main product image.
             </p>
           </div>
 
@@ -387,8 +414,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               <div className="grid grid-cols-5 gap-4">
                 {imageList.map((url, index) => {
                   // Ensure url is a string for the img src
-                  const imageUrl = typeof url === 'string' ? url : (url?.url || '');
-                  
+                  const imageUrl =
+                    typeof url === "string" ? url : url?.url || "";
+
                   return (
                     <div key={index} className="relative group">
                       <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100">
@@ -398,7 +426,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                            e.target.src =
+                              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
                           }}
                         />
                       </div>
@@ -430,9 +459,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-gray-900">
-                Product Variants
-              </h3>
+              <h3 className="font-semibold text-gray-900">Product Variants</h3>
               <p className="text-sm text-gray-500">
                 Manage different sizes, colors, and pricing for this product
               </p>
@@ -487,11 +514,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                       <Input
                         value={variant.color}
                         onChange={(e) =>
-                          handleVariantChange(
-                            index,
-                            "color",
-                            e.target.value
-                          )
+                          handleVariantChange(index, "color", e.target.value)
                         }
                         placeholder="Color"
                       />
@@ -565,17 +588,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 { required: true, message: "Please enter stock quantity" },
               ]}
             >
-              <InputNumber
-                placeholder="0"
-                min={0}
-                style={{ width: "100%" }}
-              />
+              <InputNumber placeholder="0" min={0} style={{ width: "100%" }} />
             </Form.Item>
 
             <Form.Item
               name="inStock"
               label="In Stock"
               valuePropName="checked"
+              initialValue={true}
             >
               <Switch />
             </Form.Item>
@@ -589,19 +609,15 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             initialValue={10}
           >
             <Space.Compact style={{ width: "100%" }}>
-              <InputNumber
-                placeholder="10"
-                min={0}
-                style={{ width: "100%" }}
-              />
+              <InputNumber placeholder="10" min={0} style={{ width: "100%" }} />
               <Button disabled>units</Button>
             </Space.Compact>
           </Form.Item>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
-              <strong>Note:</strong> You will receive notifications when
-              stock falls below the threshold.
+              <strong>Note:</strong> You will receive notifications when stock
+              falls below the threshold.
             </p>
           </div>
         </div>
@@ -611,23 +627,32 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       key: "seo",
       label: "SEO",
       children: (
-         <div className="space-y-4">
+        <div className="space-y-4">
           <Form.Item
             name="metaTitle"
             label="Meta Title"
             rules={[{ required: true, message: "Please enter meta title" }]}
-            help="Title for search engines (50-60 characters recommended)"
+            help="Used for SEO (50–60 characters). When creating a product, the URL slug follows meta title until you edit the slug field. When editing, the slug stays the same unless you change it below."
           >
             <Input
               placeholder="Enter meta title"
               maxLength={60}
               showCount
+              onChange={(e) => {
+                const editingId = product?._id || product?.id;
+                if (!editingId) {
+                  form.setFieldsValue({
+                    slug: generateSlug(e.target.value || ""),
+                  });
+                }
+              }}
             />
           </Form.Item>
 
           <Form.Item
             name="slug"
             label="URL Slug"
+            validateTrigger={["onSubmit"]}
             rules={[
               { required: true, message: "Please enter URL slug" },
               {
@@ -635,8 +660,32 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 message:
                   "Slug can only contain lowercase letters, numbers, and hyphens",
               },
+              {
+                validator: async (_, value) => {
+                  const slug = value?.trim()?.toLowerCase();
+                  if (!slug) return;
+                  const editingId = product?._id || product?.id;
+                  try {
+                    const { data } = await axios.get(
+                      `/api/products/${encodeURIComponent(slug)}`,
+                    );
+                    if (data?.success && data?.data?.product) {
+                      const pid = data.data.product.id || data.data.product._id;
+                      if (editingId && String(pid) === String(editingId)) {
+                        return;
+                      }
+                      return Promise.reject(
+                        new Error("A product with this slug already exists"),
+                      );
+                    }
+                  } catch (e) {
+                    if (e?.response?.status === 404) return;
+                    if (e?.response) return;
+                  }
+                },
+              },
             ]}
-            help="URL-friendly version of the product name"
+            help="Auto-filled from meta title; editable if needed"
           >
             <Input
               placeholder="product-name"
@@ -729,10 +778,15 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       onCancel={onClose}
       footer={null}
       width={900}
-      destroyOnHidden={true}   
+      destroyOnHidden={true}
       className="product-form-modal"
     >
-      <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        className="mt-4"
+      >
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
 
         <Divider />

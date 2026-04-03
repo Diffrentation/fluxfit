@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,12 +18,20 @@ import {
   IconCheck,
   IconArrowUp,
 } from "@tabler/icons-react";
-import { Button, message } from "antd";
+import { Button, message, Spin } from "antd";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import axios from "axios";
 import { addToRecentlyViewed } from "@/lib/recentlyViewed";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 import ProductCard from "@/components/ui/ProductCard";
+import {
+  normalizeProductDetailForPage,
+  normalizeProductForCard,
+  findMatchingProductVariant,
+  getVariantAwarePricing,
+  getProductDetailPath,
+} from "@/lib/publicProductsApi";
 
 // Format price helper - prices are already in INR
 const formatPrice = (price) => {
@@ -40,100 +48,105 @@ function ProductDetails() {
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const infoSectionRef = useRef(null);
   const { addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist(); // Assuming WishlistContext is available
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
-  // Fetch product details
+  const [otherProducts, setOtherProducts] = useState([]);
+
+  const isOtherThanCurrentProduct = (p, routeParam, excludeProduct) => {
+    const pid = String(p._id || p.id || "");
+    const rid = String(routeParam || "");
+    if (excludeProduct) {
+      const exId = String(excludeProduct._id || excludeProduct.id || "");
+      if (pid === exId) return false;
+      if (excludeProduct.slug && p.slug === excludeProduct.slug) return false;
+    }
+    if (pid === rid) return false;
+    if (p.slug && p.slug === rid) return false;
+    return true;
+  };
+
+  const fetchRelatedProducts = async (categoryId, signal, excludeProduct) => {
+    try {
+      const { data } = await axios.get(
+        `/api/products?category=${encodeURIComponent(categoryId)}&limit=4&status=active`,
+        { signal }
+      );
+      if (data.success && Array.isArray(data.data?.products)) {
+        setRelatedProducts(
+          data.data.products
+            .filter((p) => isOtherThanCurrentProduct(p, params.id, excludeProduct))
+            .map((p) => normalizeProductForCard(p))
+            .filter(Boolean)
+        );
+      }
+    } catch (error) {
+      if (axios.isCancel?.(error) || error.name === "CanceledError") return;
+      console.error("Failed to fetch related products", error);
+    }
+  };
+
   useEffect(() => {
+    const ac = new AbortController();
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(`/api/products/${params.id}`);
-        if (data.success) {
+        const { data } = await axios.get(`/api/products/${params.id}`, {
+          signal: ac.signal,
+        });
+        if (data.success && data.data?.product) {
           const productData = data.data.product;
-          
-          // Transform API data to match component expectations if needed
-          // For now assuming API returns compatible structure or we adjust usage
-          const transformProduct = {
-            ...productData,
-            id: productData._id, // Ensure ID is accessible as 'id' for compatibility
-            images: productData.images?.map(img => img.url) || [],
-            sizes: productData.variants?.map(v => v.size).filter((v, i, a) => a.indexOf(v) === i) || [],
-            colors: productData.variants?.map(v => v.color).filter((v, i, a) => a.indexOf(v) === i) || [],
-            price: productData.basePrice,
-            // Fallbacks for missing fields
-            features: productData.features || [], 
-            returnPolicy: productData.returnPolicy || "30-day return policy",
-            shipping: productData.shippingInfo || "Free shipping available",
-          };
-          
-          setProduct(transformProduct);
-          setSelectedSize(transformProduct.sizes?.[0] || "");
-          setSelectedColor(transformProduct.colors?.[0] || "");
-          
-          // Fetch related products (simple implementation: same category)
-          if (productData.category) {
-             fetchRelatedProducts(productData.category._id || productData.category);
-          }
+          const normalized = normalizeProductDetailForPage(productData);
+          setProduct(normalized);
+          setSelectedSize(normalized.sizes?.[0] || "One Size");
+          setSelectedColor(normalized.colors?.[0] || "");
+
+          const cat = productData.category;
+          const categoryId =
+            typeof cat === "object" && cat !== null
+              ? cat.id || cat._id
+              : cat;
+          if (categoryId)
+            fetchRelatedProducts(categoryId, ac.signal, productData);
         } else {
-             message.error("Product not found");
+          message.error("Product not found");
+          setProduct(null);
         }
       } catch (error) {
+        if (axios.isCancel?.(error) || error.name === "CanceledError") return;
         console.error("Failed to fetch product:", error);
-        message.error("Failed to load product details");
+        if (error.response?.status === 404) {
+          setProduct(null);
+          message.error("Product not found");
+        } else {
+          message.error("Failed to load product details");
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    if (params.id) {
-      fetchProduct();
-    }
+    if (params.id) fetchProduct();
+    return () => ac.abort();
   }, [params.id]);
 
-  // Fetch related products
-  const fetchRelatedProducts = async (categoryId) => {
-      try {
-          const { data } = await axios.get(`/api/products?category=${categoryId}&limit=4`);
-          if (data.success) {
-              setRelatedProducts(data.data.products.filter(p => p._id !== params.id).map(p => ({
-                  ...p,
-                  id: p._id,
-                  image: p.images?.[0]?.url || "",
-                  price: p.basePrice
-              })));
-          }
-      } catch (error) {
-          console.error("Failed to fetch related products", error);
-      }
-  };
-
-  // Track product view in recently viewed
   useEffect(() => {
-    if (product && product.id) {
-      addToRecentlyViewed(product.id);
-    }
+    if (product && product.id) addToRecentlyViewed(product.id);
   }, [product]);
 
-  const [otherProducts, setOtherProducts] = useState([]);
-
-  // ... (fetchProduct useEffect is already here from previous step, assuming it's correct)
-
-  // Fetch other products (explore more)
   const fetchOtherProducts = async () => {
     try {
-      const { data } = await axios.get(`/api/products?limit=8`);
-      if (data.success) {
-        setOtherProducts(data.data.products.filter(p => p._id !== params.id).map(p => ({
-            ...p,
-            id: p._id,
-            image: p.images?.[0]?.url || "",
-            price: p.basePrice
-        })));
+      const { data } = await axios.get(`/api/products?limit=8&status=active`);
+      if (data.success && Array.isArray(data.data?.products)) {
+        setOtherProducts(
+          data.data.products
+            .filter((p) => isOtherThanCurrentProduct(p, params.id, product))
+            .map((p) => normalizeProductForCard(p))
+            .filter(Boolean)
+        );
       }
     } catch (error) {
       console.error("Failed to fetch other products", error);
@@ -141,11 +154,78 @@ function ProductDetails() {
   };
 
   useEffect(() => {
-    fetchOtherProducts();
+    if (params.id) fetchOtherProducts();
+  }, [params.id]);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleQuickView = (product) => {
-    router.push(`/product-details/${product.id}`);
+  const selectedVariant = useMemo(
+    () =>
+      findMatchingProductVariant(
+        product?.variants,
+        selectedSize,
+        selectedColor
+      ),
+    [product?.variants, selectedSize, selectedColor]
+  );
+
+  const displayPricing = useMemo(
+    () => getVariantAwarePricing(product, selectedVariant),
+    [product, selectedVariant]
+  );
+
+  const handleQuickView = (p) => {
+    router.push(getProductDetailPath(p));
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addToCart(
+      {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        price: displayPricing.price,
+        image: product.images?.[0],
+        images: product.images,
+      },
+      {
+        size: selectedSize || "One Size",
+        color: selectedColor || "default",
+        quantity,
+      }
+    );
+    message.success("Added to cart");
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const productWishlisted = product ? isInWishlist(product.id) : false;
+
+  const toggleWishlist = () => {
+    if (!product) return;
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id);
+      message.success("Removed from wishlist");
+    } else {
+      addToWishlist({
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        price: displayPricing.price,
+        image: product.images?.[0],
+        images: product.images,
+        originalPrice: displayPricing.originalPrice ?? product.originalPrice,
+        discount: displayPricing.discountPercent ?? product.discount,
+      });
+      message.success("Added to wishlist");
+    }
   };
 
   const colorMap = {
@@ -164,6 +244,26 @@ function ProductDetails() {
     olive: "bg-olive-500",
     maroon: "bg-red-900",
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50 pt-10">
+        <Spin size="large" />
+        <p className="text-gray-600 text-sm">Loading product…</p>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gray-50 pt-10 px-4">
+        <p className="text-gray-800">Product not found</p>
+        <Button type="primary" onClick={() => router.push("/product-list")}>
+          Browse products
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen pt-10">
@@ -188,7 +288,7 @@ function ProductDetails() {
             Home
           </motion.button>
           <span>/</span>
-          <span className="text-gray-900">{product.category}</span>
+          <span className="text-gray-900">{product.category || "—"}</span>
           <span>/</span>
           <span className="text-gray-900">{product.name}</span>
         </motion.div>
@@ -315,20 +415,22 @@ function ProductDetails() {
                 </div>
               </motion.div>
 
-              {/* Price Section */}
+              {/* Price Section (updates when size / color variant changes) */}
               <div className="border-b border-gray-200 pb-4">
                 <div className="flex items-baseline gap-3 mb-2">
                   <span className="text-3xl lg:text-4xl font-bold text-gray-900">
-                    ₹{formatPrice(product.price)}
+                    ₹{formatPrice(displayPricing.price)}
                   </span>
-                  {product.originalPrice && (
+                  {displayPricing.originalPrice != null && (
                     <>
                       <span className="text-xl text-gray-500 line-through">
-                        ₹{formatPrice(product.originalPrice)}
+                        ₹{formatPrice(displayPricing.originalPrice)}
                       </span>
-                      <span className="px-2 py-1 bg-red-100 text-red-600 rounded text-sm font-semibold">
-                        {product.discount}% off
-                      </span>
+                      {displayPricing.discountPercent > 0 && (
+                        <span className="px-2 py-1 bg-red-100 text-red-600 rounded text-sm font-semibold">
+                          {displayPricing.discountPercent}% off
+                        </span>
+                      )}
                     </>
                   )}
                 </div>
@@ -412,7 +514,7 @@ function ProductDetails() {
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setSelectedColor(color)}
                         className={`w-10 h-10 rounded-full ${
-                          colorMap[color]
+                          colorMap[color] || "bg-gray-200"
                         } border-2 transition-all ${
                           selectedColor === color
                             ? "ring-2 ring-blue-500 ring-offset-2 scale-110"
@@ -536,7 +638,7 @@ function ProductDetails() {
                     size="large"
                     onClick={handleAddToCart}
                     className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-600 hover:bg-blue-50 px-8"
-                    disabled={!product.inStock}
+                    disabled={!displayPricing.inStock}
                     icon={<IconShoppingCart className="w-5 h-5" />}
                   >
                     ADD TO CART
@@ -546,7 +648,7 @@ function ProductDetails() {
                     size="large"
                     onClick={handleAddToCart}
                     className="px-8"
-                    disabled={!product.inStock}
+                    disabled={!displayPricing.inStock}
                   >
                     BUY NOW
                   </Button>
@@ -561,25 +663,25 @@ function ProductDetails() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsWishlisted(!isWishlisted)}
+                    onClick={toggleWishlist}
                     className={`flex items-center gap-2 px-4 py-2 border-2 rounded transition-colors ${
-                      isWishlisted
+                      productWishlisted
                         ? "border-red-500 bg-red-50 text-red-600"
                         : "border-gray-300 text-gray-700 hover:border-gray-400"
                     }`}
                   >
                     <motion.div
-                      animate={isWishlisted ? { scale: [1, 1.3, 1] } : {}}
+                      animate={productWishlisted ? { scale: [1, 1.3, 1] } : {}}
                       transition={{ duration: 0.3 }}
                     >
                       <IconHeart
                         className={`w-5 h-5 ${
-                          isWishlisted ? "fill-red-500 text-red-500" : ""
+                          productWishlisted ? "fill-red-500 text-red-500" : ""
                         }`}
                       />
                     </motion.div>
                     <span className="text-sm font-medium">
-                      {isWishlisted ? "Wishlisted" : "Wishlist"}
+                      {productWishlisted ? "Wishlisted" : "Wishlist"}
                     </span>
                   </motion.button>
                   <motion.button

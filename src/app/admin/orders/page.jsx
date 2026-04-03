@@ -1,16 +1,28 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
+import axios from "axios";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import OrderList from "@/components/Admin/Orders/OrderList";
 import OrderDetails from "@/components/Admin/Orders/OrderDetails";
-import { Input, Select, DatePicker, message, Modal } from "antd";
+import { Input, Select, DatePicker, message, Modal, Spin } from "antd";
 import { IconSearch } from "@tabler/icons-react";
+import { mapApiOrderToLegacyUi } from "@/lib/order-display";
+import {
+  fetchAdminOrders,
+  getOrdersAuthHeaders,
+} from "@/lib/orders-api-client";
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+
+const PARTNER_NAMES = {
+  1: "Delhivery",
+  2: "BlueDart",
+  3: "FedEx",
+};
 
 const OrderManagementPage = () => {
   const [orders, setOrders] = useState([]);
@@ -19,50 +31,73 @@ const OrderManagementPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Load orders on mount
-  useEffect(() => {
-    // Load orders from localStorage
+  const loadOrders = useCallback(async () => {
+    const h = getOrdersAuthHeaders();
+    if (!h.Authorization) {
+      message.error("Admin session required");
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     try {
-      const storedOrders = localStorage.getItem("orders");
-      if (storedOrders) {
-        const parsedOrders = JSON.parse(storedOrders);
-        setOrders(parsedOrders);
+      const data = await fetchAdminOrders({ page: 1, limit: 200 });
+      console.log("[Admin Orders] GET /api/admin/orders response", data);
+
+      const rawList =
+        data?.orders ??
+        data?.data?.orders ??
+        [];
+
+      if (!data?.success) {
+        message.error(data?.message || "Failed to load orders");
+        setOrders([]);
+        return;
       }
-    } catch (error) {
-      console.error("Error loading orders:", error);
-      message.error("Failed to load orders");
+
+      const mapped = rawList
+        .map((row) => {
+          const legacy = mapApiOrderToLegacyUi(row);
+          if (!legacy) return null;
+          if (row.user?.email) legacy.address.email = row.user.email;
+          return legacy;
+        })
+        .filter(Boolean);
+
+      setOrders(mapped);
+      setSelectedOrder((prev) => {
+        if (!prev) return null;
+        return mapped.find((o) => o.orderId === prev.orderId) ?? null;
+      });
+    } catch (err) {
+      console.error("[Admin Orders] load", err);
+      message.error(
+        err.response?.data?.message || err.message || "Failed to load orders",
+      );
+      setOrders([]);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Update selected order when orders change
   useEffect(() => {
-    if (selectedOrder) {
-      const updatedOrder = orders.find(
-        (o) => o.orderId === selectedOrder.orderId
-      );
-      if (
-        updatedOrder &&
-        JSON.stringify(updatedOrder) !== JSON.stringify(selectedOrder)
-      ) {
-        setSelectedOrder(updatedOrder);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders]);
+    loadOrders();
+  }, [loadOrders]);
 
-  // Filter orders using useMemo for better performance
   const filteredOrders = useMemo(() => {
     let filtered = [...orders];
 
     if (searchQuery) {
+      const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (order) =>
-          order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.address?.name
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          order.address?.phone?.includes(searchQuery)
+          order.orderId?.toLowerCase().includes(q) ||
+          order.address?.name?.toLowerCase().includes(q) ||
+          order.address?.email?.toLowerCase().includes(q) ||
+          order.address?.phone?.includes(q),
       );
     }
 
@@ -80,95 +115,91 @@ const OrderManagementPage = () => {
     return filtered;
   }, [orders, searchQuery, statusFilter, dateRange]);
 
-  const handleStatusChange = useCallback((orderId, newStatus, note) => {
-    setOrders((prevOrders) => {
-      const updatedOrders = prevOrders.map((order) =>
-        order.orderId === orderId
-          ? {
-              ...order,
-              status: newStatus,
-              statusHistory: [
-                ...(order.statusHistory || []),
-                {
-                  status: newStatus,
-                  timestamp: new Date().toISOString(),
-                  note: note || `Status changed to ${newStatus}`,
-                },
-              ],
-            }
-          : order
-      );
+  const handleStatusChange = useCallback(
+    async (orderId, newStatus, note) => {
+      const headers = getOrdersAuthHeaders();
       try {
-        localStorage.setItem("orders", JSON.stringify(updatedOrders));
-      } catch (error) {
-        console.error("Error saving orders:", error);
+        const { data } = await axios.put(
+          `/api/admin/orders/${encodeURIComponent(orderId)}/status`,
+          { status: newStatus, note },
+          { headers },
+        );
+        if (!data?.success) {
+          message.error(data?.message || "Status update failed");
+          return;
+        }
+        message.success("Order status updated");
+        await loadOrders();
+      } catch (err) {
+        message.error(
+          err.response?.data?.message ||
+            err.message ||
+            "Status update failed",
+        );
       }
-      return updatedOrders;
-    });
-    message.success("Order status updated successfully");
-  }, []);
-
-  const handleAssignDeliveryPartner = useCallback((orderId, partnerId) => {
-    setOrders((prevOrders) => {
-      const updatedOrders = prevOrders.map((order) =>
-        order.orderId === orderId
-          ? { ...order, deliveryPartner: partnerId }
-          : order
-      );
-      try {
-        localStorage.setItem("orders", JSON.stringify(updatedOrders));
-      } catch (error) {
-        console.error("Error saving orders:", error);
-      }
-      return updatedOrders;
-    });
-    message.success("Delivery partner assigned successfully");
-  }, []);
-
-  const handleCancelOrder = useCallback(
-    (orderId, reason) => {
-      handleStatusChange(orderId, "cancelled", reason || "Order cancelled");
-      message.success("Order cancelled successfully");
     },
-    [handleStatusChange]
+    [loadOrders],
   );
 
-  const handlePartialCancel = useCallback((orderId, itemsToCancel) => {
-    setOrders((prevOrders) => {
-      const updatedOrders = prevOrders.map((order) => {
-        if (order.orderId === orderId) {
-          const updatedItems = order.items.filter(
-            (item) => !itemsToCancel.includes(item.id || item.name)
-          );
-          return {
-            ...order,
-            items: updatedItems,
-            statusHistory: [
-              ...(order.statusHistory || []),
-              {
-                status: order.status,
-                timestamp: new Date().toISOString(),
-                note: `Partial cancellation: ${itemsToCancel.length} item(s) cancelled`,
-              },
-            ],
-          };
-        }
-        return order;
-      });
+  const handleAssignDeliveryPartner = useCallback(
+    async (orderId, partnerId) => {
+      const headers = getOrdersAuthHeaders();
+      const partner =
+        PARTNER_NAMES[partnerId] || String(partnerId || "Partner");
       try {
-        localStorage.setItem("orders", JSON.stringify(updatedOrders));
-      } catch (error) {
-        console.error("Error saving orders:", error);
+        const { data } = await axios.put(
+          `/api/admin/orders/${encodeURIComponent(orderId)}/assign-delivery`,
+          { partner },
+          { headers },
+        );
+        if (!data?.success) {
+          message.error(data?.message || "Assignment failed");
+          return;
+        }
+        message.success("Delivery partner assigned");
+        await loadOrders();
+      } catch (err) {
+        message.error(
+          err.response?.data?.message ||
+            err.message ||
+            "Assignment failed",
+        );
       }
-      return updatedOrders;
-    });
-    message.success("Partial order cancellation processed");
+    },
+    [loadOrders],
+  );
+
+  const handleCancelOrder = useCallback(
+    async (orderId, reason) => {
+      const headers = getOrdersAuthHeaders();
+      try {
+        const { data } = await axios.post(
+          `/api/admin/orders/${encodeURIComponent(orderId)}/cancel`,
+          { reason: reason || "Cancelled by admin" },
+          { headers },
+        );
+        if (!data?.success) {
+          message.error(data?.message || "Cancel failed");
+          return;
+        }
+        message.success("Order cancelled");
+        await loadOrders();
+      } catch (err) {
+        message.error(
+          err.response?.data?.message || err.message || "Cancel failed",
+        );
+      }
+    },
+    [loadOrders],
+  );
+
+  const handlePartialCancel = useCallback(() => {
+    message.info("Partial cancel: use the admin API or support workflow.");
   }, []);
 
   const handleSelectOrder = useCallback((order) => {
     setSelectedOrder(order);
-    // Show modal on mobile/tablet
-    if (window.innerWidth < 1024) {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
       setIsDetailsModalVisible(true);
     }
   }, []);
@@ -176,6 +207,35 @@ const OrderManagementPage = () => {
   const handleCloseDetails = useCallback(() => {
     setIsDetailsModalVisible(false);
   }, []);
+
+  const handleGenerateInvoice = useCallback(
+    async (orderId) => {
+      const headers = getOrdersAuthHeaders();
+      try {
+        const res = await fetch(
+          `/api/admin/orders/${encodeURIComponent(orderId)}/invoice`,
+          { headers },
+        );
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.message || `HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Invoice-${orderId}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        message.success("Invoice downloaded");
+      } catch (err) {
+        message.error(err.message || "Invoice download failed");
+      }
+    },
+    [],
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
@@ -195,12 +255,11 @@ const OrderManagementPage = () => {
                     Order Management
                   </h1>
                   <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300">
-                    View and manage all customer orders
+                    View and manage all customer orders (from database)
                   </p>
                 </div>
               </div>
 
-              {/* Filters */}
               <div className="bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-3 sm:mb-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                   <div className="sm:col-span-2 lg:col-span-1">
@@ -242,51 +301,56 @@ const OrderManagementPage = () => {
                 </div>
               </div>
 
-              {/* Desktop Layout: Side by side */}
-              <div className="hidden lg:grid lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                  <OrderList
-                    orders={filteredOrders}
-                    onSelect={handleSelectOrder}
-                    selectedOrderId={selectedOrder?.orderId}
-                    onStatusChange={handleStatusChange}
-                  />
+              {loading ? (
+                <div className="flex justify-center py-16">
+                  <Spin size="large" />
                 </div>
-                <div className="lg:col-span-1">
-                  {selectedOrder ? (
-                    <OrderDetails
-                      order={selectedOrder}
-                      onStatusChange={handleStatusChange}
-                      onAssignDeliveryPartner={handleAssignDeliveryPartner}
-                      onCancel={handleCancelOrder}
-                      onPartialCancel={handlePartialCancel}
-                      onGenerateInvoice={() => {
-                        message.success("Invoice generated successfully");
-                      }}
-                    />
-                  ) : (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
-                      Select an order to view details
+              ) : (
+                <>
+                  <div className="hidden lg:grid lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2">
+                      <OrderList
+                        orders={filteredOrders}
+                        onSelect={handleSelectOrder}
+                        selectedOrderId={selectedOrder?.orderId}
+                        onStatusChange={handleStatusChange}
+                      />
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div className="lg:col-span-1">
+                      {selectedOrder ? (
+                        <OrderDetails
+                          order={selectedOrder}
+                          onStatusChange={handleStatusChange}
+                          onAssignDeliveryPartner={handleAssignDeliveryPartner}
+                          onCancel={handleCancelOrder}
+                          onPartialCancel={handlePartialCancel}
+                          onGenerateInvoice={() =>
+                            handleGenerateInvoice(selectedOrder.orderId)
+                          }
+                        />
+                      ) : (
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
+                          Select an order to view details
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Mobile/Tablet Layout: Full width list */}
-              <div className="lg:hidden">
-                <OrderList
-                  orders={filteredOrders}
-                  onSelect={handleSelectOrder}
-                  selectedOrderId={selectedOrder?.orderId}
-                  onStatusChange={handleStatusChange}
-                />
-              </div>
+                  <div className="lg:hidden">
+                    <OrderList
+                      orders={filteredOrders}
+                      onSelect={handleSelectOrder}
+                      selectedOrderId={selectedOrder?.orderId}
+                      onStatusChange={handleStatusChange}
+                    />
+                  </div>
+                </>
+              )}
             </motion.div>
           </div>
         </AdminContent>
       </div>
 
-      {/* Mobile/Tablet Order Details Modal */}
       <Modal
         title={
           selectedOrder ? `Order #${selectedOrder.orderId}` : "Order Details"
@@ -302,21 +366,13 @@ const OrderManagementPage = () => {
         {selectedOrder && (
           <OrderDetails
             order={selectedOrder}
-            onStatusChange={(orderId, status, note) => {
-              handleStatusChange(orderId, status, note);
-            }}
-            onAssignDeliveryPartner={(orderId, partnerId) => {
-              handleAssignDeliveryPartner(orderId, partnerId);
-            }}
-            onCancel={(orderId, reason) => {
-              handleCancelOrder(orderId, reason);
-            }}
-            onPartialCancel={(orderId, items) => {
-              handlePartialCancel(orderId, items);
-            }}
-            onGenerateInvoice={() => {
-              message.success("Invoice generated successfully");
-            }}
+            onStatusChange={handleStatusChange}
+            onAssignDeliveryPartner={handleAssignDeliveryPartner}
+            onCancel={handleCancelOrder}
+            onPartialCancel={handlePartialCancel}
+            onGenerateInvoice={() =>
+              handleGenerateInvoice(selectedOrder.orderId)
+            }
             onClose={handleCloseDetails}
           />
         )}

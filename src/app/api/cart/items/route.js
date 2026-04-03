@@ -2,29 +2,58 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Cart from "@/models/cart.model";
 import Product from "@/models/product.model";
+import "@/models/category.model";
 import { authenticateUser } from "@/lib/auth";
-import mongoose from "mongoose";
+import { isStrictMongoObjectIdString } from "@/lib/mongoose-id";
 
 /**
  * POST /api/cart/items
- * Add item to cart
+ * Add item to cart (authenticated). Cart document is created if missing.
  */
 export async function POST(request) {
   try {
-    // Authenticate user
     const { error, user } = await authenticateUser(request);
     if (error) {
       return error;
     }
 
-    // Connect to database
-    await connectDB();
+    if (!user?._id) {
+      console.error("[api/cart/items] authenticateUser returned no user._id");
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Authentication failed",
+          errors: [{ field: "auth", message: "User could not be resolved" }],
+        },
+        { status: 401 },
+      );
+    }
 
-    // Parse request body
-    const body = await request.json();
-    const { productId, variant = {}, quantity = 1 } = body;
+    const userId = user._id.toString();
 
-    // Validate required fields
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid JSON body",
+          errors: [{ field: "body", message: "Request body must be valid JSON" }],
+        },
+        { status: 400 },
+      );
+    }
+
+    const rawVariant = body?.variant && typeof body.variant === "object" ? body.variant : {};
+    const productIdRaw = body?.productId;
+    const quantityRaw = body?.quantity;
+
+    const productId =
+      productIdRaw != null ? String(productIdRaw).trim() : "";
+
+    console.log("[api/cart/items] POST", { productId, userId });
+
     const errors = [];
 
     if (!productId) {
@@ -32,26 +61,29 @@ export async function POST(request) {
         field: "productId",
         message: "Product ID is required",
       });
-    } else if (!mongoose.Types.ObjectId.isValid(productId)) {
+    } else if (!isStrictMongoObjectIdString(productId)) {
       errors.push({
         field: "productId",
-        message: "Invalid product ID format",
+        message:
+          "Invalid product ID: must be a 24-character hexadecimal MongoDB ObjectId",
       });
     }
 
-    if (quantity === undefined || quantity === null) {
+    if (quantityRaw === undefined || quantityRaw === null) {
       errors.push({
         field: "quantity",
         message: "Quantity is required",
       });
-    } else if (isNaN(quantity) || quantity < 1) {
-      errors.push({
-        field: "quantity",
-        message: "Quantity must be a number greater than 0",
-      });
+    } else {
+      const qty = Number(quantityRaw);
+      if (!Number.isFinite(qty) || qty < 1 || !Number.isInteger(qty)) {
+        errors.push({
+          field: "quantity",
+          message: "Quantity must be a whole number greater than 0",
+        });
+      }
     }
 
-    // Return validation errors if any
     if (errors.length > 0) {
       return NextResponse.json(
         {
@@ -59,11 +91,25 @@ export async function POST(request) {
           message: "Validation failed",
           errors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Find product
+    const quantity = Number(quantityRaw);
+
+    const variant = {
+      size:
+        rawVariant.size != null && String(rawVariant.size).trim() !== ""
+          ? String(rawVariant.size).trim()
+          : null,
+      color:
+        rawVariant.color != null && String(rawVariant.color).trim() !== ""
+          ? String(rawVariant.color).trim()
+          : null,
+    };
+
+    await connectDB();
+
     const product = await Product.findOne({
       _id: productId,
       isDeleted: false,
@@ -75,12 +121,19 @@ export async function POST(request) {
         {
           success: false,
           message: "Product not found or not available",
+          errors: [
+            {
+              field: "productId",
+              message: "No active product exists for this id",
+            },
+          ],
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Check if product is in stock
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+
     if (!product.inStock) {
       return NextResponse.json(
         {
@@ -93,24 +146,20 @@ export async function POST(request) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Determine price based on variant or base price
     let itemPrice = product.basePrice;
 
-    // If variant is specified, find matching variant
     if (variant.size || variant.color) {
-      const matchingVariant = product.variants.find((v) => {
+      const matchingVariant = variants.find((v) => {
         const sizeMatch = !variant.size || v.size === variant.size;
         const colorMatch = !variant.color || v.color === variant.color;
         return sizeMatch && colorMatch && v.isActive !== false;
       });
 
-      if (matchingVariant) {
-        itemPrice = matchingVariant.price;
-      } else {
+      if (!matchingVariant) {
         return NextResponse.json(
           {
             success: false,
@@ -118,24 +167,30 @@ export async function POST(request) {
             errors: [
               {
                 field: "variant",
-                message: `Variant with size "${variant.size || "N/A"}" and color "${variant.color || "N/A"}" not found`,
+                message: `Variant with size "${variant.size ?? "N/A"}" and color "${variant.color ?? "N/A"}" not found`,
               },
             ],
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
+
+      itemPrice = matchingVariant.price;
     }
 
-    // Check stock availability
-    const availableStock = variant.size || variant.color
-      ? product.variants.find(
-          (v) =>
-            (!variant.size || v.size === variant.size) &&
-            (!variant.color || v.color === variant.color) &&
-            v.isActive !== false
-        )?.stock || 0
-      : product.stock;
+    const variantForStock =
+      variant.size || variant.color
+        ? variants.find(
+            (v) =>
+              (!variant.size || v.size === variant.size) &&
+              (!variant.color || v.color === variant.color) &&
+              v.isActive !== false,
+          )
+        : null;
+
+    const availableStock = variantForStock
+      ? variantForStock.stock ?? 0
+      : product.stock ?? 0;
 
     if (availableStock < quantity) {
       return NextResponse.json(
@@ -149,48 +204,76 @@ export async function POST(request) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Get or create cart
     const cart = await Cart.getOrCreate(user._id);
 
-    // Add item to cart
     await cart.addItem(productId, variant, quantity, itemPrice);
 
-    // Populate cart with product details
     await cart.populate({
       path: "items.product",
-      select: "name slug images basePrice originalPrice inStock stock",
+      select: "name slug images basePrice originalPrice inStock stock category",
       populate: {
         path: "category",
         select: "name slug",
       },
     });
 
-    // Find the added item
-    const addedItem = cart.items.find(
-      (item) =>
-        item.product._id.toString() === productId.toString() &&
-        item.variant.size === (variant.size || null) &&
-        item.variant.color === (variant.color || null)
-    );
+    const itemProductKey = (item) => {
+      const p = item.product;
+      if (!p) return null;
+      return p._id != null ? p._id.toString() : String(p);
+    };
 
-    // Format response
+    const addedItem = cart.items.find((item) => {
+      if (itemProductKey(item) !== productId) return false;
+      const s = item.variant?.size ?? null;
+      const c = item.variant?.color ?? null;
+      return s === variant.size && c === variant.color;
+    });
+
+    if (!addedItem) {
+      console.error("[api/cart/items] added line not found after save", {
+        productId,
+        userId,
+        itemCount: cart.items.length,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Cart updated but line item could not be read back",
+          errors: [{ field: "cart", message: "Internal cart state error" }],
+        },
+        { status: 500 },
+      );
+    }
+
+    const populatedProduct = addedItem.product;
     const primaryImage =
-      product.images?.find((img) => img.isPrimary)?.url ||
-      product.images?.[0]?.url ||
+      populatedProduct?.images?.find((img) => img.isPrimary)?.url ||
+      populatedProduct?.images?.[0]?.url ||
       null;
 
-    // Calculate cart totals
+    const category =
+      populatedProduct?.category &&
+      typeof populatedProduct.category === "object" &&
+      populatedProduct.category.name
+        ? {
+            id: populatedProduct.category._id,
+            name: populatedProduct.category.name,
+            slug: populatedProduct.category.slug,
+          }
+        : null;
+
     const subtotal = cart.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
 
     let discountAmount = 0;
-    if (cart.coupon && cart.coupon.code) {
+    if (cart.coupon?.code) {
       if (cart.coupon.type === "percentage") {
         discountAmount = (subtotal * cart.coupon.discount) / 100;
       } else {
@@ -209,23 +292,17 @@ export async function POST(request) {
           item: {
             id: addedItem._id,
             product: {
-              id: product._id,
-              name: product.name,
-              slug: product.slug,
+              id: populatedProduct?._id ?? product._id,
+              name: populatedProduct?.name ?? product.name,
+              slug: populatedProduct?.slug ?? product.slug,
               image: primaryImage,
-              category: product.category
-                ? {
-                    id: product.category._id,
-                    name: product.category.name,
-                    slug: product.category.slug,
-                  }
-                : null,
-              inStock: product.inStock,
-              stock: product.stock,
+              category,
+              inStock: populatedProduct?.inStock ?? product.inStock,
+              stock: populatedProduct?.stock ?? product.stock,
             },
             variant: {
-              size: addedItem.variant.size || null,
-              color: addedItem.variant.color || null,
+              size: addedItem.variant?.size ?? null,
+              color: addedItem.variant?.color ?? null,
             },
             quantity: addedItem.quantity,
             price: addedItem.price,
@@ -233,13 +310,13 @@ export async function POST(request) {
             addedAt: addedItem.addedAt,
           },
           cart: {
-            itemCount: itemCount,
-            subtotal: subtotal,
-            total: total,
+            itemCount,
+            subtotal,
+            total,
           },
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Add item to cart error:", error);
@@ -249,8 +326,7 @@ export async function POST(request) {
         message:
           error.message || "Failed to add item to cart. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

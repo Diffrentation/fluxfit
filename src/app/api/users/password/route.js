@@ -32,7 +32,7 @@ export async function PUT(request) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,7 +49,7 @@ export async function PUT(request) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,7 +65,7 @@ export async function PUT(request) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -82,7 +82,7 @@ export async function PUT(request) {
             },
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -100,7 +100,7 @@ export async function PUT(request) {
             },
           ],
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -117,7 +117,7 @@ export async function PUT(request) {
           message: "Your password has been updated successfully",
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Change password error:", error);
@@ -135,7 +135,7 @@ export async function PUT(request) {
           message: "Validation error",
           errors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -145,7 +145,7 @@ export async function PUT(request) {
         message:
           error.message || "Failed to change password. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

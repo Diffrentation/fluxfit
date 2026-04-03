@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { isLoggedInForCheckout } from "@/lib/checkout-order";
 import {
   IconArrowLeft,
   IconMapPin,
@@ -35,6 +36,14 @@ const CheckoutPage = () => {
     }
   }, [cartItems, router]);
 
+  useEffect(() => {
+    if (cartItems.length === 0) return;
+    if (!isLoggedInForCheckout()) {
+      message.info("Sign in to complete checkout and sync your cart with your account.");
+      router.push("/auth/login?returnUrl=/checkout");
+    }
+  }, [cartItems.length, router]);
+
   const steps = [
     {
       title: "Delivery Address",
@@ -65,8 +74,10 @@ const CheckoutPage = () => {
 
   const handleOrderPlace = (order) => {
     setOrderData(order);
-    // Navigate to order confirmation
-    router.push(`/checkout/confirmation?orderId=${order.orderId}`);
+    const ref = order?.orderNumber || order?.orderId;
+    router.push(
+      `/checkout/confirmation?orderNumber=${encodeURIComponent(ref || "")}`,
+    );
   };
 
   const handleBack = () => {

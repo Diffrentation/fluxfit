@@ -41,8 +41,13 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Parse request body (optional itemIds to reorder specific items)
-    const body = await request.json();
+    let body = {};
+    try {
+      const text = await request.text();
+      if (text?.trim()) body = JSON.parse(text);
+    } catch {
+      body = {};
+    }
     const { itemIds } = body || {};
 
     // Build query - try as ObjectId first, then as order number

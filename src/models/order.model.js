@@ -84,7 +84,6 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -231,7 +230,6 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ "payment.status": 1, status: 1 });
-orderSchema.index({ orderNumber: 1 });
 
 // Virtual for item count
 orderSchema.virtual("itemCount").get(function () {
@@ -336,19 +334,18 @@ orderSchema.methods.processRefund = function (itemId = null, amount = null) {
   this.updateStatus("refunded", "Refund processed");
 };
 
-// Pre-save middleware
-orderSchema.pre("save", async function (next) {
-  // Generate order number if new
+// Runs before required-field validation so orderNumber / subtotal / total exist on first save.
+orderSchema.pre("validate", function () {
   if (this.isNew && !this.orderNumber) {
     this.orderNumber = this.constructor.generateOrderNumber();
   }
 
-  // Calculate totals
   if (this.isModified("items") || this.isModified("coupon") || this.isNew) {
     this.calculateTotals();
   }
+});
 
-  // Add initial status to history
+orderSchema.pre("save", function () {
   if (this.isNew) {
     this.statusHistory.push({
       status: this.status,
@@ -356,10 +353,8 @@ orderSchema.pre("save", async function (next) {
       note: "Order created",
     });
   }
-
-  next();
 });
 
-const Order = mongoose.model("Order", orderSchema);
+const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 export default Order;
 

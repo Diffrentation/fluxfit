@@ -180,13 +180,19 @@ categorySchema.statics.getFlatList = async function () {
   return buildTree();
 };
 
-// Pre-save middleware to generate slug
-categorySchema.pre("save", async function () {
-  if (this.isModified("name") && !this.slug) {
-    this.slug = this.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+// Generate slug before validation so `required: true` on slug is satisfied (validate runs before save hooks).
+function slugFromName(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+categorySchema.pre("validate", function () {
+  const hasName = this.name && String(this.name).trim();
+  const missingSlug = !this.slug || !String(this.slug).trim();
+  if (hasName && missingSlug && (this.isNew || this.isModified("name"))) {
+    this.slug = slugFromName(this.name);
   }
 });
 

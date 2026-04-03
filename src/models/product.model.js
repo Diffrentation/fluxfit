@@ -378,10 +378,12 @@ productSchema.statics.search = async function (query, filters = {}) {
   };
 };
 
-// Pre-save middleware to generate slug
-productSchema.pre("save", async function () {
-  if (this.isModified("name") && !this.slug) {
-    this.slug = this.name
+// Pre-save: fill slug only when missing (never replace slug because name changed)
+productSchema.pre("save", function () {
+  if (this.slug && String(this.slug).trim()) return;
+  const n = this.name && String(this.name).trim();
+  if (n) {
+    this.slug = n
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");

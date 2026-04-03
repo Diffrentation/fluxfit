@@ -27,12 +27,14 @@ This document describes which APIs are integrated with which components in the F
 **Integrated Components:**
 
 - `ProductOverview` (`src/components/Home/ProductOverview.jsx`)
-  - Displays product grid with filtering and sorting
-  - Uses query parameters: `page`, `limit`, `search`, `category`, `brand`, `minPrice`, `maxPrice`, `color`, `size`, `tags`, `inStock`, `status`, `isFeatured`, `isNew`, `isPopular`, `sort`
+  - Loads catalog via `usePublicProducts` (`src/hooks/usePublicProducts.js`) → Axios `GET /api/products`
+  - Query params built in `buildPublicProductsQuery` (`src/lib/publicProductsApi.js`): `page`, `limit`, `status=active`, `search` (debounced), `category` (slug from nav label), `sort`, `minPrice`/`maxPrice`, `color`, `tags`
+  - Aborts in-flight requests on filter change to avoid race conditions
 - `ProductList` page (`src/app/product-list/page.jsx`)
-  - Full product listing page with advanced filters
+  - Same hook + helpers; category/color/tag filter options derived from the current result set (memoized)
+  - Debounced search input to reduce API churn while typing
 - Admin `ProductList` component (`src/components/Admin/Products/ProductList.jsx`)
-  - Admin product management interface
+  - Admin product management: `GET /api/products` with `search` query param (aligned with API), pagination, and filters
 
 ### `GET /api/products/:id`
 
@@ -133,6 +135,14 @@ This document describes which APIs are integrated with which components in the F
 
 ## Cart APIs
 
+**Server note:** The `Cart` model (`src/models/cart.model.js`) uses Mongoose **9.x**–compatible `pre("save")` hooks (no legacy `next()` callback). It is registered with `mongoose.models.Cart || mongoose.model(...)` so Next.js dev hot reload does not throw `OverwriteModelError`. The `user` field uses `unique: true` only (no duplicate `user` index).
+
+**`DELETE /api/cart`:** Clears the authenticated user’s cart with `Cart.findOneAndDelete({ user })` (Next.js route handlers use `authenticateUser`, not Express `req.user`). Returns **200** whether or not a document existed (idempotent). Never **404** for “no cart”.
+
+**`POST /api/cart/items`:** Requires `Authorization: Bearer <token>`. `productId` must be a **24-character hex** MongoDB ObjectId (`src/lib/mongoose-id.js`). Validates JSON body, product existence, stock, and variant; uses `Cart.getOrCreate` so a cart is created if missing. Debug logs: `[api/cart/items] POST` with `productId` and `userId`.
+
+**Client:** `CartContext` (`addToCart`) syncs to the server when a token exists and `id` / `_id` is a valid ObjectId (`src/lib/cart-api-client.js`). Checkout still runs `DELETE /api/cart` then reposts lines via `src/lib/checkout-order.js` with the same Bearer header.
+
 ### `GET /api/cart`
 
 **Purpose:** Get user's cart items
@@ -181,13 +191,13 @@ This document describes which APIs are integrated with which components in the F
 
 ### `DELETE /api/cart`
 
-**Purpose:** Clear entire cart
+**Purpose:** Remove the current user’s cart document from MongoDB (full clear). Idempotent: **200** if no cart existed.
 
 **Integrated Components:**
 
 - `CartContext` (`src/context/CartContext.jsx`)
-  - `clearCart` function
-- Checkout completion (after order placement)
+  - `clearCart` (local only unless you call this API separately)
+- `checkout-order.js` — `syncLocalCartToServer` calls `DELETE` then `POST /api/cart/items` for each line before `POST /api/orders`
 
 ### `POST /api/cart/apply-coupon`
 
@@ -280,14 +290,19 @@ This document describes which APIs are integrated with which components in the F
 
 ### `POST /api/orders`
 
-**Purpose:** Create new order
+**Purpose:** Create new order (authenticated). The server builds the order from the **user’s MongoDB cart** (`Cart` model), not from the client-only `localStorage` cart.
+
+**Request body (JSON):** `shippingAddressId` (saved address `_id`) **or** embedded `shippingAddress` / `billingAddress`; `paymentMethod` (`card` | `upi` | `netbanking` | `cod` | `razorpay` | `stripe` | `paypal`); optional `shippingCost`, `shippingMethod`, `paymentId`, `transactionId`, `notes`, `clearCart` (default `true`).
 
 **Integrated Components:**
 
-- `ReviewStep` component (`src/components/Checkout/ReviewStep.jsx`)
-  - Places order on checkout completion
 - `CheckoutPage` (`src/app/checkout/page.jsx`)
-  - Order placement flow
+  - Sends guests to `/auth/login?returnUrl=/checkout` when the cart has items so checkout can hit authenticated APIs.
+- `ReviewStep` (`src/components/Checkout/ReviewStep.jsx`)
+  - Before `POST /api/orders`: syncs local cart to the server via `DELETE /api/cart` then `POST /api/cart/items` per line (see `src/lib/checkout-order.js`); applies coupon with `POST /api/cart/apply-coupon` when `appliedCoupon` exists in `CartContext`.
+  - Calls `POST /api/orders` with `shippingAddressId`, `paymentMethod`, `shippingCost` (from checkout summary), then clears local cart and passes the API order through `mapApiOrderToLegacyUi` for the confirmation UI.
+- `checkout/confirmation` (`src/app/checkout/confirmation/page.jsx`)
+  - Loads the placed order with `GET /api/orders/:orderNumber` (Bearer token), with fallback to legacy `localStorage` orders for old links.
 
 ### `GET /api/orders/:id`
 
@@ -296,7 +311,7 @@ This document describes which APIs are integrated with which components in the F
 **Integrated Components:**
 
 - `OrderDetailsPage` (`src/app/orders/[id]/page.jsx`)
-  - Displays detailed order information
+  - Loads order with `GET /api/orders/:id` (Mongo `_id` or `orderNumber`) and Bearer token; maps the response with `mapApiOrderToLegacyUi` (`src/lib/order-display.js`); falls back to legacy `localStorage` orders if needed.
 
 ### `POST /api/orders/:id/cancel`
 
@@ -414,9 +429,16 @@ This document describes which APIs are integrated with which components in the F
 
 **Purpose:** Create category (Admin only)
 
+**Auth:** `Authorization: Bearer <token>` with a user whose `role` is `admin` (same token storage as login: `localStorage.token`).
+
+**Request body (JSON):** `name` (required); `slug` (optional, lowercased); `description`; `parent` or `parentId` (Mongo ObjectId string or omit/null for root); `image`, `banner`, `icon` (URL strings or null); `sortOrder`; `isActive`, `isFeatured`; `metaTitle`, `metaDescription`; `metaKeywords` (array of strings or comma-separated string).
+
+**Response:** `{ success, message, data: { category } }` with HTTP `201` on success.
+
 **Integrated Components:**
 
-- Admin `CategoryForm` component (`src/components/Admin/Categories/CategoryForm.jsx`)
+- Admin `CategoryForm` (`src/components/Admin/Categories/CategoryForm.jsx`) posts to `/api/categories` (create) or `PUT /api/categories/:id` (edit), maps API field `parent` validation errors onto form field `parentId`, and dispatches `categories:refresh` after save.
+- Admin `CategoryTree` (`src/components/Admin/Categories/CategoryTree.jsx`) listens for `categories:refresh` and refetches the tree (`GET /api/categories?format=tree&includeInactive=true&includeProductCount=true`).
 
 ### `GET /api/brands`
 
@@ -465,7 +487,8 @@ This document describes which APIs are integrated with which components in the F
 **Integrated Components:**
 
 - `AddressStep` component (`src/components/Checkout/AddressStep.jsx`)
-  - Displays saved addresses
+  - Fetches saved addresses on mount via Axios (`GET /api/users/addresses`)
+  - Hydrates checkout address selector from backend (no localStorage dummy data)
 - User address management page
 
 ### `POST /api/users/addresses`
@@ -475,7 +498,8 @@ This document describes which APIs are integrated with which components in the F
 **Integrated Components:**
 
 - `AddressStep` component (`src/components/Checkout/AddressStep.jsx`)
-  - Add new address form
+  - Submits new address from modal form via Axios (`POST /api/users/addresses`)
+  - Auto-refreshes address list from backend after create
 - Address management page
 
 ### `PUT /api/users/addresses/:id`
@@ -486,6 +510,8 @@ This document describes which APIs are integrated with which components in the F
 
 - Address edit form
 - `AddressStep` component (`src/components/Checkout/AddressStep.jsx`)
+  - Saves edits via Axios (`PUT /api/users/addresses/:id`)
+  - Refreshes list from backend after update
 
 ### `DELETE /api/users/addresses/:id`
 
@@ -495,6 +521,8 @@ This document describes which APIs are integrated with which components in the F
 
 - Address management page
 - `AddressStep` component (`src/components/Checkout/AddressStep.jsx`)
+  - Confirms then calls `DELETE /api/users/addresses/:id`
+  - Refreshes list after delete
 
 ### `PUT /api/users/addresses/:id/default`
 
@@ -504,6 +532,8 @@ This document describes which APIs are integrated with which components in the F
 
 - Address management page
 - `AddressStep` component (`src/components/Checkout/AddressStep.jsx`)
+  - “Set Default” uses Axios (`PUT /api/users/addresses/:id/default`)
+  - Refreshes list so `isDefault` flags stay in sync
 
 ---
 

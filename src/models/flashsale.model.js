@@ -168,10 +168,8 @@ flashSaleSchema.statics.getActive = async function () {
   }).populate("products.product");
 };
 
-// Pre-save middleware to update status
-flashSaleSchema.pre("save", function (next) {
+flashSaleSchema.pre("save", function () {
   this.checkStatus();
-  next();
 });
 
 const FlashSale = mongoose.model("FlashSale", flashSaleSchema);

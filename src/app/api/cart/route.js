@@ -127,53 +127,51 @@ export async function GET(request) {
 
 /**
  * DELETE /api/cart
- * Clear entire cart
+ * Remove the logged-in user's cart document (idempotent — 200 even if none existed).
  */
 export async function DELETE(request) {
   try {
-    // Authenticate user
     const { error, user } = await authenticateUser(request);
     if (error) {
       return error;
     }
 
-    // Connect to database
-    await connectDB();
-
-    // Get user's cart
-    const cart = await Cart.findOne({ user: user._id });
-
-    if (!cart) {
+    if (!user?._id) {
       return NextResponse.json(
         {
           success: false,
-          message: "Cart not found",
+          message: "Authentication failed",
+          errors: [{ field: "auth", message: "User could not be resolved" }],
         },
-        { status: 404 }
+        { status: 401 },
       );
     }
 
-    // Clear cart
-    await cart.clear();
+    const userId = user._id.toString();
+    console.log("[api/cart] DELETE clear cart", { userId });
 
-    // Return response
+    await connectDB();
+
+    const deleted = await Cart.findOneAndDelete({ user: user._id });
+
     return NextResponse.json(
       {
         success: true,
-        message: "Cart cleared successfully",
+        message: deleted
+          ? "Cart cleared successfully"
+          : "No server cart existed; nothing to clear",
         data: {
-          message: "All items have been removed from cart",
           cart: {
-            id: cart._id,
+            id: deleted?._id ?? null,
             itemCount: 0,
             subtotal: 0,
             total: 0,
             coupon: null,
-            lastUpdated: cart.lastUpdated,
+            lastUpdated: deleted?.lastUpdated ?? null,
           },
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Clear cart error:", error);
@@ -182,7 +180,7 @@ export async function DELETE(request) {
         success: false,
         message: error.message || "Failed to clear cart. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

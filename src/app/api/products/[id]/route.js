@@ -328,20 +328,59 @@ export async function PUT(request, { params }) {
       }
     }
 
-    if (slug !== undefined) {
-      if (!slug?.trim()) {
-        errors.push({ field: "slug", message: "Slug cannot be empty" });
-      } else {
-        const newSlug = slug.toLowerCase().trim();
-        const existingProduct = await Product.findOne({
-          slug: newSlug,
-          _id: { $ne: product._id },
-          isDeleted: false,
-        });
-        if (existingProduct) {
-          errors.push({ field: "slug", message: "A product with this slug already exists" });
+    const slugFromClientProvided = Object.prototype.hasOwnProperty.call(body, "slug");
+
+    const slugifyFromName = (str) =>
+      String(str || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+    if (slugFromClientProvided) {
+      const raw = slug;
+      const currentSlugNorm = String(product.slug || "")
+        .toLowerCase()
+        .trim();
+
+      if (raw == null || (typeof raw === "string" && !raw.trim())) {
+        const nameForSlug =
+          updateData.name !== undefined ? updateData.name : product.name;
+        const base = slugifyFromName(nameForSlug);
+        if (!base) {
+          errors.push({
+            field: "slug",
+            message: "Cannot generate slug: product name is empty",
+          });
         } else {
-          updateData.slug = newSlug;
+          let candidate = base;
+          const taken = await Product.findOne({
+            slug: candidate,
+            _id: { $ne: product._id },
+            isDeleted: false,
+          });
+          if (taken) {
+            candidate = `${base}-${Date.now()}`;
+          }
+          updateData.slug = candidate;
+        }
+      } else {
+        const newSlug = String(raw).toLowerCase().trim();
+        if (newSlug === currentSlugNorm) {
+          // Explicit but unchanged — keep existing slug; skip uniqueness check
+        } else {
+          const existingProduct = await Product.findOne({
+            slug: newSlug,
+            _id: { $ne: product._id },
+            isDeleted: false,
+          });
+          if (existingProduct) {
+            errors.push({
+              field: "slug",
+              message: "A product with this slug already exists",
+            });
+          } else {
+            updateData.slug = newSlug;
+          }
         }
       }
     }

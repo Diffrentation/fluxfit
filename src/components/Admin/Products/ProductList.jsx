@@ -82,21 +82,20 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
     }
   }, []);
 
-  // Build query parameters with advanced search support
+  // Build query parameters — GET /api/products expects `search`, not `q`
   const buildQueryParams = useCallback((currentFilters) => {
     const params = new URLSearchParams();
-    
+
     Object.entries(currentFilters).forEach(([key, value]) => {
       if (value !== "" && value !== null && value !== undefined) {
-        // Handle search query specially - send as q parameter for backend
-        if (key === "search" && value.trim()) {
-          params.append("q", value.trim());
+        if (key === "search" && String(value).trim()) {
+          params.append("search", String(value).trim());
         } else {
           params.append(key, value);
         }
       }
     });
-    
+
     return params.toString();
   }, []);
 
@@ -116,10 +115,6 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        params: {
-          // Additional search parameters for backend
-          searchFields: currentFilters.search ? "name,description,sku,id" : undefined,
         },
       });
 

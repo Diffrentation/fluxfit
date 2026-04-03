@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   IconMapPin,
@@ -13,6 +13,7 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 import { Button, Input, Radio, Modal, Form, message, Select } from "antd";
+import axios from "axios";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -23,45 +24,32 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
   const [editingAddress, setEditingAddress] = useState(null);
   const [form] = Form.useForm();
 
-  // Load addresses from localStorage (dummy data)
-  useEffect(() => {
-    const savedAddresses = localStorage.getItem("userAddresses");
-    if (savedAddresses) {
-      setAddresses(JSON.parse(savedAddresses));
-    } else {
-      // Initialize with dummy addresses
-      const dummyAddresses = [
-        {
-          id: "1",
-          type: "home",
-          name: "John Doe",
-          phone: "+91 9876543210",
-          addressLine1: "123, Main Street",
-          addressLine2: "Near City Park",
-          city: "Mumbai",
-          state: "Maharashtra",
-          pincode: "400001",
-          landmark: "City Park",
-          isDefault: true,
-        },
-        {
-          id: "2",
-          type: "work",
-          name: "John Doe",
-          phone: "+91 9876543210",
-          addressLine1: "456, Business Tower",
-          addressLine2: "Floor 5, Office 501",
-          city: "Mumbai",
-          state: "Maharashtra",
-          pincode: "400002",
-          landmark: "Business District",
-          isDefault: false,
-        },
-      ];
-      setAddresses(dummyAddresses);
-      localStorage.setItem("userAddresses", JSON.stringify(dummyAddresses));
+  const getHeaders = useCallback(
+    () => ({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    }),
+    []
+  );
+
+  const fetchAddresses = useCallback(async () => {
+    try {
+      const { data } = await axios.get("/api/users/addresses", {
+        headers: getHeaders(),
+      });
+      if (!data?.success) {
+        throw new Error(data?.message || "Failed to load addresses");
+      }
+      setAddresses(data.data.addresses || []);
+    } catch (error) {
+      console.error("Fetch addresses error:", error);
+      message.error(error.response?.data?.message || "Failed to load addresses");
     }
-  }, []);
+  }, [getHeaders]);
+
+  useEffect(() => {
+    fetchAddresses();
+  }, [fetchAddresses]);
 
   // Set default selected address (don't auto-proceed)
   useEffect(() => {
@@ -88,64 +76,81 @@ const AddressStep = ({ onAddressSelect, selectedAddress }) => {
     Modal.confirm({
       title: "Delete Address",
       content: "Are you sure you want to delete this address?",
-      onOk: () => {
-        const updatedAddresses = addresses.filter(
-          (addr) => addr.id !== addressId
-        );
-        if (
-          updatedAddresses.length > 0 &&
-          !updatedAddresses.some((a) => a.isDefault)
-        ) {
-          updatedAddresses[0].isDefault = true;
+      onOk: async () => {
+        try {
+          const { data } = await axios.delete(`/api/users/addresses/${addressId}`, {
+            headers: getHeaders(),
+          });
+          if (!data?.success) {
+            throw new Error(data?.message || "Failed to delete address");
+          }
+          await fetchAddresses();
+          message.success("Address deleted successfully");
+        } catch (error) {
+          message.error(error.response?.data?.message || "Failed to delete address");
         }
-        setAddresses(updatedAddresses);
-        localStorage.setItem("userAddresses", JSON.stringify(updatedAddresses));
-        if (selectedAddress?.id === addressId) {
-          onAddressSelect(updatedAddresses[0]);
-        }
-        message.success("Address deleted successfully");
       },
     });
   };
 
-  const handleSaveAddress = (values) => {
-    if (editingAddress) {
-      // Update existing address
-      const updatedAddresses = addresses.map((addr) =>
-        addr.id === editingAddress.id
-          ? { ...values, id: editingAddress.id }
-          : addr
-      );
-      setAddresses(updatedAddresses);
-      localStorage.setItem("userAddresses", JSON.stringify(updatedAddresses));
-      message.success("Address updated successfully");
-      if (selectedAddress?.id === editingAddress.id) {
-        onAddressSelect({ ...values, id: editingAddress.id });
-      }
-    } else {
-      // Add new address
-      const newAddress = {
+  const handleSaveAddress = async (values) => {
+    try {
+      const payload = {
         ...values,
-        id: Date.now().toString(),
-        isDefault: addresses.length === 0,
+        country: values.country || "India",
       };
-      const updatedAddresses = [...addresses, newAddress];
-      setAddresses(updatedAddresses);
-      localStorage.setItem("userAddresses", JSON.stringify(updatedAddresses));
-      message.success("Address added successfully");
+      if (editingAddress) {
+        const { data } = await axios.put(
+          `/api/users/addresses/${editingAddress.id}`,
+          { ...payload, isDefault: editingAddress.isDefault },
+          { headers: getHeaders() }
+        );
+        if (!data?.success) {
+          throw new Error(data?.message || "Failed to update address");
+        }
+        message.success("Address updated successfully");
+      } else {
+        const { data } = await axios.post(
+          "/api/users/addresses",
+          { ...payload, isDefault: addresses.length === 0 },
+          { headers: getHeaders() }
+        );
+        if (!data?.success) {
+          throw new Error(data?.message || "Failed to add address");
+        }
+        message.success("Address added successfully");
+      }
+      await fetchAddresses();
+      setIsModalVisible(false);
+      form.resetFields();
+      setEditingAddress(null);
+    } catch (error) {
+      const res = error.response;
+      if (res?.data?.errors) {
+        res.data.errors.forEach((e) => {
+          form.setFields([{ name: e.field, errors: [e.message] }]);
+        });
+      } else {
+        message.error(res?.data?.message || "Failed to save address");
+      }
     }
-    setIsModalVisible(false);
-    form.resetFields();
   };
 
-  const handleSetDefault = (addressId) => {
-    const updatedAddresses = addresses.map((addr) => ({
-      ...addr,
-      isDefault: addr.id === addressId,
-    }));
-    setAddresses(updatedAddresses);
-    localStorage.setItem("userAddresses", JSON.stringify(updatedAddresses));
-    message.success("Default address updated");
+  const handleSetDefault = async (addressId) => {
+    try {
+      const { data } = await axios.put(
+        `/api/users/addresses/${addressId}/default`,
+        {},
+        { headers: getHeaders() }
+      );
+      if (!data?.success) {
+        throw new Error(data?.message || "Failed to update default address");
+      }
+      await fetchAddresses();
+      message.success("Default address updated");
+    } catch (error) {
+      message.error(error.response?.data?.message || "Failed to set default address");
+    }
   };
 
   const getAddressIcon = (type) => {

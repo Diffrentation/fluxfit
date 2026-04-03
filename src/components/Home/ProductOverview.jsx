@@ -1,5 +1,6 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "@/components/ui/ProductCard";
 import CategoryNav from "@/components/ui/CategoryNav";
@@ -13,92 +14,10 @@ import {
   IconFilter,
   IconRefresh,
 } from "@tabler/icons-react";
-import { Button } from "antd";
+import { Button, Spin } from "antd";
 import { useRouter } from "next/navigation";
-
-// Sample product data
-const sampleProducts = [
-  {
-    id: 1,
-    name: "Esprit Ruffle Shirt",
-    price: "16.64",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop&q=80",
-    category: "Women",
-    color: "white",
-    tags: ["Fashion", "Lifestyle"],
-  },
-  {
-    id: 2,
-    name: "Herschel supply",
-    price: "35.31",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80",
-    category: "Women",
-    color: "white",
-    tags: ["Fashion", "Streetstyle"],
-  },
-  {
-    id: 3,
-    name: "Only Check Trouser",
-    price: "25.50",
-    image:
-      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
-    category: "Men",
-    color: "blue",
-    tags: ["Denim", "Streetstyle"],
-  },
-  {
-    id: 4,
-    name: "Classic Trench Coat",
-    price: "75.00",
-    image:
-      "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=400&h=500&fit=crop&q=80",
-    category: "Women",
-    color: "green",
-    tags: ["Fashion", "Lifestyle"],
-  },
-  {
-    id: 5,
-    name: "Denim Jacket",
-    price: "45.00",
-    image:
-      "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=500&fit=crop&q=80",
-    category: "Men",
-    color: "blue",
-    tags: ["Denim", "Streetstyle"],
-  },
-  {
-    id: 6,
-    name: "Leather Bag",
-    price: "55.00",
-    image:
-      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=500&fit=crop&q=80",
-    category: "Bag",
-    color: "black",
-    tags: ["Fashion", "Crafts"],
-  },
-  {
-    id: 7,
-    name: "Running Shoes",
-    price: "89.99",
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=500&fit=crop&q=80",
-    category: "Shoes",
-    color: "black",
-    tags: ["Lifestyle", "Streetstyle"],
-  },
-  {
-    id: 8,
-    name: "Classic Watch",
-    price: "120.00",
-    image:
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=500&fit=crop&q=80",
-    category: "Watches",
-    color: "black",
-    tags: ["Fashion", "Lifestyle"],
-  },
-];
+import { usePublicProducts } from "@/hooks/usePublicProducts";
+import { getProductDetailPath } from "@/lib/publicProductsApi";
 
 const sortOptions = [
   { value: "default", label: "Default" },
@@ -119,10 +38,18 @@ const priceOptions = [
 ];
 
 const colors = ["Black", "Grey", "Green", "Red", "Blue", "White"];
-
 const tags = ["Fashion", "Lifestyle", "Denim", "Streetstyle", "Crafts"];
-
 const categories = ["All Products", "Women", "Men", "Bag", "Shoes", "Watches"];
+
+/** Debounce search input to limit GET /api/products calls while typing */
+function useDebouncedValue(value, delayMs = 400) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
+}
 
 function ProductOverview() {
   const router = useRouter();
@@ -134,96 +61,43 @@ function ProductOverview() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleQuickView = (product) => {
-    router.push(`/product-details/${product.id}`);
-  };
+  const debouncedSearch = useDebouncedValue(searchQuery.trim(), 400);
 
-  const resetFilters = () => {
+  const { products, pagination, loading } = usePublicProducts({
+    page: 1,
+    limit: 24,
+    categoryLabel: activeCategory,
+    debouncedSearch,
+    sortBy,
+    priceFilter,
+    colorFilter,
+    selectedTags,
+  });
+
+  const handleQuickView = useCallback(
+    (product) => {
+      const path = getProductDetailPath(product);
+      if (path && path !== "/product-list") router.push(path);
+    },
+    [router]
+  );
+
+  const resetFilters = useCallback(() => {
     setActiveCategory("All Products");
     setSortBy("newness");
     setPriceFilter("all");
     setColorFilter(null);
     setSelectedTags([]);
     setSearchQuery("");
-  };
-
-  // Filter products based on selected filters
-  const filteredProducts = sampleProducts.filter((product) => {
-    // Category filter
-    if (
-      activeCategory !== "All Products" &&
-      product.category !== activeCategory
-    ) {
-      return false;
-    }
-
-    // Color filter
-    if (
-      colorFilter &&
-      product.color.toLowerCase() !== colorFilter.toLowerCase()
-    ) {
-      return false;
-    }
-
-    // Tags filter
-    if (selectedTags.length > 0) {
-      const hasMatchingTag = selectedTags.some((tag) =>
-        product.tags.includes(tag)
-      );
-      if (!hasMatchingTag) return false;
-    }
-
-    // Price filter
-    if (priceFilter !== "all") {
-      const price = parseFloat(product.price);
-      const [min, max] = priceFilter.split("-").map((p) => {
-        if (p.includes("+")) return parseFloat(p.replace("+", ""));
-        return parseFloat(p);
-      });
-      if (priceFilter === "200+") {
-        if (price < 200) return false;
-      } else if (price < min || price > max) {
-        return false;
-      }
-    }
-
-    // Search filter
-    if (
-      searchQuery &&
-      !product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ) {
-      return false;
-    }
-
-    return true;
-  });
-
-  // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "newness":
-        return b.id - a.id; // Newest first
-      case "popularity":
-        // Sort by ID for demo (in real app, use actual popularity data)
-        return a.id - b.id;
-      case "price-low":
-        return parseFloat(a.price) - parseFloat(b.price);
-      case "price-high":
-        return parseFloat(b.price) - parseFloat(a.price);
-      default:
-        return 0;
-    }
-  });
+  }, []);
 
   return (
     <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-4 sm:py-6 md:py-8 lg:py-10 bg-white dark:bg-gray-900 transition-colors duration-300">
-      {/* Header */}
       <div className="mb-4 sm:mb-6">
         <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
           PRODUCT OVERVIEW
         </h1>
 
-        {/* Category Navigation and Search/Filter */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div className="w-full sm:flex-1">
             <CategoryNav
@@ -234,6 +108,7 @@ function ProductOverview() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <motion.button
+              type="button"
               onClick={() => setShowFilters(!showFilters)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -258,18 +133,18 @@ function ProductOverview() {
             >
               <IconSearch className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400" />
               <input
-                type="text"
+                type="search"
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-auto pl-7 sm:pl-8 pr-2.5 sm:pr-3 py-1.5 sm:py-2 border border-gray-300 dark:border-gray-700 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                aria-label="Search products"
               />
             </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Filters Section */}
       <AnimatePresence>
         {showFilters && (
           <motion.div
@@ -325,46 +200,62 @@ function ProductOverview() {
         )}
       </AnimatePresence>
 
-      {/* Products Grid */}
-      <motion.div
-        layout
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-5"
-      >
-        <AnimatePresence mode="popLayout">
-          {sortedProducts.map((product, index) => (
-            <motion.div
-              key={product.id}
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{
-                duration: 0.3,
-                delay: index * 0.05,
-                ease: "easeOut",
-              }}
-            >
-              <ProductCard product={product} onQuickView={handleQuickView} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      {pagination && (
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">
+          Showing {products.length} of {pagination.total} products
+        </p>
+      )}
 
-      <AnimatePresence>
-        {sortedProducts.length === 0 && (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-16">
+          <Spin size="large" />
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Loading products…
+          </span>
+        </div>
+      ) : (
+        <>
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3 }}
-            className="text-center py-8 sm:py-10"
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-5"
           >
-            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">
-              No products found matching your filters.
-            </p>
+            <AnimatePresence mode="popLayout">
+              {products.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{
+                    duration: 0.3,
+                    delay: index * 0.05,
+                    ease: "easeOut",
+                  }}
+                >
+                  <ProductCard product={product} onQuickView={handleQuickView} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </motion.div>
-        )}
-      </AnimatePresence>
+
+          <AnimatePresence>
+            {products.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+                className="text-center py-8 sm:py-10"
+              >
+                <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">
+                  No products found matching your filters.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

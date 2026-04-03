@@ -2,6 +2,11 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { mapApiOrderToLegacyUi } from "@/lib/order-display";
+import {
+  fetchMyOrderById,
+  getOrdersAuthHeaders,
+} from "@/lib/orders-api-client";
 import {
   IconCheck,
   IconDownload,
@@ -18,20 +23,57 @@ const OrderConfirmationContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [order, setOrder] = useState(null);
-  const orderId = searchParams.get("orderId");
+  const orderRef =
+    searchParams.get("orderNumber") || searchParams.get("orderId");
 
   useEffect(() => {
-    if (orderId) {
-      const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-      const foundOrder = orders.find((o) => o.orderId === orderId);
-      if (foundOrder) {
-        setOrder(foundOrder);
-      } else {
-        message.error("Order not found");
-        router.push("/");
-      }
+    if (!orderRef) {
+      message.error("Missing order reference");
+      router.push("/");
+      return;
     }
-  }, [orderId, router]);
+
+    let cancelled = false;
+
+    const load = async () => {
+      const headers = getOrdersAuthHeaders();
+      if (!headers.Authorization) {
+        message.warning("Sign in to view your order confirmation");
+        router.push(
+          `/auth/login?returnUrl=${encodeURIComponent(`/checkout/confirmation?orderNumber=${encodeURIComponent(orderRef)}`)}`,
+        );
+        return;
+      }
+
+      try {
+        const data = await fetchMyOrderById(orderRef);
+        console.log("[Confirmation] GET /api/orders/:id", data);
+        if (!cancelled && data?.success && data?.data?.order) {
+          setOrder(mapApiOrderToLegacyUi(data.data.order));
+          return;
+        }
+        if (!cancelled) {
+          message.error(data?.message || "Order not found");
+          router.push("/orders");
+        }
+      } catch (err) {
+        console.error("[Confirmation] load order", err);
+        if (!cancelled) {
+          message.error(
+            err.response?.data?.message ||
+              err.message ||
+              "Could not load order",
+          );
+          router.push("/orders");
+        }
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [orderRef, router]);
 
   // Format price helper - prices are already in INR
   const formatPrice = (price) => {
@@ -329,7 +371,11 @@ const OrderConfirmationContent = () => {
             type="default"
             size="large"
             icon={<IconPackage className="w-4 h-4" />}
-            onClick={() => router.push(`/orders/${order.orderId}`)}
+            onClick={() =>
+              router.push(
+                `/orders/${encodeURIComponent(order.orderId || order.orderNumber)}`,
+              )
+            }
             className="flex-1"
           >
             View Order Details

@@ -9,6 +9,7 @@ import CategoryForm from "@/components/Admin/Categories/CategoryForm";
 import BrandForm from "@/components/Admin/Categories/BrandForm";
 import { Button, Tabs, message, Modal } from "antd";
 import { IconPlus, IconTag } from "@tabler/icons-react";
+import axios from "axios";
 
 const CategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);
@@ -19,101 +20,21 @@ const CategoryManagementPage = () => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [activeTab, setActiveTab] = useState("categories");
 
-  const loadCategories = useCallback(() => {
-    // Mock data - in production, fetch from API
-    const mockCategories = [
-      {
-        id: 1,
-        name: "Women",
-        slug: "women",
-        description: "Women's fashion and clothing",
-        image: "",
-        banner: "",
-        sortOrder: 1,
-        parentId: null,
-        children: [
-          {
-            id: 11,
-            name: "Dresses",
-            slug: "women-dresses",
-            description: "Women's dresses",
-            image: "",
-            banner: "",
-            sortOrder: 1,
-            parentId: 1,
-            children: [],
-          },
-          {
-            id: 12,
-            name: "Tops",
-            slug: "women-tops",
-            description: "Women's tops",
-            image: "",
-            banner: "",
-            sortOrder: 2,
-            parentId: 1,
-            children: [],
-          },
-        ],
-      },
-      {
-        id: 2,
-        name: "Men",
-        slug: "men",
-        description: "Men's fashion and clothing",
-        image: "",
-        banner: "",
-        sortOrder: 2,
-        parentId: null,
-        children: [
-          {
-            id: 21,
-            name: "Shirts",
-            slug: "men-shirts",
-            description: "Men's shirts",
-            image: "",
-            banner: "",
-            sortOrder: 1,
-            parentId: 2,
-            children: [],
-          },
-        ],
-      },
-      {
-        id: 3,
-        name: "Bag",
-        slug: "bag",
-        description: "Bags and accessories",
-        image: "",
-        banner: "",
-        sortOrder: 3,
-        parentId: null,
-        children: [],
-      },
-      {
-        id: 4,
-        name: "Shoes",
-        slug: "shoes",
-        description: "Footwear",
-        image: "",
-        banner: "",
-        sortOrder: 4,
-        parentId: null,
-        children: [],
-      },
-      {
-        id: 5,
-        name: "Watches",
-        slug: "watches",
-        description: "Watches and timepieces",
-        image: "",
-        banner: "",
-        sortOrder: 5,
-        parentId: null,
-        children: [],
-      },
-    ];
-    setCategories(mockCategories);
+  const loadCategories = useCallback(async () => {
+    try {
+      const { data } = await axios.get("/api/categories", {
+        params: { format: "flat", includeInactive: true },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!data?.success) throw new Error(data?.message || "Failed to load categories");
+      setCategories(data.data.categories || []);
+    } catch (error) {
+      console.error("Load categories error:", error);
+      message.error(error.response?.data?.message || "Failed to load categories");
+    }
   }, []);
 
   const loadBrands = useCallback(() => {
@@ -172,24 +93,6 @@ const CategoryManagementPage = () => {
   };
 
   const handleDeleteCategory = (categoryId) => {
-    // Check if category has children
-    const hasChildren = (cats, id) => {
-      for (const cat of cats) {
-        if (cat.id === id) {
-          return cat.children && cat.children.length > 0;
-        }
-        if (cat.children && cat.children.length > 0) {
-          if (hasChildren(cat.children, id)) return true;
-        }
-      }
-      return false;
-    };
-
-    if (hasChildren(categories, categoryId)) {
-      message.warning("Cannot delete category with subcategories");
-      return;
-    }
-
     Modal.confirm({
       title: "Delete Category",
       content:
@@ -197,213 +100,108 @@ const CategoryManagementPage = () => {
       okText: "Delete",
       okType: "danger",
       cancelText: "Cancel",
-      onOk: () => {
-        const deleteCategory = (cats, id) => {
-          return cats
-            .filter((cat) => cat.id !== id)
-            .map((cat) => {
-              if (cat.children && cat.children.length > 0) {
-                return {
-                  ...cat,
-                  children: deleteCategory(cat.children, id),
-                };
-              }
-              return cat;
-            });
-        };
-
-        setCategories((prev) => deleteCategory(prev, categoryId));
-        message.success("Category deleted successfully");
+      onOk: async () => {
+        try {
+          const { data } = await axios.delete(`/api/categories/${categoryId}`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          if (!data?.success) throw new Error(data?.message || "Failed to delete category");
+          message.success("Category deleted successfully");
+          await loadCategories();
+          window.dispatchEvent(new Event("categories:refresh"));
+        } catch (error) {
+          message.error(error.response?.data?.message || "Failed to delete category");
+        }
       },
     });
   };
 
-  const handleSaveCategory = (categoryData) => {
-    if (selectedCategory && selectedCategory.id) {
-      // Update existing category
-      const updateCategory = (cats, updatedCategory) => {
-        return cats.map((cat) => {
-          if (cat.id === updatedCategory.id) {
-            const updated = {
-              ...cat,
-              ...updatedCategory,
-              children: cat.children || [],
-            };
-            return updated;
-          }
-          if (cat.children && cat.children.length > 0) {
-            return {
-              ...cat,
-              children: updateCategory(cat.children, updatedCategory),
-            };
-          }
-          return cat;
-        });
-      };
-
-      setCategories((prev) => updateCategory(prev, categoryData));
-      message.success("Category updated successfully");
-    } else {
-      // Add new category
-      const getMaxId = (cats) => {
-        let maxId = 0;
-        const traverse = (items) => {
-          items.forEach((item) => {
-            if (item.id > maxId) maxId = item.id;
-            if (item.children && item.children.length > 0) {
-              traverse(item.children);
-            }
-          });
-        };
-        traverse(cats);
-        return maxId;
-      };
-
-      const getNextSortOrder = (cats, parentId) => {
-        const findSiblings = (items, pid) => {
-          if (pid === null) {
-            return items.filter((cat) => !cat.parentId);
-          }
-          for (const item of items) {
-            if (item.id === pid) {
-              return item.children || [];
-            }
-            if (item.children && item.children.length > 0) {
-              const result = findSiblings(item.children, pid);
-              if (result !== null) return result;
-            }
-          }
-          return [];
-        };
-
-        const siblings = findSiblings(cats, parentId);
-        if (siblings.length === 0) return 1;
-        return Math.max(...siblings.map((s) => s.sortOrder || 0)) + 1;
-      };
-
-      const newCategory = {
-        ...categoryData,
-        id: getMaxId(categories) + 1,
-        children: [],
-        sortOrder:
-          categoryData.sortOrder ||
-          getNextSortOrder(categories, categoryData.parentId || null),
-      };
-
-      if (
-        categoryData.parentId ||
-        (selectedCategory && selectedCategory.parentId)
-      ) {
-        // Add as subcategory
-        const parentId = categoryData.parentId || selectedCategory?.parentId;
-        const addSubcategory = (cats, pid, newCat) => {
-          return cats.map((cat) => {
-            if (cat.id === pid) {
-              return {
-                ...cat,
-                children: [...(cat.children || []), newCat].sort(
-                  (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
-                ),
-              };
-            }
-            if (cat.children && cat.children.length > 0) {
-              return {
-                ...cat,
-                children: addSubcategory(cat.children, pid, newCat),
-              };
-            }
-            return cat;
-          });
-        };
-
-        setCategories((prev) => addSubcategory(prev, parentId, newCategory));
-      } else {
-        // Add as top-level category
-        setCategories((prev) =>
-          [...prev, newCategory].sort(
-            (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
-          )
-        );
-      }
-      message.success("Category added successfully");
-    }
-
+  const handleSaveCategory = async () => {
+    await loadCategories();
+    window.dispatchEvent(new Event("categories:refresh"));
     setIsCategoryFormVisible(false);
     setSelectedCategory(null);
   };
 
-  const handleMoveCategory = (categoryId, direction) => {
-    const findCategoryAndSiblings = (cats, id, parentId = null) => {
-      for (let i = 0; i < cats.length; i++) {
-        const cat = cats[i];
-        if (cat.id === id) {
-          return {
-            category: cat,
-            siblings: cats,
-            index: i,
-            parentId,
-          };
-        }
-        if (cat.children && cat.children.length > 0) {
-          const result = findCategoryAndSiblings(cat.children, id, cat.id);
-          if (result) return result;
-        }
-      }
-      return null;
-    };
-
-    const result = findCategoryAndSiblings(categories, categoryId);
-    if (!result) return;
-
-    const { siblings, index } = result;
-
-    if (
-      (direction === "up" && index === 0) ||
-      (direction === "down" && index === siblings.length - 1)
-    ) {
-      message.warning("Cannot move category further in this direction");
-      return;
-    }
-
-    const newIndex = direction === "up" ? index - 1 : index + 1;
-    const reorderedSiblings = [...siblings];
-    [reorderedSiblings[index], reorderedSiblings[newIndex]] = [
-      reorderedSiblings[newIndex],
-      reorderedSiblings[index],
-    ];
-
-    // Update sort orders
-    reorderedSiblings.forEach((cat, idx) => {
-      cat.sortOrder = idx + 1;
-    });
-
-    const updateSiblingsInTree = (cats, parentId, newSiblings) => {
-      if (parentId === null) {
-        // Top level - replace the entire array
-        return newSiblings;
-      }
-      return cats.map((cat) => {
-        if (cat.id === parentId) {
-          return { ...cat, children: newSiblings };
-        }
-        if (cat.children && cat.children.length > 0) {
-          return {
-            ...cat,
-            children: updateSiblingsInTree(cat.children, parentId, newSiblings),
-          };
-        }
-        return cat;
+  const handleMoveCategory = async (categoryId, direction) => {
+    try {
+      const { data } = await axios.get("/api/categories", {
+        params: { format: "tree", includeInactive: true, includeProductCount: true },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
-    };
+      if (!data?.success) throw new Error(data?.message || "Failed to load category tree");
+      const tree = data.data.categories || [];
 
-    const updated = updateSiblingsInTree(
-      categories,
-      result.parentId,
-      reorderedSiblings
-    );
+      const findCategoryAndSiblings = (cats, id, parentId = null) => {
+        const targetId = String(id);
+        const getId = (cat) => String(cat.id || cat._id);
+        for (let i = 0; i < cats.length; i++) {
+          const cat = cats[i];
+          if (getId(cat) === targetId) {
+            return { category: cat, siblings: cats, index: i, parentId };
+          }
+          if (cat.children && cat.children.length > 0) {
+            const result = findCategoryAndSiblings(cat.children, id, cat.id || cat._id);
+            if (result) return result;
+          }
+        }
+        return null;
+      };
 
-    setCategories(updated);
-    message.success(`Category moved ${direction}`);
+      const result = findCategoryAndSiblings(tree, categoryId);
+      if (!result) return;
+      const { siblings, index } = result;
+
+      if (
+        (direction === "up" && index === 0) ||
+        (direction === "down" && index === siblings.length - 1)
+      ) {
+        message.warning("Cannot move category further in this direction");
+        return;
+      }
+
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      const current = siblings[index];
+      const target = siblings[newIndex];
+      const currentId = current.id || current._id;
+      const targetId = target.id || target._id;
+
+      await Promise.all([
+        axios.put(
+          `/api/categories/${currentId}/sort-order`,
+          { sortOrder: target.sortOrder || newIndex + 1 },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        ),
+        axios.put(
+          `/api/categories/${targetId}/sort-order`,
+          { sortOrder: current.sortOrder || index + 1 },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        ),
+      ]);
+
+      message.success(`Category moved ${direction}`);
+      await loadCategories();
+      window.dispatchEvent(new Event("categories:refresh"));
+    } catch (error) {
+      console.error("Move category error:", error);
+      message.error(error.response?.data?.message || "Failed to move category");
+    }
   };
 
   const handleAddBrand = () => {
@@ -436,8 +234,8 @@ const CategoryManagementPage = () => {
       // Update existing brand
       setBrands((prev) =>
         prev.map((brand) =>
-          brand.id === selectedBrand.id ? { ...brand, ...brandData } : brand
-        )
+          brand.id === selectedBrand.id ? { ...brand, ...brandData } : brand,
+        ),
       );
       message.success("Brand updated successfully");
     } else {
@@ -461,8 +259,8 @@ const CategoryManagementPage = () => {
       };
       setBrands((prev) =>
         [...prev, newBrand].sort(
-          (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
-        )
+          (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0),
+        ),
       );
       message.success("Brand added successfully");
     }

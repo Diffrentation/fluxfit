@@ -37,7 +37,6 @@ const cartSchema = new mongoose.Schema(
       ref: "User",
       required: true,
       unique: true,
-      index: true,
     },
     items: [cartItemSchema],
     coupon: {
@@ -55,8 +54,7 @@ const cartSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
-cartSchema.index({ user: 1 });
+// Indexes (user already indexed via unique)
 cartSchema.index({ "items.product": 1 });
 
 // Virtual for item count
@@ -172,12 +170,14 @@ cartSchema.statics.getOrCreate = async function (userId) {
   return cart;
 };
 
-// Pre-save middleware
-cartSchema.pre("save", function (next) {
-  this.lastUpdated = new Date();
-  next();
-});
-
+// No pre("save") hook — `lastUpdated` defaults on create; methods update it before save.
+//
+// Next.js dev / HMR keeps a global Mongoose singleton. `mongoose.models.Cart || model(...)`
+// never re-runs `model()` after the first load, so an old Cart schema (e.g. with a broken
+// `pre("save")` using `next`) stays cached and causes "next is not a function".
+if (mongoose.models.Cart) {
+  mongoose.deleteModel("Cart");
+}
 const Cart = mongoose.model("Cart", cartSchema);
 export default Cart;
 

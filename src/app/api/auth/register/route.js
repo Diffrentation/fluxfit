@@ -85,7 +85,7 @@ export async function POST(request) {
           message:
             "Please provide all required fields: firstname, lastname, email, and password",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -97,7 +97,7 @@ export async function POST(request) {
           success: false,
           message: "Invalid email address format",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -108,7 +108,7 @@ export async function POST(request) {
           success: false,
           message: "Password must be between 8 and 32 characters long",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -166,7 +166,7 @@ export async function POST(request) {
           success: false,
           message: "Unable to generate unique username. Please try again.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -177,7 +177,7 @@ export async function POST(request) {
           success: false,
           message: "Invalid role. Role must be either 'buyer' or 'admin'",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -193,7 +193,7 @@ export async function POST(request) {
           success: false,
           message: "User with this email already exists",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -248,7 +248,7 @@ export async function POST(request) {
     // Set verification expiry (user will be auto-deleted if not verified within 10 minutes)
     const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES || "5");
     userData.verificationExpiresAt = new Date(
-      Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
+      Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000,
     );
 
     // Create user (password will be hashed by pre-save hook)
@@ -263,7 +263,7 @@ export async function POST(request) {
       const emailResult = await sendOTPEmail(
         user.email,
         otp,
-        "email-verification"
+        "email-verification",
       );
 
       if (!emailResult.success) {
@@ -283,8 +283,7 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: true,
-        message:
-          `Please verify your email with the OTP sent to your email address. OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.`,
+        message: `Please verify your email with the OTP sent to your email address. OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.`,
         data: {
           user: {
             id: user._id,
@@ -303,7 +302,7 @@ export async function POST(request) {
           otpSent: otp !== null,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Registration error:", error);
@@ -317,7 +316,7 @@ export async function POST(request) {
           message: "Validation error",
           errors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -329,7 +328,7 @@ export async function POST(request) {
           success: false,
           message: `User with this ${field} already exists`,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -339,7 +338,7 @@ export async function POST(request) {
         success: false,
         message: error.message || "Registration failed. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
