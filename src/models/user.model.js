@@ -63,6 +63,13 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    /** Long-lived refresh token (JWT string); httpOnly cookie mirrors session */
+    refreshToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
     profileimage: {
       type: String,
       default: null,
@@ -142,6 +149,7 @@ const userSchema = new mongoose.Schema(
       transform: function (doc, ret) {
         delete ret.password;
         delete ret.token;
+        delete ret.refreshToken;
         delete ret.resetPasswordToken;
         return ret;
       },
@@ -171,25 +179,45 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   }
 };
 
-// Method to generate JWT token (for both admin and buyer)
-userSchema.methods.generateAuthToken = function () {
+const getJwtSecret = () =>
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
+
+// Short-lived access token (Bearer)
+userSchema.methods.generateAccessToken = function () {
   const payload = {
     userId: this._id,
     email: this.email,
     username: this.username,
     role: this.role,
+    type: "access",
   };
+  const expiresIn = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
+  return jwt.sign(payload, getJwtSecret(), { expiresIn });
+};
 
-  // Long-lived session token; override with JWT_EXPIRES_IN (e.g. "90d", "365d", "730d")
-  const expiresIn = process.env.JWT_EXPIRES_IN || "365d";
-  const token = jwt.sign(
-    payload,
-    process.env.JWT_SECRET || "your-secret-key-change-in-production",
-    { expiresIn },
-  );
+// Long-lived refresh token (httpOnly cookie + DB; role included for edge middleware)
+userSchema.methods.generateRefreshToken = function () {
+  const payload = {
+    userId: this._id,
+    role: this.role,
+    type: "refresh",
+  };
+  const expiresIn = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+  return jwt.sign(payload, getJwtSecret(), { expiresIn });
+};
 
-  this.token = token;
-  return token;
+userSchema.methods.generateTokenPair = function () {
+  const accessToken = this.generateAccessToken();
+  const refreshToken = this.generateRefreshToken();
+  this.token = accessToken;
+  this.refreshToken = refreshToken;
+  return { accessToken, refreshToken };
+};
+
+/** @returns access token string (legacy callers) */
+userSchema.methods.generateAuthToken = function () {
+  const { accessToken } = this.generateTokenPair();
+  return accessToken;
 };
 
 // Method to generate password reset token

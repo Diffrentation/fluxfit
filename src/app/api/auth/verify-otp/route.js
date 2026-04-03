@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/user.model";
 import OTP from "@/models/otp.model";
 import { sendWelcomeEmail } from "@/lib/email";
+import { setRefreshTokenCookie } from "@/lib/authCookies";
 
 /**
  * POST /api/auth/verify-otp
@@ -104,28 +105,52 @@ export async function POST(request) {
       }
     }
 
-    // Return success response
+    const basePayload = {
+      success: true,
+      message:
+        type === "email-verification"
+          ? "Email verified successfully! Welcome to FluxFit."
+          : "OTP verified successfully",
+      data: {
+        user: {
+          id: user._id,
+          username: user.username,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          email: user.email,
+          role: user.role,
+          isverified: user.isverified,
+          phone: user.phone || null,
+          address: user.address || null,
+          profileimage: user.profileimage || null,
+        },
+        verified: true,
+      },
+    };
+
+    if (type === "email-verification") {
+      const { accessToken, refreshToken } = user.generateTokenPair();
+      await user.save({ validateBeforeSave: false });
+      const response = NextResponse.json(
+        {
+          ...basePayload,
+          data: {
+            ...basePayload.data,
+            token: accessToken,
+            accessToken,
+          },
+        },
+        { status: 200 }
+      );
+      setRefreshTokenCookie(response, refreshToken);
+      return response;
+    }
+
     return NextResponse.json(
       {
-        success: true,
-        message:
-          type === "email-verification"
-            ? "Email verified successfully! Welcome to FluxFit."
-            : "OTP verified successfully",
+        ...basePayload,
         data: {
-          user: {
-            id: user._id,
-            username: user.username,
-            firstname: user.firstname,
-            lastname: user.lastname,
-            email: user.email,
-            role: user.role,
-            isverified: user.isverified,
-            phone: user.phone || null,
-            address: user.address || null,
-            profileimage: user.profileimage || null,
-          },
-          verified: true,
+          ...basePayload.data,
           token: user.token,
         },
       },

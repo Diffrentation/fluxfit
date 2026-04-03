@@ -1,10 +1,13 @@
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/Header/Nav";
+import AdminAccessNotice from "@/components/AdminAccessNotice";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,13 +45,18 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <Nav />
-              {children}
-              <ConditionalFooter />
-            </WishlistProvider>
-          </CartProvider>
+          <AuthProvider>
+            <Suspense fallback={null}>
+              <AdminAccessNotice />
+            </Suspense>
+            <CartProvider>
+              <WishlistProvider>
+                <Nav />
+                {children}
+                <ConditionalFooter />
+              </WishlistProvider>
+            </CartProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

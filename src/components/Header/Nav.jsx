@@ -10,74 +10,46 @@ import {
   MobileNavToggle,
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { IconShoppingCart } from "@tabler/icons-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Herobanner from "../Home/Herobanner.jsx";
 import { useRouter } from "next/navigation";
 
 export function Nav() {
-  // ecommerce navbar items for desktop (without Cart)
-  const desktopNavItems = [
-    {
-      name: "Home",
-      link: "/",
-    },
-    {
-      name: "Shop",
-      link: "/product-list",
-    },
-    {
-      name: "Orders",
-      link: "/orders",
-    },
-    {
-      name: "About",
-      link: "/about",
-    },
-    {
-      name: "Contact",
-      link: "/contact",
-    },
-    {
-      name: "Admin",
-      link: "/admin",
-    },
-  ];
+  const { user, hydrated } = useAuth();
 
-  // ecommerce navbar items for mobile (with Cart)
-  const mobileNavItems = [
-    {
-      name: "Home",
-      link: "/",
-    },
-    {
-      name: "Shop",
-      link: "/product-list",
-    },
-    {
-      name: "About",
-      link: "/about",
-    },
-    {
-      name: "Contact",
-      link: "/contact",
-    },
-    {
-      name: "Cart",
-      link: "/cart",
-    },
-    {
-      name: "Orders",
-      link: "/orders",
-    },
-    {
-      name: "Admin",
-      link: "/admin",
-    },
-  ];
+  const desktopNavItems = useMemo(() => {
+    const items = [
+      { name: "Home", link: "/" },
+      { name: "Shop", link: "/product-list" },
+      { name: "Orders", link: "/orders" },
+      { name: "About", link: "/about" },
+      { name: "Contact", link: "/contact" },
+    ];
+    if (hydrated && user?.role === "admin") {
+      items.push({ name: "Admin", link: "/admin" });
+    }
+    return items;
+  }, [hydrated, user?.role]);
+
+  const mobileNavItems = useMemo(() => {
+    const items = [
+      { name: "Home", link: "/" },
+      { name: "Shop", link: "/product-list" },
+      { name: "About", link: "/about" },
+      { name: "Contact", link: "/contact" },
+      { name: "Cart", link: "/cart" },
+      { name: "Orders", link: "/orders" },
+    ];
+    if (hydrated && user?.role === "admin") {
+      items.push({ name: "Admin", link: "/admin" });
+    }
+    return items;
+  }, [hydrated, user?.role]);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { getCartCount } = useCart();

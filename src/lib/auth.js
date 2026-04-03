@@ -37,6 +37,20 @@ export async function authenticateUser(request) {
       process.env.JWT_SECRET || "your-secret-key-change-in-production"
     );
 
+    // Never accept refresh tokens as Bearer access tokens
+    if (decoded.type === "refresh") {
+      return {
+        error: NextResponse.json(
+          {
+            success: false,
+            message: "Invalid token type.",
+          },
+          { status: 401 }
+        ),
+        user: null,
+      };
+    }
+
     // Connect to database
     await connectDB();
 
@@ -138,6 +152,19 @@ export async function authenticateUserWithPassword(request) {
       token,
       process.env.JWT_SECRET || "your-secret-key-change-in-production"
     );
+
+    if (decoded.type === "refresh") {
+      return {
+        error: NextResponse.json(
+          {
+            success: false,
+            message: "Invalid token type.",
+          },
+          { status: 401 }
+        ),
+        user: null,
+      };
+    }
 
     // Connect to database
     await connectDB();

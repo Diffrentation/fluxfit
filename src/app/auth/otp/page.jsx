@@ -5,8 +5,10 @@ import toast, { Toaster } from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import axios from "axios";
+import { useAuth } from "@/context/AuthContext";
 
 function OTPPageContent() {
+  const { login: authLogin } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -88,12 +90,18 @@ function OTPPageContent() {
       });
 
       if (response?.data?.success) {
-        // ✅ safer: token/user can be in data object
-        const token = response?.data?.data?.token || response?.data?.token;
+        const token =
+          response?.data?.data?.accessToken ||
+          response?.data?.data?.token ||
+          response?.data?.token;
         const user = response?.data?.data?.user || response?.data?.user;
 
-        if (token) localStorage.setItem("token", token);
-        if (user) localStorage.setItem("user", JSON.stringify(user));
+        if (token && user && apiType === "email-verification") {
+          authLogin(token, user);
+        } else {
+          if (token) localStorage.setItem("token", token);
+          if (user) localStorage.setItem("user", JSON.stringify(user));
+        }
 
         toast.success(response?.data?.message || "OTP verified successfully ✅");
 

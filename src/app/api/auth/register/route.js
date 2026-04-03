@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { setRefreshTokenCookie } from "@/lib/authCookies";
 import connectDB from "@/lib/db";
 import User from "@/models/user.model";
 import { sendOTPEmail } from "@/lib/email";
@@ -275,12 +276,10 @@ export async function POST(request) {
       // Don't fail registration if OTP generation fails
     }
 
-    // Generate auth token
-    const token = user.generateAuthToken();
+    const { accessToken, refreshToken } = user.generateTokenPair();
     await user.save({ validateBeforeSave: false });
 
-    // Return success response (exclude sensitive data)
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         message: `Please verify your email with the OTP sent to your email address. OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.`,
@@ -298,12 +297,15 @@ export async function POST(request) {
             profileimage: user.profileimage || null,
             createdAt: user.createdAt,
           },
-          token,
+          accessToken,
+          token: accessToken,
           otpSent: otp !== null,
         },
       },
       { status: 201 },
     );
+    setRefreshTokenCookie(response, refreshToken);
+    return response;
   } catch (error) {
     console.error("Registration error:", error);
 

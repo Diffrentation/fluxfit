@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/user.model";
+import { setRefreshTokenCookie } from "@/lib/authCookies";
 
 /**
  * POST /api/auth/login
@@ -57,12 +58,11 @@ export async function POST(request) {
       );
     }
 
-    // Generate auth token
-    const token = user.generateAuthToken();
+    // Access + refresh token pair (refresh also stored httpOnly cookie)
+    const { accessToken, refreshToken } = user.generateTokenPair();
     await user.save({ validateBeforeSave: false });
 
-    // Return success response
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         message: "Login successful",
@@ -80,11 +80,14 @@ export async function POST(request) {
             profileimage: user.profileimage || null,
             lastLogin: user.lastLogin,
           },
-          token,
+          accessToken,
+          token: accessToken,
         },
       },
       { status: 200 }
     );
+    setRefreshTokenCookie(response, refreshToken);
+    return response;
   } catch (error) {
     console.error("Login error:", error);
 

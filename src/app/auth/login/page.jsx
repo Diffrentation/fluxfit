@@ -1,14 +1,17 @@
 "use client";
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FaRegEyeSlash, FaRegEye } from "react-icons/fa6";
 import toast from "react-hot-toast";
 import axios from "axios";
+import { useAuth } from "@/context/AuthContext";
 
 function Login() {
+  const { login: authLogin } = useAuth();
+  const searchParams = useSearchParams();
   const [showPass, setShowPass] = useState(false);
   const router = useRouter();
   const [logoError, setLogoError] = useState(false);
@@ -30,14 +33,14 @@ function Login() {
   
       if (response?.data?.success) {
         toast.success(response?.data?.message || "Login successful ✅");
-  
-        // ✅ correct storage
-        localStorage.setItem("token", response?.data?.data?.token);
-        localStorage.setItem(
-          "user",
-          JSON.stringify(response?.data?.data?.user)
-        );
-  
+
+        const token =
+          response?.data?.data?.accessToken || response?.data?.data?.token;
+        const userPayload = response?.data?.data?.user;
+        if (token && userPayload) {
+          authLogin(token, userPayload);
+        }
+
         router.push("/");
         return;
       }
@@ -151,7 +154,19 @@ function Login() {
   );
 }
 
-export default Login;
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[50vh] flex items-center justify-center text-gray-500">
+          Loading…
+        </div>
+      }
+    >
+      <Login />
+    </Suspense>
+  );
+}
 
 const BottomGradient = () => (
   <>
