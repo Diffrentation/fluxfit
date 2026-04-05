@@ -1,7 +1,9 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import axios from "axios";
+import { Badge } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   IconLayoutDashboard,
@@ -28,8 +30,40 @@ import { useSidebar } from "@/contexts/SidebarContext";
 const AdminSidebar = ({ activeItem = "dashboard" }) => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingContacts, setPendingContacts] = useState(0);
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const sidebarRef = useRef(null);
+
+  const fetchPendingContacts = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setPendingContacts(0);
+      return;
+    }
+    try {
+      const { data } = await axios.get("/api/admin/contacts/pending-count", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data?.success && typeof data.data?.pending === "number") {
+        setPendingContacts(data.data.pending);
+      }
+    } catch {
+      setPendingContacts(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!pathname?.startsWith("/admin")) return;
+    fetchPendingContacts();
+    const t = setInterval(fetchPendingContacts, 45000);
+    const onContactsChanged = () => fetchPendingContacts();
+    window.addEventListener("ff-admin-contacts-changed", onContactsChanged);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("ff-admin-contacts-changed", onContactsChanged);
+    };
+  }, [pathname, fetchPendingContacts]);
 
   const menuItems = [
     {
@@ -93,10 +127,11 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       path: "/admin/reports",
     },
     {
-      id: "notifications",
-      label: "Notifications",
+      id: "contacts",
+      label: "Support inbox",
       icon: IconBell,
-      path: "/admin/notifications",
+      path: "/admin/contacts",
+      badgeCount: pendingContacts,
     },
     {
       id: "settings",
@@ -251,6 +286,14 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
+                const badge =
+                  item.badgeCount > 0 ? (
+                    <Badge
+                      count={item.badgeCount}
+                      size="small"
+                      className="shrink-0 [&_.ant-badge-count]:!min-w-[18px] [&_.ant-badge-count]:!h-[18px] [&_.ant-badge-count]:!leading-[18px] [&_.ant-badge-count]:!text-[10px]"
+                    />
+                  ) : null;
 
                 return (
                   <li key={item.id}>
@@ -275,9 +318,16 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                           stiffness: 300,
                           damping: 30,
                         }}
-                        className="flex items-center gap-2 sm:gap-3"
+                        className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1"
                       >
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                        <span className="relative inline-flex shrink-0">
+                          <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                          {isCollapsed && item.badgeCount > 0 ? (
+                            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+                              {item.badgeCount > 99 ? "99+" : item.badgeCount}
+                            </span>
+                          ) : null}
+                        </span>
                         <AnimatePresence mode="wait">
                           {!isCollapsed && (
                             <motion.span
@@ -289,9 +339,10 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                                 stiffness: 300,
                                 damping: 30,
                               }}
-                              className="whitespace-nowrap overflow-hidden"
+                              className="whitespace-nowrap overflow-hidden flex items-center gap-2 min-w-0"
                             >
-                              {item.label}
+                              <span className="truncate">{item.label}</span>
+                              {badge}
                             </motion.span>
                           )}
                         </AnimatePresence>
@@ -379,6 +430,12 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                     {menuItems.map((item) => {
                       const Icon = item.icon;
                       const active = isActive(item.path);
+                      const mobileBadge =
+                        item.badgeCount > 0 ? (
+                          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                            {item.badgeCount > 99 ? "99+" : item.badgeCount}
+                          </span>
+                        ) : null;
 
                       return (
                         <li key={item.id}>
@@ -392,8 +449,11 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                                 : "text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white"
                             )}
                           >
-                            <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                            <span>{item.label}</span>
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                            <span className="flex-1 min-w-0 truncate">
+                              {item.label}
+                            </span>
+                            {mobileBadge}
                           </Link>
                         </li>
                       );

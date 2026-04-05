@@ -45,18 +45,20 @@ function Login() {
         router.push("/");
         return;
       }
-  
-      toast.error(response?.data?.message || "Login failed");
+
+      toast.error(
+        typeof response?.data?.message === "string"
+          ? response.data.message
+          : "Login failed"
+      );
     } catch (error) {
-      // ✅ if not verified redirect to otp
       if (error?.response?.status === 403) {
         toast.error("Please verify your email first!");
         const userId = error?.response?.data?.data?.userId;
         if (userId) router.push(`/auth/otp?type=register&userId=${userId}`);
         return;
       }
-  
-      toast.error(error?.response?.data?.message || "Invalid login credentials");
+      // 401 / 400 / network: GlobalAxiosToasts already shows toast.error
     } finally {
       setLoading(false);
     }

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 
@@ -61,8 +61,6 @@ function ChangePasswordContent() {
         max-w-5xl rounded-none bg-white p-6 md:rounded-2xl md:p-10 dark:bg-black
       "
     >
-      <Toaster position="top-right" />
-
       <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-200">
         Change Your Password
       </h2>

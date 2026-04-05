@@ -21,6 +21,7 @@ import AbandonedCartStats from "@/components/Admin/AbandonedCartStats";
 import UserRegistrations from "@/components/Admin/UserRegistrations";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
+import SupportInboxAlert from "@/components/Admin/SupportInboxAlert";
 import {
   exportToCSV,
   exportToExcel,
@@ -247,6 +248,8 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </motion.div>
+
+            <SupportInboxAlert />
 
             {/* Dashboard Stats */}
             <DashboardStats refreshNonce={refreshNonce} reportType={reportType} />

@@ -6,6 +6,7 @@ import {
   normalizeProductForCard,
 } from "@/lib/publicProductsApi";
 import { publicApiUrl } from "@/lib/apiBaseUrl";
+import { toastApiError } from "@/lib/appToast";
 
 /**
  * Fetches catalog products from GET /api/products with stable request cancellation.
@@ -94,6 +95,7 @@ export function usePublicProducts({
         return;
       }
       console.error("usePublicProducts:", e);
+      toastApiError(e, "Could not load products");
       setError(e);
       setProducts([]);
       setPagination(null);

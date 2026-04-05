@@ -1,10 +1,37 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
-import { message } from "antd";
 import { useMotionTemplate, useMotionValue, motion } from "motion/react";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateContactForm(data) {
+  const name = (data.name || "").trim();
+  if (name.length < 2) {
+    return "Please enter your name (at least 2 characters).";
+  }
+  const email = (data.email || "").trim().toLowerCase();
+  if (!email || !EMAIL_RE.test(email)) {
+    return "Please enter a valid email address.";
+  }
+  const phone = (data.phone || "").trim();
+  if (phone && !/^[\d\s+().-]{7,40}$/.test(phone)) {
+    return "Please enter a valid phone number or leave it blank.";
+  }
+  const subject = (data.subject || "").trim();
+  if (subject.length < 2) {
+    return "Please enter a subject.";
+  }
+  const message = (data.message || "").trim();
+  if (message.length < 10) {
+    return "Please enter a message (at least 10 characters).";
+  }
+  return null;
+}
 
 const ContactForm = ({
   title = "Get in Touch With Us",
@@ -30,37 +57,67 @@ const ContactForm = ({
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
 
-    try {
-      // If custom onSubmit handler is provided, use it
-      if (onSubmit) {
-        await onSubmit(formData);
-      } else {
-        // Default behavior - just show success message
-        console.log("Form submitted:", formData);
-        message.success(
-          "Message sent successfully! We'll get back to you soon."
-        );
+      const clientErr = validateContactForm(formData);
+      if (clientErr) {
+        toast.error(clientErr);
+        return;
       }
 
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        subject: "",
-        message: "",
-      });
-    } catch (error) {
-      message.error("Failed to send message. Please try again.");
-      console.error("Form submission error:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      setIsSubmitting(true);
+
+      try {
+        if (onSubmit) {
+          await onSubmit(formData);
+          setFormData({
+            name: "",
+            email: "",
+            phone: "",
+            subject: "",
+            message: "",
+          });
+        } else {
+          const payload = {
+            name: formData.name.trim(),
+            email: formData.email.trim().toLowerCase(),
+            phone: (formData.phone || "").trim(),
+            subject: formData.subject.trim(),
+            message: formData.message.trim(),
+          };
+          const { data } = await axios.post("/api/contact", payload, {
+            _skipGlobalToast: true,
+          });
+          if (data?.success) {
+            toast.success(
+              data.message ||
+                "Thanks! We received your message and will get back to you soon."
+            );
+            setFormData({
+              name: "",
+              email: "",
+              phone: "",
+              subject: "",
+              message: "",
+            });
+          } else {
+            toast.error(data?.message || "Could not send your message.");
+          }
+        }
+      } catch (error) {
+        const msg =
+          error?.response?.data?.message ||
+          "Failed to send message. Please try again.";
+        toast.error(msg);
+        console.error("Form submission error:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [formData, onSubmit]
+  );
 
   return (
     <div
@@ -87,7 +144,7 @@ const ContactForm = ({
                 type="text"
                 value={formData.name}
                 onChange={handleChange}
-                required
+                autoComplete="name"
               />
             </LabelInputContainer>
             <LabelInputContainer>
@@ -99,13 +156,13 @@ const ContactForm = ({
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                required
+                autoComplete="email"
               />
             </LabelInputContainer>
           </div>
           <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
             <LabelInputContainer>
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Phone (optional)</Label>
               <Input
                 id="phone"
                 name="phone"
@@ -113,7 +170,7 @@ const ContactForm = ({
                 type="tel"
                 value={formData.phone}
                 onChange={handleChange}
-                required
+                autoComplete="tel"
               />
             </LabelInputContainer>
             <LabelInputContainer>
@@ -125,7 +182,6 @@ const ContactForm = ({
                 type="text"
                 value={formData.subject}
                 onChange={handleChange}
-                required
               />
             </LabelInputContainer>
           </div>
@@ -138,18 +194,21 @@ const ContactForm = ({
               rows={6}
               value={formData.message}
               onChange={handleChange}
-              required
             />
           </LabelInputContainer>
 
-          <button
-            className="group/btn relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-600 font-medium text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] disabled:opacity-50 disabled:cursor-not-allowed"
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Sending..." : "Send Message &rarr;"}
-            <BottomGradient />
-          </button>
+          <div className="flex justify-center">
+            <button
+              className="group/btn relative inline-flex h-10 min-h-10 min-w-[350px] items-center justify-center rounded-md bg-gradient-to-br from-black to-neutral-600 px-10 text-sm font-medium text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] disabled:cursor-not-allowed disabled:opacity-50"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? "Sending your message…"
+                : "Send message to support"}
+              <BottomGradient />
+            </button>
+          </div>
         </form>
       </div>
     </div>

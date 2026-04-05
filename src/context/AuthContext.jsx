@@ -11,6 +11,7 @@ import React, {
   useState,
 } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { getJwtExpiryMs } from "@/lib/jwtClient";
 
@@ -180,6 +181,7 @@ export function AuthProvider({ children }) {
       try {
         await refreshRef.current();
       } catch {
+        toast.error("Session expired. Please sign in again.");
         await logoutRef.current();
       }
     }, delay);
@@ -225,7 +227,8 @@ export function AuthProvider({ children }) {
         const url = original.url || "";
         if (
           url.includes("/api/auth/refresh") ||
-          url.includes("/api/auth/login")
+          url.includes("/api/auth/login") ||
+          url.includes("/api/auth/register")
         ) {
           return Promise.reject(error);
         }
@@ -243,6 +246,7 @@ export function AuthProvider({ children }) {
           }
           return axios(original);
         } catch {
+          toast.error("Session expired. Please sign in again.");
           await logoutRef.current();
           return Promise.reject(error);
         }

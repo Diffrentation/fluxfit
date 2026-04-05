@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import axios from "axios";
@@ -147,8 +147,6 @@ function OTPPageContent() {
 
   return (
     <div className="flex justify-center items-center min-h-screen">
-      <Toaster position="top-right" />
-
       <div className="border p-10 rounded-2xl w-[450px] shadow-md">
         <h2 className="text-2xl font-bold mb-3 text-center">Enter OTP</h2>
         <p className="text-center text-gray-500 mb-6 text-sm">

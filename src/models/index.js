@@ -22,4 +22,5 @@ export { default as SMSTemplate } from "./smstemplate.model.js";
 export { default as APIKey } from "./apikey.model.js";
 export { default as Settlement } from "./settlement.model.js";
 export { default as ActivityLog } from "./activitylog.model.js";
+export { default as Contact } from "./contact.model.js";
 

@@ -65,14 +65,17 @@ function Signup() {
         if (response.data.success) {
           toast.success(response.data.message || "Registered ✅");
         } else {
-          toast.error(response.data.message || "Failed");
+          const m = response.data?.message;
+          toast.error(
+            typeof m === "string" ? m : "Registration could not be completed"
+          );
         }
     
         return response; // ✅ MOST IMPORTANT (without this redirect will never work)
     
-      } catch (error) {
-        toast.error(error?.response?.data?.message || "Failed to register user");
-        return null; // ✅ important
+      } catch {
+        // Error toast: GlobalAxiosToasts (login + register)
+        return null;
       } finally {
         setLoading(false);
       }
