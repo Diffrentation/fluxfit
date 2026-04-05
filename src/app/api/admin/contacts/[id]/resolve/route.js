@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import Contact from "@/models/contact.model";
+import Contact, { migrateLegacyContactStatuses } from "@/models/contact.model";
 import { authenticateAdmin } from "@/lib/auth";
 import mongoose from "mongoose";
 
 /**
  * PUT /api/admin/contacts/:id/resolve
+ * Backward-compatible alias: marks contact as **approved**.
  */
 export async function PUT(request, { params }) {
   try {
@@ -21,12 +22,13 @@ export async function PUT(request, { params }) {
     }
 
     await connectDB();
+    await migrateLegacyContactStatuses();
 
     const doc = await Contact.findByIdAndUpdate(
       id,
-      { status: "resolved", resolvedAt: new Date() },
-      { new: true }
-    ).lean();
+      { $set: { status: "approved", resolvedAt: new Date() } },
+      { new: true, lean: true, runValidators: false }
+    );
 
     if (!doc) {
       return NextResponse.json(
@@ -37,7 +39,7 @@ export async function PUT(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      message: "Marked as resolved.",
+      message: "Marked as approved.",
       data: { id: doc._id.toString(), status: doc.status },
     });
   } catch (err) {

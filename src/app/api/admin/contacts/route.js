@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import Contact from "@/models/contact.model";
+import Contact, {
+  CONTACT_STATUSES,
+  migrateLegacyContactStatuses,
+} from "@/models/contact.model";
 import { authenticateAdmin } from "@/lib/auth";
 
 /**
  * GET /api/admin/contacts
- * Query: page, limit, status (pending|resolved|omit for all)
+ * Query: page, limit, status (pending|approved|rejected|spam|omit for all)
  */
 export async function GET(request) {
   try {
@@ -13,6 +16,7 @@ export async function GET(request) {
     if (error) return error;
 
     await connectDB();
+    await migrateLegacyContactStatuses();
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page"), 10) || 1);
@@ -20,7 +24,7 @@ export async function GET(request) {
     const status = searchParams.get("status");
 
     const query = {};
-    if (status === "pending" || status === "resolved") {
+    if (status && CONTACT_STATUSES.includes(status)) {
       query.status = status;
     }
 

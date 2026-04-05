@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
 
+/** Contact moderation / workflow states (admin) */
+export const CONTACT_STATUSES = ["pending", "approved", "rejected", "spam"];
+
 const contactSchema = new mongoose.Schema(
   {
     name: {
@@ -35,9 +38,10 @@ const contactSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "resolved"],
+      enum: CONTACT_STATUSES,
       default: "pending",
     },
+    /** Set when status is no longer `pending` (reviewed / triaged). */
     resolvedAt: {
       type: Date,
       default: null,
@@ -51,4 +55,13 @@ contactSchema.index({ status: 1, createdAt: -1 });
 
 const Contact =
   mongoose.models.Contact || mongoose.model("Contact", contactSchema);
+
+/** Map legacy `resolved` → `approved` (one-time / idempotent). */
+export async function migrateLegacyContactStatuses() {
+  await Contact.updateMany(
+    { status: "resolved" },
+    { $set: { status: "approved" } }
+  );
+}
+
 export default Contact;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import Contact from "@/models/contact.model";
+import Contact, { migrateLegacyContactStatuses } from "@/models/contact.model";
 import { authenticateAdmin } from "@/lib/auth";
 
 /**
@@ -12,6 +12,7 @@ export async function GET(request) {
     if (error) return error;
 
     await connectDB();
+    await migrateLegacyContactStatuses();
     const pending = await Contact.countDocuments({ status: "pending" });
 
     return NextResponse.json({
