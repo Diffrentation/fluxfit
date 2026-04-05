@@ -73,14 +73,6 @@ export function Nav() {
           setIsMobileMenuOpen(false);
         },
       },
-      {
-        key: "orders",
-        label: "Orders",
-        onClick: () => {
-          router.push("/orders");
-          setIsMobileMenuOpen(false);
-        },
-      },
       { type: "divider" },
       {
         key: "logout",
@@ -238,13 +230,6 @@ export function Nav() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     My Profile
-                  </Link>
-                  <Link
-                    href="/orders"
-                    className="text-neutral-700 dark:text-neutral-300 text-sm py-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Orders
                   </Link>
                   <NavbarButton
                     onClick={() => {

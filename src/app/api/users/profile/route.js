@@ -136,22 +136,31 @@ export async function PUT(request) {
     }
 
     if (address !== undefined) {
-      // Validate address structure if provided
       if (address && typeof address === "object") {
-        const addressUpdate = {};
-        if (address.city !== undefined) {
-          addressUpdate.city = address.city?.trim() || null;
-        }
-        if (address.state !== undefined) {
-          addressUpdate.state = address.state?.trim() || null;
-        }
-        if (address.country !== undefined) {
-          addressUpdate.country = address.country?.trim() || "India";
-        }
-        if (address.pincode !== undefined) {
-          addressUpdate.pincode = address.pincode?.trim() || null;
-        }
-        updateData.address = addressUpdate;
+        const prev = user.address
+          ? typeof user.address.toObject === "function"
+            ? user.address.toObject()
+            : { ...user.address }
+          : {};
+        const merged = {
+          city:
+            address.city !== undefined
+              ? address.city?.trim() || null
+              : prev.city ?? null,
+          state:
+            address.state !== undefined
+              ? address.state?.trim() || null
+              : prev.state ?? null,
+          country:
+            address.country !== undefined
+              ? address.country?.trim() || "India"
+              : prev.country ?? "India",
+          pincode:
+            address.pincode !== undefined
+              ? address.pincode?.trim() || null
+              : prev.pincode ?? null,
+        };
+        updateData.address = merged;
       } else if (address === null) {
         updateData.address = null;
       }
