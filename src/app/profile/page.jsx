@@ -618,7 +618,7 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <div className="container max-w-6xl mx-auto px-4 py-8 sm:py-10">
+      <div className="container max-w-6xl mx-auto px-4 pt-20 pb-10 sm:pt-24 sm:pb-12 md:pt-28 md:pb-14">
         <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <Title level={2} className="!mb-1 dark:!text-white">
