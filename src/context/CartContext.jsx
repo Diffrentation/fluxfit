@@ -4,6 +4,15 @@ import { addItemToServerCart } from "@/lib/cart-api-client";
 
 const CartContext = createContext();
 
+function customizationKey(c) {
+  if (c == null) return "";
+  try {
+    return JSON.stringify(c);
+  } catch {
+    return "";
+  }
+}
+
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
@@ -53,13 +62,18 @@ export const CartProvider = ({ children }) => {
   }, [appliedCoupon]);
 
   const addToCart = (product, options = {}) => {
-    const { size, color, quantity = 1 } = options;
+    const { size, color, quantity = 1, customization } = options;
     const productId = product?.id ?? product?._id;
+
+    const cKey = customizationKey(customization);
 
     setCartItems((prevItems) => {
       const existingItemIndex = prevItems.findIndex(
         (item) =>
-          item.id === productId && item.size === size && item.color === color,
+          item.id === productId &&
+          item.size === size &&
+          item.color === color &&
+          customizationKey(item.customization) === cKey,
       );
 
       if (existingItemIndex >= 0) {
@@ -82,12 +96,18 @@ export const CartProvider = ({ children }) => {
           size,
           color,
           quantity,
+          ...(customization != null ? { customization } : {}),
         },
       ];
     });
 
     queueMicrotask(() => {
-      addItemToServerCart(productId, { size, color, quantity }).catch((err) => {
+      addItemToServerCart(productId, {
+        size,
+        color,
+        quantity,
+        customization,
+      }).catch((err) => {
         console.warn(
           "[cart] Server cart sync failed (local cart still updated):",
           err?.response?.data?.message || err?.message || err,
@@ -96,24 +116,34 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const removeFromCart = (itemId, size, color) => {
+  const removeFromCart = (itemId, size, color, customization) => {
+    const cKey = customizationKey(customization);
     setCartItems((prevItems) =>
       prevItems.filter(
         (item) =>
-          !(item.id === itemId && item.size === size && item.color === color)
+          !(
+            item.id === itemId &&
+            item.size === size &&
+            item.color === color &&
+            customizationKey(item.customization) === cKey
+          )
       )
     );
   };
 
-  const updateQuantity = (itemId, size, color, newQuantity) => {
+  const updateQuantity = (itemId, size, color, newQuantity, customization) => {
     if (newQuantity <= 0) {
-      removeFromCart(itemId, size, color);
+      removeFromCart(itemId, size, color, customization);
       return;
     }
 
+    const cKey = customizationKey(customization);
     setCartItems((prevItems) =>
       prevItems.map((item) =>
-        item.id === itemId && item.size === size && item.color === color
+        item.id === itemId &&
+        item.size === size &&
+        item.color === color &&
+        customizationKey(item.customization) === cKey
           ? { ...item, quantity: newQuantity }
           : item
       )

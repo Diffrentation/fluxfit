@@ -26,6 +26,11 @@ const cartItemSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    /** Optional JSON (e.g. custom clothes decal config) for checkout / fulfillment. */
+    customization: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
   },
   { _id: true }
 );
@@ -84,13 +89,28 @@ cartSchema.virtual("total").get(function () {
   return Math.max(0, this.subtotal - this.discountAmount);
 });
 
+function sameCustomization(a, b) {
+  try {
+    return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  } catch {
+    return false;
+  }
+}
+
 // Method to add item to cart
-cartSchema.methods.addItem = function (productId, variant = {}, quantity = 1, price) {
+cartSchema.methods.addItem = function (
+  productId,
+  variant = {},
+  quantity = 1,
+  price,
+  customization = null
+) {
   const existingItemIndex = this.items.findIndex(
     (item) =>
       item.product.toString() === productId.toString() &&
       item.variant.size === variant.size &&
-      item.variant.color === variant.color
+      item.variant.color === variant.color &&
+      sameCustomization(item.customization, customization)
   );
 
   if (existingItemIndex >= 0) {
@@ -103,6 +123,7 @@ cartSchema.methods.addItem = function (productId, variant = {}, quantity = 1, pr
       variant,
       quantity,
       price,
+      customization: customization ?? null,
       addedAt: new Date(),
     });
   }

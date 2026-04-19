@@ -48,21 +48,27 @@ const CartPage = () => {
 
   const handleQuantityChange = (item, newQuantity) => {
     if (newQuantity < 1) {
-      removeFromCart(item.id, item.size, item.color);
+      removeFromCart(item.id, item.size, item.color, item.customization);
       message.success("Item removed from cart");
     } else {
-      updateQuantity(item.id, item.size, item.color, newQuantity);
+      updateQuantity(
+        item.id,
+        item.size,
+        item.color,
+        newQuantity,
+        item.customization
+      );
     }
   };
 
   const handleDelete = (item) => {
-    removeFromCart(item.id, item.size, item.color);
+    removeFromCart(item.id, item.size, item.color, item.customization);
     message.success("Item removed from cart");
   };
 
   const handleSaveForLater = (item) => {
     addToSavedForLater(item);
-    removeFromCart(item.id, item.size, item.color);
+    removeFromCart(item.id, item.size, item.color, item.customization);
     message.success("Item saved for later");
   };
 

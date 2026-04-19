@@ -173,7 +173,8 @@ export async function POST(request, { params }) {
             color: orderItem.variant.color || null,
           },
           orderItem.quantity,
-          itemPrice
+          itemPrice,
+          orderItem.customization ?? null
         );
 
         addedItems.push({

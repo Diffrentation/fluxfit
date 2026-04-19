@@ -23,6 +23,7 @@ import {
   IconCreditCard,
   IconCurrencyRupee,
   IconMessageCircle,
+  IconPalette,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -83,6 +84,12 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       label: "Categories & Brands",
       icon: IconTags,
       path: "/admin/categories",
+    },
+    {
+      id: "custom-clothes-designs",
+      label: "Custom clothes prints",
+      icon: IconPalette,
+      path: "/admin/custom-clothes-designs",
     },
     {
       id: "orders",

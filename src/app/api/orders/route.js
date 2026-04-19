@@ -593,6 +593,7 @@ export async function POST(request) {
         discount: itemDiscount,
         total: itemPrice * cartItem.quantity,
         status: "pending",
+        customization: cartItem.customization ?? null,
       });
 
       // Track stock updates

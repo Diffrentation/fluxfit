@@ -29,7 +29,7 @@ function normalizeVariantForServer(size, color) {
  * Best-effort: add line to MongoDB cart when user is logged in and product id is a real ObjectId.
  */
 export async function addItemToServerCart(productId, options = {}) {
-  const { size, color, quantity = 1 } = options;
+  const { size, color, quantity = 1, customization } = options;
   const headers = getCartAuthHeaders();
   if (!headers.Authorization) {
     return { ok: false, skipped: true, reason: "no_token" };
@@ -39,15 +39,15 @@ export async function addItemToServerCart(productId, options = {}) {
     return { ok: false, skipped: true, reason: "invalid_product_id" };
   }
   const variant = normalizeVariantForServer(size, color);
-  const { data } = await axios.post(
-    "/api/cart/items",
-    {
-      productId: id,
-      variant,
-      quantity: Math.max(1, Number(quantity) || 1),
-    },
-    { headers },
-  );
+  const body = {
+    productId: id,
+    variant,
+    quantity: Math.max(1, Number(quantity) || 1),
+  };
+  if (customization != null && typeof customization === "object") {
+    body.customization = customization;
+  }
+  const { data } = await axios.post("/api/cart/items", body, { headers });
   if (!data?.success) {
     const err = new Error(data?.message || "Server cart request failed");
     err.response = { data };

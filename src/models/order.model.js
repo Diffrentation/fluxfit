@@ -74,6 +74,10 @@ const orderItemSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    customization: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
   },
   { _id: true }
 );

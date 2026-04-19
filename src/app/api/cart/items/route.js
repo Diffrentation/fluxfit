@@ -108,6 +108,11 @@ export async function POST(request) {
           : null,
     };
 
+    const customization =
+      body?.customization != null && typeof body.customization === "object"
+        ? body.customization
+        : null;
+
     await connectDB();
 
     const product = await Product.findOne({
@@ -210,7 +215,7 @@ export async function POST(request) {
 
     const cart = await Cart.getOrCreate(user._id);
 
-    await cart.addItem(productId, variant, quantity, itemPrice);
+    await cart.addItem(productId, variant, quantity, itemPrice, customization);
 
     await cart.populate({
       path: "items.product",
@@ -304,6 +309,7 @@ export async function POST(request) {
               size: addedItem.variant?.size ?? null,
               color: addedItem.variant?.color ?? null,
             },
+            customization: addedItem.customization ?? null,
             quantity: addedItem.quantity,
             price: addedItem.price,
             subtotal: addedItem.price * addedItem.quantity,

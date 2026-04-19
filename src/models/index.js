@@ -23,4 +23,5 @@ export { default as APIKey } from "./apikey.model.js";
 export { default as Settlement } from "./settlement.model.js";
 export { default as ActivityLog } from "./activitylog.model.js";
 export { default as Contact } from "./contact.model.js";
+export { default as CustomClothingDesign } from "./customClothingDesign.model.js";
 

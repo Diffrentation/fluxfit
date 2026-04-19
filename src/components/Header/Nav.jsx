@@ -26,6 +26,7 @@ export function Nav() {
     const items = [
       { name: "Home", link: "/" },
       { name: "Shop", link: "/product-list" },
+      { name: "Custom clothes", link: "/custom-clothes" },
       { name: "Orders", link: "/orders" },
       { name: "About", link: "/about" },
       { name: "Contact", link: "/contact" },
@@ -40,6 +41,7 @@ export function Nav() {
     const items = [
       { name: "Home", link: "/" },
       { name: "Shop", link: "/product-list" },
+      { name: "Custom clothes", link: "/custom-clothes" },
       { name: "About", link: "/about" },
       { name: "Contact", link: "/contact" },
       { name: "Cart", link: "/cart" },
