@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import "./category.model.js";
+import "./brand.model.js";
 
 const productVariantSchema = new mongoose.Schema(
   {
