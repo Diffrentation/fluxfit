@@ -1,11 +1,17 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 const CustomDesignContext = createContext(null);
 const STORAGE_KEY = "customDesignSelection";
+const FLOW_STORAGE_KEY = "customClothesFlowSelection";
 
 const EMPTY_SELECTION = null;
+const EMPTY_FLOW = {
+  category: null,
+  subcategory: null,
+  product: null,
+};
 
 export const useCustomDesign = () => {
   const context = useContext(CustomDesignContext);
@@ -17,6 +23,7 @@ export const useCustomDesign = () => {
 
 export const CustomDesignProvider = ({ children }) => {
   const [selection, setSelection] = useState(EMPTY_SELECTION);
+  const [flowSelection, setFlowSelection] = useState(EMPTY_FLOW);
 
   useEffect(() => {
     try {
@@ -33,6 +40,23 @@ export const CustomDesignProvider = ({ children }) => {
 
   useEffect(() => {
     try {
+      const savedFlow = localStorage.getItem(FLOW_STORAGE_KEY);
+      if (!savedFlow) return;
+      const parsedFlow = JSON.parse(savedFlow);
+      if (parsedFlow && typeof parsedFlow === "object") {
+        setFlowSelection({
+          category: parsedFlow.category || null,
+          subcategory: parsedFlow.subcategory || null,
+          product: parsedFlow.product || null,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading custom clothes flow selection:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
       if (!selection) {
         localStorage.removeItem(STORAGE_KEY);
         return;
@@ -42,6 +66,24 @@ export const CustomDesignProvider = ({ children }) => {
       console.error("Error saving custom design selection:", error);
     }
   }, [selection]);
+
+  useEffect(() => {
+    try {
+      const hasFlowState =
+        Boolean(flowSelection?.category) ||
+        Boolean(flowSelection?.subcategory) ||
+        Boolean(flowSelection?.product);
+
+      if (!hasFlowState) {
+        localStorage.removeItem(FLOW_STORAGE_KEY);
+        return;
+      }
+
+      localStorage.setItem(FLOW_STORAGE_KEY, JSON.stringify(flowSelection));
+    } catch (error) {
+      console.error("Error saving custom clothes flow selection:", error);
+    }
+  }, [flowSelection]);
 
   const setCustomDesignSelection = (payload) => {
     if (!payload || typeof payload !== "object") return;
@@ -81,14 +123,32 @@ export const CustomDesignProvider = ({ children }) => {
     setSelection(EMPTY_SELECTION);
   };
 
+  const updateFlowSelection = useCallback((patch) => {
+    if (!patch || typeof patch !== "object") return;
+    setFlowSelection((prev) => ({
+      category:
+        patch.category !== undefined ? patch.category : prev.category,
+      subcategory:
+        patch.subcategory !== undefined ? patch.subcategory : prev.subcategory,
+      product: patch.product !== undefined ? patch.product : prev.product,
+    }));
+  }, []);
+
+  const resetFlowSelection = useCallback(() => {
+    setFlowSelection(EMPTY_FLOW);
+  }, []);
+
   const value = useMemo(
     () => ({
       selection,
+      flowSelection,
       setCustomDesignSelection,
       setCustomDesignColor,
       clearCustomDesignSelection,
+      updateFlowSelection,
+      resetFlowSelection,
     }),
-    [selection]
+    [selection, flowSelection, updateFlowSelection, resetFlowSelection]
   );
 
   return (

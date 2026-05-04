@@ -34,7 +34,10 @@ export async function GET(request) {
     const page = parseInt(searchParams.get("page")) || 1;
     const limit = Math.min(parseInt(searchParams.get("limit")) || 20, 100);
     const search = searchParams.get("search") || "";
-    const category = searchParams.get("category");
+    const category =
+      searchParams.get("subcategoryId") ||
+      searchParams.get("categoryId") ||
+      searchParams.get("category");
     const brand = searchParams.get("brand");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");

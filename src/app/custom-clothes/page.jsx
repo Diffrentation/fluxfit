@@ -1,1533 +1,280 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { IconArrowLeft, IconSearch, IconX } from "@tabler/icons-react";
-import { message } from "antd";
-import {
-  CUSTOM_DESIGN_OPTIONS,
-  DesignThumbnail,
-  getDesignDataUrl,
-  setRemoteCustomDesigns,
-} from "@/components/CustomClothes/designCanvas";
-import FlatGarmentCustomizer from "@/components/CustomClothes/FlatGarmentCustomizer";
-import {
-  buildCustomClothesPayload,
-  createDefaultViewPlacements,
-  createLayer,
-} from "@/components/CustomClothes/customClothesConfig";
-import { getMockupsForCategory } from "@/components/CustomClothes/mockupTemplates";
-import { useCart } from "@/context/CartContext";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Spin } from "antd";
+import CategoryList from "@/components/CustomClothesFlow/CategoryList";
+import SubcategoryList from "@/components/CustomClothesFlow/SubcategoryList";
+import ProductGrid from "@/components/CustomClothesFlow/ProductGrid";
+import { useCategories } from "@/hooks/useCategories";
+import { useSubcategories } from "@/hooks/useSubcategories";
+import { useProducts } from "@/hooks/useProducts";
 import { useCustomDesign } from "@/context/CustomDesignContext";
 
-const CUSTOM_CLOTHES_CART_PRODUCT = {
-  id: "custom-clothes-local",
-  _id: "custom-clothes-local",
-  name: "Custom clothing",
-  slug: "custom-clothing",
-  price: "29.99",
-  image: null,
-};
+export default function CustomClothesFlowPage() {
+  const router = useRouter();
+  const { flowSelection, updateFlowSelection } = useCustomDesign();
+  const [step, setStep] = useState("categories");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
-/** Fabric / cloth quality options (step 1). */
-export const CLOTH_QUALITIES = [
-  {
-    id: "cotton",
-    name: "Cotton",
-    hint: "Soft, breathable, everyday wear",
-  },
-  {
-    id: "normal",
-    name: "Normal / standard blend",
-    hint: "Versatile poly-cotton & basics",
-  },
-  {
-    id: "organic-cotton",
-    name: "Organic cotton",
-    hint: "Eco-friendly, gentle on skin",
-  },
-  {
-    id: "linen",
-    name: "Linen",
-    hint: "Light, crisp, summer-friendly",
-  },
-  {
-    id: "silk",
-    name: "Silk",
-    hint: "Luxury sheen & drape",
-  },
-  {
-    id: "wool",
-    name: "Wool",
-    hint: "Natural warmth & structure",
-  },
-  {
-    id: "denim",
-    name: "Denim",
-    hint: "Durable twill for jeans & jackets",
-  },
-  {
-    id: "polyester-blend",
-    name: "Polyester blend",
-    hint: "Easy care, wrinkle resistant",
-  },
-  {
-    id: "jersey-knit",
-    name: "Jersey / knit",
-    hint: "Stretchy tees & loungewear",
-  },
-  {
-    id: "khadi-handloom",
-    name: "Khadi / handloom",
-    hint: "Textured ethnic & casual",
-  },
-  {
-    id: "velvet",
-    name: "Velvet / velour",
-    hint: "Rich formal & party wear",
-  },
-  {
-    id: "performance",
-    name: "Performance / technical",
-    hint: "Moisture-wicking, sport-ready",
-  },
-];
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
 
-/** Hardcoded custom clothing categories (step 2 — replace with API/CMS later). */
-export const CUSTOM_CLOTHES_CATEGORIES = [
-  { id: 1, name: "T-Shirts", hint: "Prints, fits & neck styles" },
-  { id: 2, name: "Polo shirts", hint: "Collars & embroidery" },
-  { id: 3, name: "Shirts", hint: "Formal & casual cuts" },
-  { id: 4, name: "Jeans", hint: "Washes & fits" },
-  { id: 5, name: "Trousers & chinos", hint: "Tailored lengths" },
-  { id: 6, name: "Shorts", hint: "Summer & sport" },
-  { id: 7, name: "Dresses", hint: "Lengths & silhouettes" },
-  { id: 8, name: "Skirts", hint: "Mini to maxi" },
-  { id: 9, name: "Kurtas & kurtis", hint: "Ethnic everyday" },
-  { id: 10, name: "Sarees & drapes", hint: "Blouses & pleats" },
-  { id: 11, name: "Hoodies & sweatshirts", hint: "Layered comfort" },
-  { id: 12, name: "Jackets", hint: "Denim, bomber, utility" },
-  { id: 13, name: "Blazers", hint: "Smart casual" },
-  { id: 14, name: "Sportswear", hint: "Performance fabrics" },
-  { id: 15, name: "Activewear", hint: "Gym & yoga" },
-  { id: 16, name: "Loungewear", hint: "Soft sets" },
-  { id: 17, name: "Ethnic sets", hint: "Coordinated looks" },
-  { id: 18, name: "Kids wear", hint: "Sizes & safety" },
-  { id: 19, name: "Workwear", hint: "Uniforms & branding" },
-  { id: 20, name: "Outerwear", hint: "Coats & trenches" },
-];
-
-const EMPTY_CATEGORY_MOCKUPS = [];
-
-const COLOR_HEX_MAP = {
-  white: "#ffffff",
-  black: "#111827",
-  blue: "#3b82f6",
-  pink: "#ec4899",
-  gray: "#9ca3af",
-  grey: "#9ca3af",
-  green: "#22c55e",
-  beige: "#f5f5dc",
-  brown: "#92400e",
-  tan: "#d2b48c",
-  silver: "#c0c0c0",
-  gold: "#fbbf24",
-  maroon: "#7f1d1d",
-  red: "#ef4444",
-  yellow: "#facc15",
-  orange: "#fb923c",
-  purple: "#a855f7",
-  navy: "#1e3a8a",
-};
-
-function resolveColorSwatch(color) {
-  const key = String(color || "").trim().toLowerCase();
-  return COLOR_HEX_MAP[key] || key || "#d1d5db";
-}
-
-function resolveSelectedProductPreviewImage(selection) {
-  if (!selection) return "";
-  const colorKey = String(selection.selectedColor || "").toLowerCase();
-  const colorImage = selection.colorImageMap?.[colorKey];
-  if (colorImage) return colorImage;
-  if (selection.selectedImage) return selection.selectedImage;
-  return selection.images?.[0] || "";
-}
-
-function cardButtonClass(selected) {
-  return [
-    "w-full rounded-xl border px-4 py-4 text-left transition-colors",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
-    selected
-      ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-      : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-600 dark:hover:bg-neutral-800/80",
-  ].join(" ");
-}
-
-export default function CustomClothesPage() {
-  const { addToCart } = useCart();
   const {
-    selection,
-    setCustomDesignColor,
-    clearCustomDesignSelection,
-  } = useCustomDesign();
+    subcategories,
+    loading: subcategoriesLoading,
+    error: subcategoriesError,
+  } = useSubcategories(selectedCategory?.id);
 
-  const [designText, setDesignText] = useState("Your design");
-  const [uploadedDesignUrl, setUploadedDesignUrl] = useState("");
-  const [selectedPreviewDesignId, setSelectedPreviewDesignId] = useState(null);
-  const [overlayScale, setOverlayScale] = useState(1 / 38);
-  const [overlayX, setOverlayX] = useState(0);
-  const [overlayY, setOverlayY] = useState(0);
-  const [isOverlayDragging, setIsOverlayDragging] = useState(false);
-  const previewFrameRef = useRef(null);
-  const overlayDragStateRef = useRef({
-    pointerId: null,
-    startClientX: 0,
-    startClientY: 0,
-    startOverlayX: 0,
-    startOverlayY: 0,
-  });
-
-  /** 1 = fabric, 2 = category, 3 = flat design preview */
-  const [wizardStep, setWizardStep] = useState(1);
-
-  const [selectedFabric, setSelectedFabric] = useState(null);
-  const [fabricQuery, setFabricQuery] = useState("");
-  const [activeFabricId, setActiveFabricId] = useState(null);
-
-  const [categoryQuery, setCategoryQuery] = useState("");
-  const [activeCategoryId, setActiveCategoryId] = useState(null);
-  /** Set when entering step 3 */
-  const [lockedCategory, setLockedCategory] = useState(null);
-  const [activeView, setActiveView] = useState("front");
-  const [activeLayerId, setActiveLayerId] = useState(null);
-  const [designPick, setDesignPick] = useState(() => new Set());
-  const [viewPlacements, setViewPlacements] = useState(
-    createDefaultViewPlacements
-  );
-  const pendingLayerSelectRef = useRef(null);
-  const [selectedMockupId, setSelectedMockupId] = useState(null);
-  /** Admin / seeded designs — Custom Clothes only (see /admin/custom-clothes-designs). */
-  const [adminCustomDesigns, setAdminCustomDesigns] = useState([]);
-
-  const designPickerOptions = useMemo(() => {
-    const builtIns = CUSTOM_DESIGN_OPTIONS.filter((d) => d.id !== "none");
-    const fromAdmin = adminCustomDesigns.map((d) => ({
-      id: d.id,
-      name: d.name,
-      description: d.description || "From admin catalog",
-    }));
-    const none = CUSTOM_DESIGN_OPTIONS.find((d) => d.id === "none");
-    return [none, ...builtIns, ...fromAdmin].filter(Boolean);
-  }, [adminCustomDesigns]);
-
-  const designNameLookup = useMemo(() => {
-    const m = new Map(
-      CUSTOM_DESIGN_OPTIONS.map((d) => [d.id, d.name])
-    );
-    for (const d of adminCustomDesigns) {
-      m.set(d.id, d.name);
-    }
-    m.set("upload", "Your upload");
-    m.set("none", "No print");
-    return m;
-  }, [adminCustomDesigns]);
-
-  const selectedPreviewColors = useMemo(() => {
-    if (!selection) return [];
-    const fromColors = Array.isArray(selection.colors) ? selection.colors : [];
-    if (fromColors.length) return fromColors;
-    return Object.keys(selection.colorImageMap || {});
-  }, [selection]);
-
-  const selectedPreviewImage = useMemo(
-    () => resolveSelectedProductPreviewImage(selection),
-    [selection]
+  const productFilters = useMemo(
+    () => ({
+      categoryId: selectedCategory?.id || null,
+      subcategoryId: selectedSubcategory?.id || null,
+    }),
+    [selectedCategory?.id, selectedSubcategory?.id]
   );
 
-  const isProductDriven = Boolean(selection?.productId);
+  const shouldPrefetchProducts =
+    step === "subcategories" &&
+    Boolean(selectedCategory?.id) &&
+    !subcategoriesLoading &&
+    !subcategoriesError &&
+    subcategories.length === 0;
 
-  const selectionMockups = useMemo(() => {
-    if (!isProductDriven) return [];
-    const candidateUrls = [
-      selection?.selectedImage,
-      ...(Array.isArray(selection?.images) ? selection.images : []),
-      ...Object.values(selection?.colorImageMap || {}),
-    ]
-      .filter((url) => typeof url === "string" && url.trim())
-      .map((url) => url.trim());
+  const shouldLoadProducts =
+    (step === "products" || shouldPrefetchProducts) &&
+    Boolean(selectedCategory?.id || selectedSubcategory?.id);
 
-    const uniqueUrls = [...new Set(candidateUrls)];
-    return uniqueUrls.map((url, index) => ({
-      id: `selected-product-${index + 1}`,
-      name: `${selection?.name || "Selected product"} ${index + 1}`,
-      frontUrl: url,
-      backUrl: url,
-    }));
-  }, [isProductDriven, selection]);
+  const { products, loading: productsLoading, error: productsError } = useProducts(
+    productFilters,
+    shouldLoadProducts
+  );
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/custom-clothes-designs", {
-          cache: "no-store",
-        });
-        const data = await res.json();
-        const list = data?.data?.designs ?? [];
-        if (cancelled) return;
-        setAdminCustomDesigns(Array.isArray(list) ? list : []);
-        setRemoteCustomDesigns(list);
-      } catch {
-        if (!cancelled) {
-          setAdminCustomDesigns([]);
-          setRemoteCustomDesigns([]);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const categoryMockups = useMemo(() => {
-    if (isProductDriven) return selectionMockups;
-    if (lockedCategory?.id == null) return EMPTY_CATEGORY_MOCKUPS;
-    return getMockupsForCategory(lockedCategory.id);
-  }, [isProductDriven, selectionMockups, lockedCategory?.id]);
-
-  const selectedMockup = useMemo(() => {
-    if (!categoryMockups.length) return null;
-    return (
-      categoryMockups.find((m) => m.id === selectedMockupId) ??
-      categoryMockups[0]
+    if (!categories.length || selectedCategory || !flowSelection?.category?.id) return;
+    const restoredCategory = categories.find(
+      (cat) => String(cat.id) === String(flowSelection.category.id)
     );
-  }, [categoryMockups, selectedMockupId]);
+    if (!restoredCategory) return;
+
+    setSelectedCategory(restoredCategory);
+    setStep(flowSelection?.subcategory?.id ? "subcategories" : "categories");
+  }, [categories, selectedCategory, flowSelection]);
 
   useEffect(() => {
-    setViewPlacements(createDefaultViewPlacements());
-    setActiveView("front");
-    setActiveLayerId(null);
-    setDesignPick(new Set());
-  }, [lockedCategory?.id]);
-
-  useEffect(() => {
-    if (!isProductDriven) return;
-    setWizardStep(3);
-    setSelectedFabric({ id: "selected-product", name: "Original product" });
-    setLockedCategory({
-      id: selection?.productId || "selected-product",
-      name: selection?.name || "Selected product",
-    });
-  }, [isProductDriven, selection?.productId, selection?.name]);
-
-  useEffect(() => {
-    if (!categoryMockups.length) {
-      setSelectedMockupId(null);
+    if (
+      !subcategories.length ||
+      selectedSubcategory ||
+      !flowSelection?.subcategory?.id
+    ) {
       return;
     }
-    setSelectedMockupId((prev) =>
-      categoryMockups.some((m) => m.id === prev) ? prev : categoryMockups[0].id
+    const restoredSubcategory = subcategories.find(
+      (sub) => String(sub.id) === String(flowSelection.subcategory.id)
     );
-  }, [categoryMockups]);
+    if (!restoredSubcategory) return;
 
-  const layers = viewPlacements[activeView]?.layers ?? [];
+    setSelectedSubcategory(restoredSubcategory);
+    setStep("products");
+  }, [subcategories, selectedSubcategory, flowSelection]);
 
   useEffect(() => {
-    if (!layers.length) return;
-    const ok = layers.some((l) => l.id === activeLayerId);
-    if (!ok) setActiveLayerId(layers[0].id);
-  }, [activeView, layers, activeLayerId]);
+    if (step !== "subcategories" || !selectedCategory?.id || subcategoriesLoading) return;
+    if (subcategoriesError) return;
 
-  useEffect(() => {
-    const id = pendingLayerSelectRef.current;
-    if (id != null) {
-      pendingLayerSelectRef.current = null;
-      setActiveLayerId(id);
+    if (!subcategories.length) {
+      setSelectedSubcategory(null);
+      setStep("products");
     }
-  }, [viewPlacements]);
-
-  const activeLayer =
-    layers.find((l) => l.id === activeLayerId) ?? layers[0] ?? null;
-
-  const layerHasContent = (l) =>
-    Boolean(
-      l &&
-        (l.customImageDataUrl ||
-          (l.designId && l.designId !== "none" && l.designId !== "upload") ||
-          (l.designId === "upload" && l.customImageDataUrl))
-    );
-
-  const patchLayer = useCallback((viewKey, layerId, patch) => {
-    setViewPlacements((p) => ({
-      ...p,
-      [viewKey]: {
-        layers: (p[viewKey]?.layers ?? []).map((l) =>
-          l.id === layerId ? { ...l, ...patch } : l
-        ),
-      },
-    }));
-  }, []);
-
-  const patchActiveLayer = useCallback(
-    (layerId, patch) => {
-      patchLayer(activeView, layerId, patch);
-    },
-    [activeView, patchLayer]
-  );
-
-  const addUploadLayer = useCallback((dataUrl) => {
-    setViewPlacements((p) => {
-      const L = [...(p[activeView]?.layers ?? [])];
-      const nl = createLayer("upload", L.length);
-      nl.customImageDataUrl = dataUrl;
-      nl.designId = "upload";
-      pendingLayerSelectRef.current = nl.id;
-      return { ...p, [activeView]: { layers: [...L, nl] } };
-    });
-  }, [activeView]);
-
-  const toggleDesignPick = useCallback((designId) => {
-    if (designId === "none") return;
-    setDesignPick((prev) => {
-      const next = new Set(prev);
-      if (next.has(designId)) next.delete(designId);
-      else next.add(designId);
-      return next;
-    });
-  }, []);
-
-  const addSelectedDesignsToActiveView = useCallback(() => {
-    const ids = [...designPick];
-    if (!ids.length) {
-      message.info("Select one or more designs first.");
-      return;
-    }
-    setViewPlacements((p) => {
-      let L = [...(p[activeView]?.layers ?? [])];
-      let lastId = null;
-      for (const did of ids) {
-        const nl = createLayer(did, L.length);
-        L.push(nl);
-        lastId = nl.id;
-      }
-      if (lastId) pendingLayerSelectRef.current = lastId;
-      return { ...p, [activeView]: { layers: L } };
-    });
-    setDesignPick(new Set());
-    message.success(`Added ${ids.length} print(s) to ${activeView}.`);
-  }, [activeView, designPick]);
-
-  const removeActiveLayer = useCallback(() => {
-    if (!activeLayerId || !layers.length) return;
-    setViewPlacements((p) => {
-      const L = (p[activeView]?.layers ?? []).filter(
-        (l) => l.id !== activeLayerId
-      );
-      const nextLayers =
-        L.length > 0 ? L : [createLayer("none", 0)];
-      return { ...p, [activeView]: { layers: nextLayers } };
-    });
-  }, [activeLayerId, activeView, layers.length]);
-
-  const handleAddCustomToCart = useCallback(() => {
-    if (!selectedFabric || !lockedCategory) return;
-    const customization = buildCustomClothesPayload({
-      fabricId: selectedFabric.id,
-      categoryId: lockedCategory.id,
-      categoryName: lockedCategory.name,
-      mockupTemplateId: selectedMockup?.id ?? null,
-      mockupTemplateName: selectedMockup?.name ?? "",
-      viewPlacements,
-    });
-    addToCart(CUSTOM_CLOTHES_CART_PRODUCT, {
-      size: lockedCategory.name,
-      color: selectedFabric.id,
-      quantity: 1,
-      customization,
-    });
-    message.success(
-      "Custom configuration added to your cart. Server sync requires a real product ID in the catalogue."
-    );
   }, [
-    addToCart,
-    lockedCategory,
-    selectedFabric,
-    selectedMockup,
-    viewPlacements,
+    step,
+    selectedCategory?.id,
+    subcategories,
+    subcategoriesLoading,
+    subcategoriesError,
   ]);
 
-  const filteredFabrics = useMemo(() => {
-    const q = fabricQuery.trim().toLowerCase();
-    if (!q) return CLOTH_QUALITIES;
-    return CLOTH_QUALITIES.filter(
-      (f) =>
-        f.name.toLowerCase().includes(q) ||
-        f.hint.toLowerCase().includes(q) ||
-        f.id.toLowerCase().includes(q)
-    );
-  }, [fabricQuery]);
-
-  const filteredCategories = useMemo(() => {
-    const q = categoryQuery.trim().toLowerCase();
-    if (!q) return CUSTOM_CLOTHES_CATEGORIES;
-    return CUSTOM_CLOTHES_CATEGORIES.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.hint.toLowerCase().includes(q) ||
-        String(c.id).includes(q)
-    );
-  }, [categoryQuery]);
-
-  useEffect(() => {
-    if (
-      activeFabricId != null &&
-      !filteredFabrics.some((f) => f.id === activeFabricId)
-    ) {
-      setActiveFabricId(null);
-    }
-  }, [filteredFabrics, activeFabricId]);
-
-  useEffect(() => {
-    if (
-      activeCategoryId != null &&
-      !filteredCategories.some((c) => c.id === activeCategoryId)
-    ) {
-      setActiveCategoryId(null);
-    }
-  }, [filteredCategories, activeCategoryId]);
-
-  const confirmFabric = () => {
-    const fabric = CLOTH_QUALITIES.find((f) => f.id === activeFabricId);
-    if (!fabric) return;
-    setSelectedFabric(fabric);
-    setCategoryQuery("");
-    setActiveCategoryId(null);
-    setLockedCategory(null);
-    setWizardStep(2);
+  const onSelectCategory = (category) => {
+    setSelectedCategory(category);
+    setSelectedSubcategory(null);
+    setStep("subcategories");
+    updateFlowSelection({
+      category: { id: category.id, name: category.name },
+      subcategory: null,
+      product: null,
+    });
   };
 
-  const backToFabrics = () => {
-    setSelectedFabric(null);
-    setCategoryQuery("");
-    setActiveCategoryId(null);
-    setLockedCategory(null);
-    setWizardStep(1);
+  const onSelectSubcategory = (subcategory) => {
+    setSelectedSubcategory(subcategory);
+    setStep("products");
+    updateFlowSelection({
+      subcategory: { id: subcategory.id, name: subcategory.name },
+      product: null,
+    });
   };
 
-  const confirmCategory = () => {
-    const cat = CUSTOM_CLOTHES_CATEGORIES.find((c) => c.id === activeCategoryId);
-    if (!cat) return;
-    setLockedCategory(cat);
-    setWizardStep(3);
+  const onSelectProduct = (product) => {
+    const id = product?.id || product?._id;
+    if (!id) return;
+    updateFlowSelection({
+      product: { id, name: product.name || "" },
+    });
+    router.push(`/custom-clothes/editor?productId=${encodeURIComponent(String(id))}`);
   };
 
-  const backToCategories = () => {
-    setLockedCategory(null);
-    setWizardStep(2);
+  const onBackFromSubcategories = () => {
+    setSelectedSubcategory(null);
+    setStep("categories");
+    updateFlowSelection({ subcategory: null, product: null });
   };
 
-  const handleOverlayUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result;
-      if (typeof result === "string") {
-        setSelectedPreviewDesignId(null);
-        setUploadedDesignUrl(result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSelectAdminPreviewDesign = (designId) => {
-    const dataUrl = getDesignDataUrl(designId, 2048);
-    if (!dataUrl) {
-      message.warning("This admin design could not be loaded.");
+  const onBackFromProducts = () => {
+    if (selectedSubcategory) {
+      setStep("subcategories");
+      updateFlowSelection({ product: null });
       return;
     }
-    setSelectedPreviewDesignId(designId);
-    setUploadedDesignUrl(dataUrl);
+    setStep("categories");
+    updateFlowSelection({ subcategory: null, product: null });
   };
 
-  const resetSelectedItemPreview = () => {
-    setUploadedDesignUrl("");
-    setSelectedPreviewDesignId(null);
-    setDesignText("Your design");
-    setOverlayScale(1 / 38);
-    setOverlayX(0);
-    setOverlayY(0);
-  };
-
-  const clampOverlayPosition = useCallback((x, y) => {
-    const frame = previewFrameRef.current;
-    if (!frame) return { x, y };
-
-    const { width, height } = frame.getBoundingClientRect();
-    const maxX = Math.max(180, width * 0.56);
-    const maxY = Math.max(180, height * 0.6);
-
-    return {
-      x: Math.min(maxX, Math.max(-maxX, x)),
-      y: Math.min(maxY, Math.max(-maxY, y)),
-    };
-  }, []);
-
-  const handleOverlayPointerDown = (event) => {
-    const pointerId = event.pointerId;
-    overlayDragStateRef.current = {
-      pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startOverlayX: overlayX,
-      startOverlayY: overlayY,
-    };
-    setIsOverlayDragging(true);
-    event.currentTarget.setPointerCapture(pointerId);
-  };
-
-  const handleOverlayPointerMove = (event) => {
-    const drag = overlayDragStateRef.current;
-    if (!isOverlayDragging || drag.pointerId !== event.pointerId) return;
-
-    const dx = event.clientX - drag.startClientX;
-    const dy = event.clientY - drag.startClientY;
-    const next = clampOverlayPosition(drag.startOverlayX + dx, drag.startOverlayY + dy);
-    setOverlayX(Math.round(next.x));
-    setOverlayY(Math.round(next.y));
-  };
-
-  const stopOverlayDrag = (event) => {
-    const drag = overlayDragStateRef.current;
-    if (drag.pointerId == null) return;
-    if (event.pointerId !== drag.pointerId) return;
-
-    if (event.currentTarget.hasPointerCapture(drag.pointerId)) {
-      event.currentTarget.releasePointerCapture(drag.pointerId);
-    }
-    overlayDragStateRef.current.pointerId = null;
-    setIsOverlayDragging(false);
-  };
+  const pageLoading = categoriesLoading || (step === "subcategories" && subcategoriesLoading);
 
   return (
     <div className="min-h-[70vh] bg-neutral-50 dark:bg-neutral-950">
       <div className="container mx-auto px-4 py-16 sm:py-20 md:py-24">
-        {selection && !isProductDriven ? (
-          <section className="mb-10 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                  Selected item for custom design
-                </p>
-                <h2 className="mt-1 text-xl font-bold text-neutral-900 dark:text-white sm:text-2xl">
-                  {selection.name}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={clearCustomDesignSelection}
-                className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-              >
-                Clear selected item
-              </button>
-            </div>
-
-            {selectedPreviewColors.length > 0 ? (
-              <div className="mt-6">
-                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
-                  Color variants
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedPreviewColors.map((color) => {
-                    const active =
-                      String(selection.selectedColor || "").toLowerCase() ===
-                      String(color || "").toLowerCase();
-                    return (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setCustomDesignColor(color)}
-                        className={[
-                          "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                          active
-                            ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                            : "border-neutral-300 text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800",
-                        ].join(" ")}
-                      >
-                        <span
-                          className="h-4 w-4 rounded-full border border-black/10"
-                          style={{ backgroundColor: resolveColorSwatch(color) }}
-                          aria-hidden
-                        />
-                        <span className="capitalize">{color}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-              <div className="mx-auto w-full max-w-md">
-                <div
-                  ref={previewFrameRef}
-                  className="relative aspect-4/5 w-full overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={selectedPreviewImage || "/placeholder-product.svg"}
-                    alt={selection.name}
-                    className="h-full w-full object-contain p-3"
-                  />
-
-                  <div
-                    className={[
-                      "absolute left-1/2 top-1/2 flex w-[55%] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center touch-none select-none",
-                      isOverlayDragging ? "cursor-grabbing" : "cursor-grab",
-                    ].join(" ")}
-                    style={{
-                      transform: `translate(-50%, -50%) translate(${overlayX}px, ${overlayY}px)`,
-                    }}
-                    onPointerDown={handleOverlayPointerDown}
-                    onPointerMove={handleOverlayPointerMove}
-                    onPointerUp={stopOverlayDrag}
-                    onPointerCancel={stopOverlayDrag}
-                  >
-                    {uploadedDesignUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={uploadedDesignUrl}
-                        alt="Uploaded custom design"
-                        className="h-auto max-w-full object-contain"
-                        style={{ width: `${Math.round(overlayScale * 100)}%` }}
-                      />
-                    ) : null}
-                    {designText.trim() ? (
-                      <p
-                        className="mt-2 text-center font-semibold text-neutral-900 drop-shadow dark:text-white"
-                        style={{ fontSize: `${Math.max(1, overlayScale * 38)}px` }}
-                      >
-                        {designText}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900">
-                <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                  Design preview controls
-                </h3>
-                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                  Upload artwork or add text, then tweak scale and position.
-                </p>
-                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                  Drag directly on the overlay to move it.
-                </p>
-
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                      Upload design image
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleOverlayUpload}
-                      className="block w-full text-xs text-neutral-500 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-neutral-700 dark:text-neutral-400 dark:file:bg-white dark:file:text-neutral-900 dark:hover:file:bg-neutral-200"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                      Or choose admin uploaded design
-                    </label>
-                    {adminCustomDesigns.length === 0 ? (
-                      <p className="rounded-lg border border-dashed border-neutral-300 px-3 py-2 text-xs text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
-                        No admin designs available right now.
-                      </p>
-                    ) : (
-                      <div className="grid max-h-44 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-neutral-200 p-2 dark:border-neutral-700">
-                        {adminCustomDesigns.map((d) => {
-                          const isSelected = selectedPreviewDesignId === d.id;
-                          return (
-                            <button
-                              key={d.id}
-                              type="button"
-                              onClick={() => handleSelectAdminPreviewDesign(d.id)}
-                              className={[
-                                "flex items-center gap-2 rounded-lg border p-2 text-left transition-colors",
-                                isSelected
-                                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                                  : "border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800",
-                              ].join(" ")}
-                            >
-                              <DesignThumbnail designId={d.id} size={34} />
-                              <span className="truncate text-xs font-medium">{d.name}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                      Preview text
-                    </label>
-                    <input
-                      type="text"
-                      value={designText}
-                      onChange={(e) => setDesignText(e.target.value)}
-                      placeholder="Type your text"
-                      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                      Scale ({overlayScale.toFixed(2)})
-                    </label>
-                    <input
-                      type="range"
-                      min={0.01}
-                      max={2}
-                      step={0.01}
-                      value={overlayScale}
-                      onChange={(e) => setOverlayScale(Number(e.target.value))}
-                      className="w-full accent-neutral-900 dark:accent-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                      Horizontal ({overlayX}px)
-                    </label>
-                    <input
-                      type="range"
-                      min={-360}
-                      max={360}
-                      step={1}
-                      value={overlayX}
-                      onChange={(e) => setOverlayX(Number(e.target.value))}
-                      className="w-full accent-neutral-900 dark:accent-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                      Vertical ({overlayY}px)
-                    </label>
-                    <input
-                      type="range"
-                      min={-360}
-                      max={360}
-                      step={1}
-                      value={overlayY}
-                      onChange={(e) => setOverlayY(Number(e.target.value))}
-                      className="w-full accent-neutral-900 dark:accent-white"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={resetSelectedItemPreview}
-                    className="w-full rounded-xl border border-neutral-300 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 dark:border-neutral-600 dark:text-neutral-100 dark:hover:bg-neutral-800"
-                  >
-                    Reset preview
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        <header className="max-w-2xl">
+        <header className="max-w-3xl">
           <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-            {isProductDriven ? "Product customization" : `Step ${wizardStep} of 3`}
+            Custom clothes
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900 dark:text-white sm:text-4xl">
-            Custom clothes
+            Category to design flow
           </h1>
           <p className="mt-3 text-neutral-600 dark:text-neutral-400">
-            {isProductDriven &&
-              `Customize ${selection?.name || "your selected product"} with multiple designs, and place each design on front or back using drag or sliders.`}
-            {wizardStep === 1 &&
-              !isProductDriven &&
-              "Pick the fabric or cloth quality you want, then choose a category and design."}
-            {wizardStep === 2 &&
-              !isProductDriven &&
-              selectedFabric &&
-              `Choose a category for your ${selectedFabric.name.toLowerCase()} piece. You can change fabric anytime.`}
-            {wizardStep === 3 &&
-              !isProductDriven &&
-              lockedCategory &&
-              selectedFabric &&
-              `Pick an admin-style garment mockup, then place one or more designs on the front and back of your ${lockedCategory.name.toLowerCase()} (${selectedFabric.name}). Artwork renders up to 2048px.`}
+            Pick a category, choose a subcategory if available, then select a product to open the design editor.
           </p>
+
+          <p className="mt-4 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            {step === "categories" && "Step 1: Category"}
+            {step === "subcategories" && "Step 2: Subcategory"}
+            {step === "products" && "Step 3: Product"}
+          </p>
+
+          <nav
+            aria-label="Breadcrumb"
+            className="mt-4 flex flex-wrap items-center gap-2 text-xs sm:text-sm"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setStep("categories");
+                setSelectedSubcategory(null);
+                updateFlowSelection({ subcategory: null, product: null });
+              }}
+              className={[
+                "rounded-md px-2 py-1",
+                step === "categories"
+                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                  : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800",
+              ].join(" ")}
+            >
+              Categories
+            </button>
+
+            {selectedCategory ? (
+              <>
+                <span className="text-neutral-400">/</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("subcategories");
+                    setSelectedSubcategory(null);
+                    updateFlowSelection({ subcategory: null, product: null });
+                  }}
+                  className={[
+                    "rounded-md px-2 py-1",
+                    step === "subcategories"
+                      ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                      : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800",
+                  ].join(" ")}
+                >
+                  {selectedCategory.name}
+                </button>
+              </>
+            ) : null}
+
+            {step === "products" ? (
+              <>
+                <span className="text-neutral-400">/</span>
+                <span className="rounded-md bg-neutral-900 px-2 py-1 text-white dark:bg-white dark:text-neutral-900">
+                  {selectedSubcategory?.name || "Products"}
+                </span>
+              </>
+            ) : null}
+          </nav>
         </header>
 
-        <AnimatePresence mode="wait">
-          {wizardStep === 1 && !isProductDriven ? (
-            <motion.div
-              key="step-fabric"
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.2 }}
-            >
-              <h2 className="mt-10 text-lg font-semibold text-neutral-900 dark:text-white">
-                Cloth / fabric quality
-              </h2>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Select one option, then continue to categories.
-              </p>
+        {pageLoading ? (
+          <div className="mt-10 flex items-center gap-3 text-neutral-600 dark:text-neutral-300">
+            <Spin />
+            <span>Loading...</span>
+          </div>
+        ) : null}
 
-              <div className="mt-6 max-w-xl">
-                <label htmlFor="fabric-search" className="sr-only">
-                  Search fabric types
-                </label>
-                <div className="relative">
-                  <IconSearch
-                    className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-neutral-400"
-                    aria-hidden
-                  />
-                  <input
-                    id="fabric-search"
-                    type="search"
-                    value={fabricQuery}
-                    onChange={(e) => setFabricQuery(e.target.value)}
-                    placeholder="Search cotton, silk, blend…"
-                    autoComplete="off"
-                    className="w-full rounded-xl border border-neutral-200 bg-white py-3 pl-11 pr-11 text-neutral-900 shadow-sm placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400/30 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:placeholder:text-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-500/30"
-                  />
-                  {fabricQuery ? (
-                    <button
-                      type="button"
-                      onClick={() => setFabricQuery("")}
-                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                      aria-label="Clear search"
-                    >
-                      <IconX className="h-5 w-5" />
-                    </button>
-                  ) : null}
-                </div>
-                <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                  {filteredFabrics.length} of {CLOTH_QUALITIES.length} fabric
-                  types
-                  {fabricQuery.trim() ? ` matching “${fabricQuery.trim()}”` : ""}
-                </p>
-              </div>
+        {categoriesError ? (
+          <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+            {categoriesError}
+          </div>
+        ) : null}
 
-              {filteredFabrics.length === 0 ? (
-                <div className="mt-10 rounded-xl border border-dashed border-neutral-300 bg-white/60 px-6 py-14 text-center dark:border-neutral-700 dark:bg-neutral-900/40">
-                  <p className="font-medium text-neutral-800 dark:text-neutral-200">
-                    No fabrics match your search
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setFabricQuery("")}
-                    className="mt-4 text-sm font-semibold text-neutral-900 underline dark:text-white"
-                  >
-                    Clear search
-                  </button>
-                </div>
-              ) : (
-                <ul
-                  className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                  role="list"
-                >
-                  {filteredFabrics.map((f, index) => {
-                    const selected = activeFabricId === f.id;
-                    return (
-                      <li key={f.id}>
-                        <motion.button
-                          type="button"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.02, duration: 0.2 }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() =>
-                            setActiveFabricId((id) =>
-                              id === f.id ? null : f.id
-                            )
-                          }
-                          className={cardButtonClass(selected)}
-                          aria-pressed={selected}
-                        >
-                          <span className="font-semibold text-base">
-                            {f.name}
-                          </span>
-                          <span
-                            className={
-                              selected
-                                ? "mt-1 block text-sm opacity-90"
-                                : "mt-1 block text-sm text-neutral-500 dark:text-neutral-400"
-                            }
-                          >
-                            {f.hint}
-                          </span>
-                        </motion.button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+        {step === "categories" && !categoriesLoading ? (
+          <CategoryList
+            categories={categories}
+            activeCategoryId={selectedCategory?.id}
+            onSelect={onSelectCategory}
+          />
+        ) : null}
 
-              <div className="mt-10 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={!activeFabricId}
-                  onClick={confirmFabric}
-                  className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-                >
-                  Continue to categories
-                </button>
-                {!activeFabricId ? (
-                  <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Select a fabric to continue
-                  </span>
-                ) : null}
-              </div>
-            </motion.div>
-          ) : wizardStep === 2 && !isProductDriven ? (
-            <motion.div
-              key="step-categories"
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 12 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <button
-                  type="button"
-                  onClick={backToFabrics}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
-                >
-                  <IconArrowLeft className="h-4 w-4" aria-hidden />
-                  Change fabric
-                </button>
-                <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
-                  <span className="text-neutral-500 dark:text-neutral-400">
-                    Fabric:{" "}
-                  </span>
-                  <span className="font-semibold text-neutral-900 dark:text-white">
-                    {selectedFabric?.name}
-                  </span>
-                </div>
-              </div>
+        {step === "subcategories" && !subcategoriesLoading ? (
+          subcategoriesError ? (
+            <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+              {subcategoriesError}
+            </div>
+          ) : subcategories.length > 0 ? (
+            <SubcategoryList
+              categoryName={selectedCategory?.name || "Selected category"}
+              subcategories={subcategories}
+              activeSubcategoryId={selectedSubcategory?.id}
+              onBack={onBackFromSubcategories}
+              onSelect={onSelectSubcategory}
+            />
+          ) : null
+        ) : null}
 
-              <h2 className="mt-10 text-lg font-semibold text-neutral-900 dark:text-white">
-                Clothing category
-              </h2>
-
-              <div className="mt-6 max-w-xl">
-                <label htmlFor="custom-clothes-search" className="sr-only">
-                  Search categories
-                </label>
-                <div className="relative">
-                  <IconSearch
-                    className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-neutral-400"
-                    aria-hidden
-                  />
-                  <input
-                    id="custom-clothes-search"
-                    type="search"
-                    value={categoryQuery}
-                    onChange={(e) => setCategoryQuery(e.target.value)}
-                    placeholder="Search by name, keyword, or #…"
-                    autoComplete="off"
-                    className="w-full rounded-xl border border-neutral-200 bg-white py-3 pl-11 pr-11 text-neutral-900 shadow-sm placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400/30 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:placeholder:text-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-500/30"
-                  />
-                  {categoryQuery ? (
-                    <button
-                      type="button"
-                      onClick={() => setCategoryQuery("")}
-                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                      aria-label="Clear search"
-                    >
-                      <IconX className="h-5 w-5" />
-                    </button>
-                  ) : null}
-                </div>
-                <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                  Showing {filteredCategories.length} of{" "}
-                  {CUSTOM_CLOTHES_CATEGORIES.length} categories
-                  {categoryQuery.trim()
-                    ? ` for “${categoryQuery.trim()}”`
-                    : ""}
-                </p>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {filteredCategories.length === 0 ? (
-                  <motion.div
-                    key="empty-cat"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="mt-10 rounded-xl border border-dashed border-neutral-300 bg-white/60 px-6 py-14 text-center dark:border-neutral-700 dark:bg-neutral-900/40"
-                  >
-                    <p className="font-medium text-neutral-800 dark:text-neutral-200">
-                      No categories match your search
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setCategoryQuery("")}
-                      className="mt-4 text-sm font-semibold text-neutral-900 underline dark:text-white"
-                    >
-                      Clear search
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.ul
-                    key="grid-cat"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                    role="list"
-                  >
-                    {filteredCategories.map((cat, index) => {
-                      const selected = activeCategoryId === cat.id;
-                      return (
-                        <li key={cat.id}>
-                          <motion.button
-                            type="button"
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{
-                              delay: index * 0.02,
-                              duration: 0.25,
-                            }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() =>
-                              setActiveCategoryId((id) =>
-                                id === cat.id ? null : cat.id
-                              )
-                            }
-                            className={cardButtonClass(selected)}
-                            aria-pressed={selected}
-                          >
-                            <span className="flex items-start justify-between gap-2">
-                              <span className="font-semibold text-base">
-                                {cat.name}
-                              </span>
-                              <span
-                                className={
-                                  selected
-                                    ? "text-xs opacity-80"
-                                    : "text-xs text-neutral-400 dark:text-neutral-500"
-                                }
-                              >
-                                #{cat.id}
-                              </span>
-                            </span>
-                            <span
-                              className={
-                                selected
-                                  ? "mt-1 block text-sm opacity-90"
-                                  : "mt-1 block text-sm text-neutral-500 dark:text-neutral-400"
-                              }
-                            >
-                              {cat.hint}
-                            </span>
-                          </motion.button>
-                        </li>
-                      );
-                    })}
-                  </motion.ul>
-                )}
-              </AnimatePresence>
-
-              <div className="mt-10 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={!activeCategoryId}
-                  onClick={confirmCategory}
-                  className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-                >
-                  Continue to design
-                </button>
-                {!activeCategoryId ? (
-                  <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Select a category to continue
-                  </span>
-                ) : null}
-              </div>
-            </motion.div>
+        {step === "products" ? (
+          productsError ? (
+            <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+              {productsError}
+            </div>
+          ) : productsLoading ? (
+            <div className="mt-10 flex items-center gap-3 text-neutral-600 dark:text-neutral-300">
+              <Spin />
+              <span>Loading products...</span>
+            </div>
           ) : (
-            <motion.div
-              key="step-flat"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className="mt-8"
-            >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                {!isProductDriven ? (
-                  <button
-                    type="button"
-                    onClick={backToCategories}
-                    className="inline-flex w-fit items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
-                  >
-                    <IconArrowLeft className="h-4 w-4" aria-hidden />
-                    Back to categories
-                  </button>
-                ) : (
-                  <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
-                    <span className="text-neutral-500 dark:text-neutral-400">
-                      Product: {" "}
-                    </span>
-                    <span className="font-semibold text-neutral-900 dark:text-white">
-                      {selection?.name || "Selected product"}
-                    </span>
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {!isProductDriven ? (
-                    <>
-                      <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
-                        <span className="text-neutral-500 dark:text-neutral-400">
-                          Fabric:{" "}
-                        </span>
-                        <span className="font-semibold text-neutral-900 dark:text-white">
-                          {selectedFabric?.name}
-                        </span>
-                      </div>
-                      <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
-                        <span className="text-neutral-500 dark:text-neutral-400">
-                          Category:{" "}
-                        </span>
-                        <span className="font-semibold text-neutral-900 dark:text-white">
-                          {lockedCategory?.name}
-                        </span>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:items-start">
-                <div className="flex min-w-0 flex-col gap-4">
-                  <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                    <h2 className="text-base font-semibold text-neutral-900 dark:text-white">
-                      {isProductDriven ? "Real product images" : "Garment mockup"}
-                    </h2>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                      {isProductDriven
-                        ? "These are the real product images from the item you selected on Product Details. Pick any image and apply multiple designs."
-                        : "Five catalog styles per category (hardcoded placeholders for admin-uploaded mockups). Hue shifts by category; your fabric choice still tints the preview lightly."}
-                    </p>
-                    <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-                      {categoryMockups.map((m) => {
-                        const picked = selectedMockup?.id === m.id;
-                        return (
-                          <li key={m.id}>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedMockupId(m.id)}
-                              className={[
-                                "flex w-full flex-col gap-2 rounded-xl border p-2 text-left transition-colors",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
-                                picked
-                                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                                  : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-800/80",
-                              ].join(" ")}
-                              aria-pressed={picked}
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={m.frontUrl}
-                                alt=""
-                                className="aspect-4/5 w-full rounded-lg bg-neutral-100 object-contain dark:bg-neutral-800"
-                              />
-                              <span className="text-xs font-semibold leading-tight">
-                                {m.name}
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-
-                  <FlatGarmentCustomizer
-                    fabricId={selectedFabric?.id ?? "cotton"}
-                    garmentFrontSrc={selectedMockup?.frontUrl ?? null}
-                    garmentBackSrc={selectedMockup?.backUrl ?? null}
-                    activeView={activeView}
-                    onActiveViewChange={setActiveView}
-                    layers={layers}
-                    activeLayerId={activeLayerId}
-                    onActiveLayerChange={setActiveLayerId}
-                    onPatchLayer={patchActiveLayer}
-                    onAddUploadLayer={addUploadLayer}
-                    className="w-full"
-                  />
-                </div>
-
-                <aside className="flex flex-col gap-6">
-                  <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                    <h2 className="text-base font-semibold text-neutral-900 dark:text-white">
-                      Designs
-                    </h2>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                      Built-in patterns plus admin prints (from{" "}
-                      <span className="font-medium text-neutral-700 dark:text-neutral-300">
-                        Custom clothes prints
-                      </span>{" "}
-                      in the dashboard). Tick several, then add them on the{" "}
-                      <span className="font-medium text-neutral-800 dark:text-neutral-200">
-                        {activeView === "front" ? "Front" : "Back"}
-                      </span>{" "}
-                      tab. Drop images on the mockup for extra uploads. Drag to
-                      move; click a print for sliders.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={addSelectedDesignsToActiveView}
-                      disabled={designPick.size === 0}
-                      className="mt-3 w-full rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-neutral-900"
-                    >
-                      Add selected to {activeView === "front" ? "front" : "back"}{" "}
-                      ({designPick.size})
-                    </button>
-                    <div className="mt-4 max-h-88 overflow-y-auto pr-1">
-                      <ul className="grid grid-cols-2 auto-rows-[112px] gap-2">
-                        {designPickerOptions.map((d) => {
-                          const picked = designPick.has(d.id);
-                          const disabled = d.id === "none";
-                          return (
-                            <li key={d.id} className="h-full">
-                              <button
-                                type="button"
-                                disabled={disabled}
-                                onClick={() => toggleDesignPick(d.id)}
-                                className={[
-                                  "flex h-full w-full flex-col gap-2 overflow-hidden rounded-xl border p-3 text-left transition-colors",
-                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
-                                  disabled
-                                    ? "cursor-not-allowed opacity-50"
-                                    : picked
-                                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                                      : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-800/80",
-                                ].join(" ")}
-                                aria-pressed={picked}
-                              >
-                                <span className="flex items-center gap-2">
-                                  <span
-                                    className={[
-                                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                                      picked
-                                        ? "border-white bg-white dark:border-neutral-900 dark:bg-neutral-900"
-                                        : "border-neutral-400 dark:border-neutral-500",
-                                    ].join(" ")}
-                                    aria-hidden
-                                  >
-                                    {picked ? (
-                                      <span className="text-[10px] text-neutral-900 dark:text-white">
-                                        ✓
-                                      </span>
-                                    ) : null}
-                                  </span>
-                                  <DesignThumbnail designId={d.id} size={48} />
-                                </span>
-                                <span className="text-xs font-semibold leading-tight">
-                                  {d.name}
-                                </span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                    <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                      Prints on {activeView} ({layers.length})
-                    </h3>
-                    <ul className="mt-2 flex flex-wrap gap-2">
-                      {layers.map((l, idx) => (
-                        <li key={l.id}>
-                          <button
-                            type="button"
-                            onClick={() => setActiveLayerId(l.id)}
-                            className={[
-                              "rounded-lg border px-2 py-1 text-xs font-medium",
-                              l.id === activeLayerId
-                                ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                                : "border-neutral-200 dark:border-neutral-600",
-                            ].join(" ")}
-                          >
-                            #{idx + 1} ·{" "}
-                            {designNameLookup.get(l.designId) ?? l.designId}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      type="button"
-                      onClick={removeActiveLayer}
-                      disabled={!activeLayerId || layers.length <= 1}
-                      className="mt-3 w-full rounded-lg border border-red-200 py-2 text-xs font-medium text-red-700 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900 dark:text-red-400"
-                    >
-                      Remove selected print
-                    </button>
-                  </div>
-
-                  <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                    <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                      Selected print
-                    </h3>
-                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                      Sliders apply to the highlighted print on the mockup or in
-                      the list above, including precise X/Y position.
-                    </p>
-
-                    <div className="mt-4 space-y-1">
-                      <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                        <span>Horizontal position</span>
-                        <span>{activeLayer ? `${Math.round(activeLayer.xPct)}%` : "—"}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={8}
-                        max={92}
-                        step={1}
-                        value={activeLayer?.xPct ?? 50}
-                        disabled={!activeLayer || !layerHasContent(activeLayer)}
-                        onChange={(e) =>
-                          activeLayer &&
-                          patchActiveLayer(activeLayer.id, {
-                            xPct: Number(e.target.value),
-                          })
-                        }
-                        className="w-full accent-neutral-900 dark:accent-white"
-                      />
-                    </div>
-
-                    <div className="mt-4 space-y-1">
-                      <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                        <span>Vertical position</span>
-                        <span>{activeLayer ? `${Math.round(activeLayer.yPct)}%` : "—"}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={10}
-                        max={90}
-                        step={1}
-                        value={activeLayer?.yPct ?? 40}
-                        disabled={!activeLayer || !layerHasContent(activeLayer)}
-                        onChange={(e) =>
-                          activeLayer &&
-                          patchActiveLayer(activeLayer.id, {
-                            yPct: Number(e.target.value),
-                          })
-                        }
-                        className="w-full accent-neutral-900 dark:accent-white"
-                      />
-                    </div>
-
-                    <div className="mt-4 space-y-1">
-                      <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                        <span>Scale</span>
-                        <span>
-                          {activeLayer ? activeLayer.scale.toFixed(2) : "—"}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0.01}
-                        max={2.2}
-                        step={0.01}
-                        value={activeLayer?.scale ?? 0.4}
-                        disabled={!activeLayer || !layerHasContent(activeLayer)}
-                        onChange={(e) =>
-                          activeLayer &&
-                          patchActiveLayer(activeLayer.id, {
-                            scale: Number(e.target.value),
-                          })
-                        }
-                        className="w-full accent-neutral-900 dark:accent-white"
-                      />
-                    </div>
-
-                    <div className="mt-4 space-y-1">
-                      <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                        <span>Rotation</span>
-                        <span>
-                          {activeLayer ? `${activeLayer.rotationDeg}°` : "—"}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={-360}
-                        max={360}
-                        step={1}
-                        value={activeLayer?.rotationDeg ?? 0}
-                        disabled={!activeLayer || !layerHasContent(activeLayer)}
-                        onChange={(e) =>
-                          activeLayer &&
-                          patchActiveLayer(activeLayer.id, {
-                            rotationDeg: Number(e.target.value),
-                          })
-                        }
-                        className="w-full accent-neutral-900 dark:accent-white"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={!activeLayer || !layerHasContent(activeLayer)}
-                      onClick={() => {
-                        const d = createDefaultViewPlacements();
-                        setViewPlacements((p) => ({
-                          ...p,
-                          [activeView]: { ...d[activeView] },
-                        }));
-                        const first = d[activeView].layers[0];
-                        if (first) setActiveLayerId(first.id);
-                      }}
-                      className="mt-4 w-full rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                    >
-                      Reset this side (front/back)
-                    </button>
-                  </div>
-
-                  <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                    <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                      Cart
-                    </h3>
-                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                      Saves fabric, category, mockup style, and each view&apos;s
-                      placement.
-                      Large uploads may be omitted from the payload; keep files
-                      under ~300KB base64 for full persistence. Replace{" "}
-                      <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">
-                        custom-clothes-local
-                      </code>{" "}
-                      with a real product ID for server cart sync.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleAddCustomToCart}
-                      className="mt-3 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-                    >
-                      Add configuration to cart
-                    </button>
-                  </div>
-                </aside>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <ProductGrid
+              heading={
+                selectedSubcategory?.name
+                  ? `Products in ${selectedSubcategory.name}`
+                  : `Products in ${selectedCategory?.name || "category"}`
+              }
+              products={products}
+              onBack={onBackFromProducts}
+              onSelect={onSelectProduct}
+            />
+          )
+        ) : null}
       </div>
     </div>
   );

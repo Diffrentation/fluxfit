@@ -394,8 +394,10 @@ function ProductDetails() {
       return acc;
     }, {});
 
+    const customProductId = product.id || product._id || params?.id;
+
     setCustomDesignSelection({
-      productId: product.id,
+      productId: customProductId,
       name: product.name,
       images: product.images || [],
       colors: product.colors || [],
@@ -405,7 +407,11 @@ function ProductDetails() {
       sourceRoute: `/product-details/${params.id}`,
     });
 
-    router.push("/custom-clothes");
+    if (!customProductId) {
+      message.error("Unable to open custom design editor for this product");
+      return;
+    }
+    router.push(`/custom-clothes/editor?productId=${encodeURIComponent(String(customProductId))}`);
   };
 
   const scrollToTop = () => {
