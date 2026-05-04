@@ -32,7 +32,7 @@ const recentlyViewedSchema = new mongoose.Schema(
 );
 
 // Indexes
-recentlyViewedSchema.index({ user: 1 });
+// Note: user is indexed at field level (index: true)
 recentlyViewedSchema.index({ "products.product": 1 });
 recentlyViewedSchema.index({ "products.viewedAt": -1 });
 

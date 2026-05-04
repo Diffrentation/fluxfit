@@ -33,7 +33,7 @@ const wishlistSchema = new mongoose.Schema(
 );
 
 // Indexes
-wishlistSchema.index({ user: 1 });
+// Note: user is indexed at field level (unique: true implies index)
 wishlistSchema.index({ "items.product": 1 });
 
 // Virtual for item count

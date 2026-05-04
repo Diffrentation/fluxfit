@@ -24,6 +24,13 @@ const AuthContext = createContext(null);
 /** Cross-tab logout signal (storage event fires in other tabs) */
 export const AUTH_LOGOUT_STORAGE_KEY = "__fluxfit_auth_logout";
 const REFRESH_BUFFER_MS = 60 * 1000;
+const REFRESH_RETRY_MS = 30 * 1000;
+const ACTIVITY_REFRESH_THROTTLE_MS = 2 * 60 * 1000;
+
+function isHardAuthFailure(error) {
+  const status = error?.response?.status;
+  return status === 401 || status === 403;
+}
 
 export function AuthProvider({ children }) {
   const router = useRouter();
@@ -32,6 +39,7 @@ export function AuthProvider({ children }) {
   const [hydrated, setHydrated] = useState(false);
 
   const timerRef = useRef(null);
+  const activityRefreshRef = useRef(0);
   const refreshInFlightRef = useRef(null);
   const refreshRef = useRef(async () => {});
   const logoutRef = useRef(async () => {});
@@ -45,6 +53,20 @@ export function AuthProvider({ children }) {
       timerRef.current = null;
     }
   }, []);
+
+  const scheduleQuickRefreshRetry = useCallback(() => {
+    clearExpiryTimer();
+    timerRef.current = setTimeout(async () => {
+      try {
+        await refreshRef.current();
+      } catch (error) {
+        if (isHardAuthFailure(error)) {
+          toast.error("Session expired. Please sign in again.");
+          await logoutRef.current();
+        }
+      }
+    }, REFRESH_RETRY_MS);
+  }, [clearExpiryTimer]);
 
   const refreshAccessToken = useCallback(async () => {
     if (refreshInFlightRef.current) {
@@ -180,13 +202,49 @@ export function AuthProvider({ children }) {
     timerRef.current = setTimeout(async () => {
       try {
         await refreshRef.current();
-      } catch {
-        toast.error("Session expired. Please sign in again.");
-        await logoutRef.current();
+      } catch (error) {
+        if (isHardAuthFailure(error)) {
+          toast.error("Session expired. Please sign in again.");
+          await logoutRef.current();
+          return;
+        }
+        // Transient issues (network/server hiccups): retry soon without forcing logout.
+        scheduleQuickRefreshRetry();
       }
     }, delay);
     return () => clearExpiryTimer();
-  }, [hydrated, accessToken, clearExpiryTimer]);
+  }, [hydrated, accessToken, clearExpiryTimer, scheduleQuickRefreshRetry]);
+
+  useEffect(() => {
+    if (!hydrated || !accessToken) return;
+
+    const maybeRefreshOnActivity = () => {
+      const now = Date.now();
+      if (now - activityRefreshRef.current < ACTIVITY_REFRESH_THROTTLE_MS) {
+        return;
+      }
+      activityRefreshRef.current = now;
+      refreshRef
+        .current()
+        .catch((error) => {
+          if (isHardAuthFailure(error)) {
+            toast.error("Session expired. Please sign in again.");
+            logoutRef.current();
+          }
+        });
+    };
+
+    const events = ["click", "keydown", "mousemove", "scroll", "touchstart"];
+    events.forEach((eventName) =>
+      window.addEventListener(eventName, maybeRefreshOnActivity, { passive: true })
+    );
+
+    return () => {
+      events.forEach((eventName) =>
+        window.removeEventListener(eventName, maybeRefreshOnActivity)
+      );
+    };
+  }, [hydrated, accessToken]);
 
   useEffect(() => {
     const onStorage = (e) => {
@@ -245,9 +303,11 @@ export function AuthProvider({ children }) {
             original.headers.Authorization = `Bearer ${t}`;
           }
           return axios(original);
-        } catch {
-          toast.error("Session expired. Please sign in again.");
-          await logoutRef.current();
+        } catch (refreshError) {
+          if (isHardAuthFailure(refreshError)) {
+            toast.error("Session expired. Please sign in again.");
+            await logoutRef.current();
+          }
           return Promise.reject(error);
         }
       }

@@ -121,10 +121,8 @@ const paymentSchema = new mongoose.Schema(
 
 // Indexes
 paymentSchema.index({ user: 1, createdAt: -1 });
-paymentSchema.index({ order: 1 });
 paymentSchema.index({ status: 1, createdAt: -1 });
-paymentSchema.index({ transactionId: 1 });
-paymentSchema.index({ paymentId: 1 });
+// Note: order, transactionId, paymentId are indexed at field level (index: true)
 
 // Virtual for refundable amount
 paymentSchema.virtual("refundableAmount").get(function () {

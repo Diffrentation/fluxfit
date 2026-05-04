@@ -36,7 +36,9 @@ const nextConfig = {
   // Turbopack config (Next.js 16 default)
   // Turbopack automatically handles Node.js built-ins better than webpack
   // Since we've separated server/client code, empty config is sufficient
-  turbopack: {},
+  turbopack: {
+    root: process.cwd(),
+  },
 };
 
 export default nextConfig;

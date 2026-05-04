@@ -122,8 +122,8 @@ const refundSchema = new mongoose.Schema(
 
 // Indexes
 refundSchema.index({ user: 1, createdAt: -1 });
-refundSchema.index({ order: 1 });
 refundSchema.index({ status: 1, createdAt: -1 });
+// Note: order is indexed at field level (index: true)
 
 // Method to approve refund
 refundSchema.methods.approve = function (approvedBy) {

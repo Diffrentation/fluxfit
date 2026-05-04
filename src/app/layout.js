@@ -8,6 +8,7 @@ import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { CustomDesignProvider } from "@/context/CustomDesignContext";
 import AppToasterShell from "@/components/providers/AppToasterShell";
 
 const geistSans = Geist({
@@ -51,13 +52,15 @@ export default function RootLayout({ children }) {
             <Suspense fallback={null}>
               <AdminAccessNotice />
             </Suspense>
-            <CartProvider>
-              <WishlistProvider>
-                <Nav />
-                {children}
-                <ConditionalFooter />
-              </WishlistProvider>
-            </CartProvider>
+            <CustomDesignProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  <Nav />
+                  {children}
+                  <ConditionalFooter />
+                </WishlistProvider>
+              </CartProvider>
+            </CustomDesignProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -10,7 +10,7 @@ const getJwtSecret = () =>
  * /admin requires a valid refresh-token cookie whose JWT payload has role === "admin".
  * Non-admins are redirected home with ?admin_denied=1 (see AdminAccessNotice).
  */
-export async function middleware(request) {
+export async function proxy(request) {
   const token = request.cookies.get(REFRESH_COOKIE_NAME)?.value;
   if (!token) {
     const login = new URL("/auth/login", request.url);

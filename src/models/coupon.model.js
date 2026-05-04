@@ -133,7 +133,7 @@ couponSchema.virtual("isValid").get(function () {
 });
 
 // Method to validate coupon
-couponSchema.methods.validate = function (cartTotal, userId = null) {
+couponSchema.methods.validateCoupon = function (cartTotal, userId = null) {
   const now = new Date();
 
   // Check if active
@@ -211,7 +211,7 @@ couponSchema.statics.findValid = async function (
     return { valid: false, message: "Invalid coupon code" };
   }
 
-  const validation = coupon.validate(cartTotal, userId);
+  const validation = coupon.validateCoupon(cartTotal, userId);
   if (!validation.valid) {
     return validation;
   }

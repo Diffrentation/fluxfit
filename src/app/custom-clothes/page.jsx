@@ -7,6 +7,7 @@ import { message } from "antd";
 import {
   CUSTOM_DESIGN_OPTIONS,
   DesignThumbnail,
+  getDesignDataUrl,
   setRemoteCustomDesigns,
 } from "@/components/CustomClothes/designCanvas";
 import FlatGarmentCustomizer from "@/components/CustomClothes/FlatGarmentCustomizer";
@@ -17,6 +18,7 @@ import {
 } from "@/components/CustomClothes/customClothesConfig";
 import { getMockupsForCategory } from "@/components/CustomClothes/mockupTemplates";
 import { useCart } from "@/context/CartContext";
+import { useCustomDesign } from "@/context/CustomDesignContext";
 
 const CUSTOM_CLOTHES_CART_PRODUCT = {
   id: "custom-clothes-local",
@@ -117,6 +119,41 @@ export const CUSTOM_CLOTHES_CATEGORIES = [
 
 const EMPTY_CATEGORY_MOCKUPS = [];
 
+const COLOR_HEX_MAP = {
+  white: "#ffffff",
+  black: "#111827",
+  blue: "#3b82f6",
+  pink: "#ec4899",
+  gray: "#9ca3af",
+  grey: "#9ca3af",
+  green: "#22c55e",
+  beige: "#f5f5dc",
+  brown: "#92400e",
+  tan: "#d2b48c",
+  silver: "#c0c0c0",
+  gold: "#fbbf24",
+  maroon: "#7f1d1d",
+  red: "#ef4444",
+  yellow: "#facc15",
+  orange: "#fb923c",
+  purple: "#a855f7",
+  navy: "#1e3a8a",
+};
+
+function resolveColorSwatch(color) {
+  const key = String(color || "").trim().toLowerCase();
+  return COLOR_HEX_MAP[key] || key || "#d1d5db";
+}
+
+function resolveSelectedProductPreviewImage(selection) {
+  if (!selection) return "";
+  const colorKey = String(selection.selectedColor || "").toLowerCase();
+  const colorImage = selection.colorImageMap?.[colorKey];
+  if (colorImage) return colorImage;
+  if (selection.selectedImage) return selection.selectedImage;
+  return selection.images?.[0] || "";
+}
+
 function cardButtonClass(selected) {
   return [
     "w-full rounded-xl border px-4 py-4 text-left transition-colors",
@@ -129,6 +166,27 @@ function cardButtonClass(selected) {
 
 export default function CustomClothesPage() {
   const { addToCart } = useCart();
+  const {
+    selection,
+    setCustomDesignColor,
+    clearCustomDesignSelection,
+  } = useCustomDesign();
+
+  const [designText, setDesignText] = useState("Your design");
+  const [uploadedDesignUrl, setUploadedDesignUrl] = useState("");
+  const [selectedPreviewDesignId, setSelectedPreviewDesignId] = useState(null);
+  const [overlayScale, setOverlayScale] = useState(1 / 38);
+  const [overlayX, setOverlayX] = useState(0);
+  const [overlayY, setOverlayY] = useState(0);
+  const [isOverlayDragging, setIsOverlayDragging] = useState(false);
+  const previewFrameRef = useRef(null);
+  const overlayDragStateRef = useRef({
+    pointerId: null,
+    startClientX: 0,
+    startClientY: 0,
+    startOverlayX: 0,
+    startOverlayY: 0,
+  });
 
   /** 1 = fabric, 2 = category, 3 = flat design preview */
   const [wizardStep, setWizardStep] = useState(1);
@@ -175,6 +233,39 @@ export default function CustomClothesPage() {
     return m;
   }, [adminCustomDesigns]);
 
+  const selectedPreviewColors = useMemo(() => {
+    if (!selection) return [];
+    const fromColors = Array.isArray(selection.colors) ? selection.colors : [];
+    if (fromColors.length) return fromColors;
+    return Object.keys(selection.colorImageMap || {});
+  }, [selection]);
+
+  const selectedPreviewImage = useMemo(
+    () => resolveSelectedProductPreviewImage(selection),
+    [selection]
+  );
+
+  const isProductDriven = Boolean(selection?.productId);
+
+  const selectionMockups = useMemo(() => {
+    if (!isProductDriven) return [];
+    const candidateUrls = [
+      selection?.selectedImage,
+      ...(Array.isArray(selection?.images) ? selection.images : []),
+      ...Object.values(selection?.colorImageMap || {}),
+    ]
+      .filter((url) => typeof url === "string" && url.trim())
+      .map((url) => url.trim());
+
+    const uniqueUrls = [...new Set(candidateUrls)];
+    return uniqueUrls.map((url, index) => ({
+      id: `selected-product-${index + 1}`,
+      name: `${selection?.name || "Selected product"} ${index + 1}`,
+      frontUrl: url,
+      backUrl: url,
+    }));
+  }, [isProductDriven, selection]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -200,9 +291,10 @@ export default function CustomClothesPage() {
   }, []);
 
   const categoryMockups = useMemo(() => {
+    if (isProductDriven) return selectionMockups;
     if (lockedCategory?.id == null) return EMPTY_CATEGORY_MOCKUPS;
     return getMockupsForCategory(lockedCategory.id);
-  }, [lockedCategory?.id]);
+  }, [isProductDriven, selectionMockups, lockedCategory?.id]);
 
   const selectedMockup = useMemo(() => {
     if (!categoryMockups.length) return null;
@@ -220,13 +312,24 @@ export default function CustomClothesPage() {
   }, [lockedCategory?.id]);
 
   useEffect(() => {
-    if (lockedCategory?.id == null) {
+    if (!isProductDriven) return;
+    setWizardStep(3);
+    setSelectedFabric({ id: "selected-product", name: "Original product" });
+    setLockedCategory({
+      id: selection?.productId || "selected-product",
+      name: selection?.name || "Selected product",
+    });
+  }, [isProductDriven, selection?.productId, selection?.name]);
+
+  useEffect(() => {
+    if (!categoryMockups.length) {
       setSelectedMockupId(null);
       return;
     }
-    const list = getMockupsForCategory(lockedCategory.id);
-    setSelectedMockupId(list[0]?.id ?? null);
-  }, [lockedCategory?.id]);
+    setSelectedMockupId((prev) =>
+      categoryMockups.some((m) => m.id === prev) ? prev : categoryMockups[0].id
+    );
+  }, [categoryMockups]);
 
   const layers = viewPlacements[activeView]?.layers ?? [];
 
@@ -424,23 +527,342 @@ export default function CustomClothesPage() {
     setWizardStep(2);
   };
 
+  const handleOverlayUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === "string") {
+        setSelectedPreviewDesignId(null);
+        setUploadedDesignUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSelectAdminPreviewDesign = (designId) => {
+    const dataUrl = getDesignDataUrl(designId, 2048);
+    if (!dataUrl) {
+      message.warning("This admin design could not be loaded.");
+      return;
+    }
+    setSelectedPreviewDesignId(designId);
+    setUploadedDesignUrl(dataUrl);
+  };
+
+  const resetSelectedItemPreview = () => {
+    setUploadedDesignUrl("");
+    setSelectedPreviewDesignId(null);
+    setDesignText("Your design");
+    setOverlayScale(1 / 38);
+    setOverlayX(0);
+    setOverlayY(0);
+  };
+
+  const clampOverlayPosition = useCallback((x, y) => {
+    const frame = previewFrameRef.current;
+    if (!frame) return { x, y };
+
+    const { width, height } = frame.getBoundingClientRect();
+    const maxX = Math.max(180, width * 0.56);
+    const maxY = Math.max(180, height * 0.6);
+
+    return {
+      x: Math.min(maxX, Math.max(-maxX, x)),
+      y: Math.min(maxY, Math.max(-maxY, y)),
+    };
+  }, []);
+
+  const handleOverlayPointerDown = (event) => {
+    const pointerId = event.pointerId;
+    overlayDragStateRef.current = {
+      pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startOverlayX: overlayX,
+      startOverlayY: overlayY,
+    };
+    setIsOverlayDragging(true);
+    event.currentTarget.setPointerCapture(pointerId);
+  };
+
+  const handleOverlayPointerMove = (event) => {
+    const drag = overlayDragStateRef.current;
+    if (!isOverlayDragging || drag.pointerId !== event.pointerId) return;
+
+    const dx = event.clientX - drag.startClientX;
+    const dy = event.clientY - drag.startClientY;
+    const next = clampOverlayPosition(drag.startOverlayX + dx, drag.startOverlayY + dy);
+    setOverlayX(Math.round(next.x));
+    setOverlayY(Math.round(next.y));
+  };
+
+  const stopOverlayDrag = (event) => {
+    const drag = overlayDragStateRef.current;
+    if (drag.pointerId == null) return;
+    if (event.pointerId !== drag.pointerId) return;
+
+    if (event.currentTarget.hasPointerCapture(drag.pointerId)) {
+      event.currentTarget.releasePointerCapture(drag.pointerId);
+    }
+    overlayDragStateRef.current.pointerId = null;
+    setIsOverlayDragging(false);
+  };
+
   return (
     <div className="min-h-[70vh] bg-neutral-50 dark:bg-neutral-950">
       <div className="container mx-auto px-4 py-16 sm:py-20 md:py-24">
+        {selection && !isProductDriven ? (
+          <section className="mb-10 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  Selected item for custom design
+                </p>
+                <h2 className="mt-1 text-xl font-bold text-neutral-900 dark:text-white sm:text-2xl">
+                  {selection.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={clearCustomDesignSelection}
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              >
+                Clear selected item
+              </button>
+            </div>
+
+            {selectedPreviewColors.length > 0 ? (
+              <div className="mt-6">
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+                  Color variants
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedPreviewColors.map((color) => {
+                    const active =
+                      String(selection.selectedColor || "").toLowerCase() ===
+                      String(color || "").toLowerCase();
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setCustomDesignColor(color)}
+                        className={[
+                          "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                          active
+                            ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                            : "border-neutral-300 text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800",
+                        ].join(" ")}
+                      >
+                        <span
+                          className="h-4 w-4 rounded-full border border-black/10"
+                          style={{ backgroundColor: resolveColorSwatch(color) }}
+                          aria-hidden
+                        />
+                        <span className="capitalize">{color}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+              <div className="mx-auto w-full max-w-md">
+                <div
+                  ref={previewFrameRef}
+                  className="relative aspect-4/5 w-full overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={selectedPreviewImage || "/placeholder-product.svg"}
+                    alt={selection.name}
+                    className="h-full w-full object-contain p-3"
+                  />
+
+                  <div
+                    className={[
+                      "absolute left-1/2 top-1/2 flex w-[55%] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center touch-none select-none",
+                      isOverlayDragging ? "cursor-grabbing" : "cursor-grab",
+                    ].join(" ")}
+                    style={{
+                      transform: `translate(-50%, -50%) translate(${overlayX}px, ${overlayY}px)`,
+                    }}
+                    onPointerDown={handleOverlayPointerDown}
+                    onPointerMove={handleOverlayPointerMove}
+                    onPointerUp={stopOverlayDrag}
+                    onPointerCancel={stopOverlayDrag}
+                  >
+                    {uploadedDesignUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={uploadedDesignUrl}
+                        alt="Uploaded custom design"
+                        className="h-auto max-w-full object-contain"
+                        style={{ width: `${Math.round(overlayScale * 100)}%` }}
+                      />
+                    ) : null}
+                    {designText.trim() ? (
+                      <p
+                        className="mt-2 text-center font-semibold text-neutral-900 drop-shadow dark:text-white"
+                        style={{ fontSize: `${Math.max(1, overlayScale * 38)}px` }}
+                      >
+                        {designText}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900">
+                <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
+                  Design preview controls
+                </h3>
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  Upload artwork or add text, then tweak scale and position.
+                </p>
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  Drag directly on the overlay to move it.
+                </p>
+
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                      Upload design image
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleOverlayUpload}
+                      className="block w-full text-xs text-neutral-500 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-neutral-700 dark:text-neutral-400 dark:file:bg-white dark:file:text-neutral-900 dark:hover:file:bg-neutral-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                      Or choose admin uploaded design
+                    </label>
+                    {adminCustomDesigns.length === 0 ? (
+                      <p className="rounded-lg border border-dashed border-neutral-300 px-3 py-2 text-xs text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                        No admin designs available right now.
+                      </p>
+                    ) : (
+                      <div className="grid max-h-44 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-neutral-200 p-2 dark:border-neutral-700">
+                        {adminCustomDesigns.map((d) => {
+                          const isSelected = selectedPreviewDesignId === d.id;
+                          return (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() => handleSelectAdminPreviewDesign(d.id)}
+                              className={[
+                                "flex items-center gap-2 rounded-lg border p-2 text-left transition-colors",
+                                isSelected
+                                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                                  : "border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800",
+                              ].join(" ")}
+                            >
+                              <DesignThumbnail designId={d.id} size={34} />
+                              <span className="truncate text-xs font-medium">{d.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                      Preview text
+                    </label>
+                    <input
+                      type="text"
+                      value={designText}
+                      onChange={(e) => setDesignText(e.target.value)}
+                      placeholder="Type your text"
+                      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                      Scale ({overlayScale.toFixed(2)})
+                    </label>
+                    <input
+                      type="range"
+                      min={0.01}
+                      max={2}
+                      step={0.01}
+                      value={overlayScale}
+                      onChange={(e) => setOverlayScale(Number(e.target.value))}
+                      className="w-full accent-neutral-900 dark:accent-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                      Horizontal ({overlayX}px)
+                    </label>
+                    <input
+                      type="range"
+                      min={-360}
+                      max={360}
+                      step={1}
+                      value={overlayX}
+                      onChange={(e) => setOverlayX(Number(e.target.value))}
+                      className="w-full accent-neutral-900 dark:accent-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                      Vertical ({overlayY}px)
+                    </label>
+                    <input
+                      type="range"
+                      min={-360}
+                      max={360}
+                      step={1}
+                      value={overlayY}
+                      onChange={(e) => setOverlayY(Number(e.target.value))}
+                      className="w-full accent-neutral-900 dark:accent-white"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={resetSelectedItemPreview}
+                    className="w-full rounded-xl border border-neutral-300 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 dark:border-neutral-600 dark:text-neutral-100 dark:hover:bg-neutral-800"
+                  >
+                    Reset preview
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <header className="max-w-2xl">
           <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-            Step {wizardStep} of 3
+            {isProductDriven ? "Product customization" : `Step ${wizardStep} of 3`}
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900 dark:text-white sm:text-4xl">
             Custom clothes
           </h1>
           <p className="mt-3 text-neutral-600 dark:text-neutral-400">
+            {isProductDriven &&
+              `Customize ${selection?.name || "your selected product"} with multiple designs, and place each design on front or back using drag or sliders.`}
             {wizardStep === 1 &&
+              !isProductDriven &&
               "Pick the fabric or cloth quality you want, then choose a category and design."}
             {wizardStep === 2 &&
+              !isProductDriven &&
               selectedFabric &&
               `Choose a category for your ${selectedFabric.name.toLowerCase()} piece. You can change fabric anytime.`}
             {wizardStep === 3 &&
+              !isProductDriven &&
               lockedCategory &&
               selectedFabric &&
               `Pick an admin-style garment mockup, then place one or more designs on the front and back of your ${lockedCategory.name.toLowerCase()} (${selectedFabric.name}). Artwork renders up to 2048px.`}
@@ -448,7 +870,7 @@ export default function CustomClothesPage() {
         </header>
 
         <AnimatePresence mode="wait">
-          {wizardStep === 1 ? (
+          {wizardStep === 1 && !isProductDriven ? (
             <motion.div
               key="step-fabric"
               initial={{ opacity: 0, x: -12 }}
@@ -571,7 +993,7 @@ export default function CustomClothesPage() {
                 ) : null}
               </div>
             </motion.div>
-          ) : wizardStep === 2 ? (
+          ) : wizardStep === 2 && !isProductDriven ? (
             <motion.div
               key="step-categories"
               initial={{ opacity: 0, x: 12 }}
@@ -748,31 +1170,46 @@ export default function CustomClothesPage() {
               className="mt-8"
             >
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <button
-                  type="button"
-                  onClick={backToCategories}
-                  className="inline-flex w-fit items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
-                >
-                  <IconArrowLeft className="h-4 w-4" aria-hidden />
-                  Back to categories
-                </button>
+                {!isProductDriven ? (
+                  <button
+                    type="button"
+                    onClick={backToCategories}
+                    className="inline-flex w-fit items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                  >
+                    <IconArrowLeft className="h-4 w-4" aria-hidden />
+                    Back to categories
+                  </button>
+                ) : (
+                  <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+                    <span className="text-neutral-500 dark:text-neutral-400">
+                      Product: {" "}
+                    </span>
+                    <span className="font-semibold text-neutral-900 dark:text-white">
+                      {selection?.name || "Selected product"}
+                    </span>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
-                  <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
-                    <span className="text-neutral-500 dark:text-neutral-400">
-                      Fabric:{" "}
-                    </span>
-                    <span className="font-semibold text-neutral-900 dark:text-white">
-                      {selectedFabric?.name}
-                    </span>
-                  </div>
-                  <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
-                    <span className="text-neutral-500 dark:text-neutral-400">
-                      Category:{" "}
-                    </span>
-                    <span className="font-semibold text-neutral-900 dark:text-white">
-                      {lockedCategory?.name}
-                    </span>
-                  </div>
+                  {!isProductDriven ? (
+                    <>
+                      <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+                        <span className="text-neutral-500 dark:text-neutral-400">
+                          Fabric:{" "}
+                        </span>
+                        <span className="font-semibold text-neutral-900 dark:text-white">
+                          {selectedFabric?.name}
+                        </span>
+                      </div>
+                      <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+                        <span className="text-neutral-500 dark:text-neutral-400">
+                          Category:{" "}
+                        </span>
+                        <span className="font-semibold text-neutral-900 dark:text-white">
+                          {lockedCategory?.name}
+                        </span>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
@@ -780,12 +1217,12 @@ export default function CustomClothesPage() {
                 <div className="flex min-w-0 flex-col gap-4">
                   <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
                     <h2 className="text-base font-semibold text-neutral-900 dark:text-white">
-                      Garment mockup
+                      {isProductDriven ? "Real product images" : "Garment mockup"}
                     </h2>
                     <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                      Five catalog styles per category (hardcoded placeholders for
-                      admin-uploaded mockups). Hue shifts by category; your fabric
-                      choice still tints the preview lightly.
+                      {isProductDriven
+                        ? "These are the real product images from the item you selected on Product Details. Pick any image and apply multiple designs."
+                        : "Five catalog styles per category (hardcoded placeholders for admin-uploaded mockups). Hue shifts by category; your fabric choice still tints the preview lightly."}
                     </p>
                     <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
                       {categoryMockups.map((m) => {
@@ -861,53 +1298,55 @@ export default function CustomClothesPage() {
                       Add selected to {activeView === "front" ? "front" : "back"}{" "}
                       ({designPick.size})
                     </button>
-                    <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
-                      {designPickerOptions.map((d) => {
-                        const picked = designPick.has(d.id);
-                        const disabled = d.id === "none";
-                        return (
-                          <li key={d.id}>
-                            <button
-                              type="button"
-                              disabled={disabled}
-                              onClick={() => toggleDesignPick(d.id)}
-                              className={[
-                                "flex w-full flex-col gap-2 rounded-xl border p-3 text-left transition-colors",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
-                                disabled
-                                  ? "cursor-not-allowed opacity-50"
-                                  : picked
-                                    ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                                    : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-800/80",
-                              ].join(" ")}
-                              aria-pressed={picked}
-                            >
-                              <span className="flex items-center gap-2">
-                                <span
-                                  className={[
-                                    "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                                    picked
-                                      ? "border-white bg-white dark:border-neutral-900 dark:bg-neutral-900"
-                                      : "border-neutral-400 dark:border-neutral-500",
-                                  ].join(" ")}
-                                  aria-hidden
-                                >
-                                  {picked ? (
-                                    <span className="text-[10px] text-neutral-900 dark:text-white">
-                                      ✓
-                                    </span>
-                                  ) : null}
+                    <div className="mt-4 max-h-88 overflow-y-auto pr-1">
+                      <ul className="grid grid-cols-2 auto-rows-[112px] gap-2">
+                        {designPickerOptions.map((d) => {
+                          const picked = designPick.has(d.id);
+                          const disabled = d.id === "none";
+                          return (
+                            <li key={d.id} className="h-full">
+                              <button
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => toggleDesignPick(d.id)}
+                                className={[
+                                  "flex h-full w-full flex-col gap-2 overflow-hidden rounded-xl border p-3 text-left transition-colors",
+                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
+                                  disabled
+                                    ? "cursor-not-allowed opacity-50"
+                                    : picked
+                                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                                      : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-800/80",
+                                ].join(" ")}
+                                aria-pressed={picked}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className={[
+                                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                                      picked
+                                        ? "border-white bg-white dark:border-neutral-900 dark:bg-neutral-900"
+                                        : "border-neutral-400 dark:border-neutral-500",
+                                    ].join(" ")}
+                                    aria-hidden
+                                  >
+                                    {picked ? (
+                                      <span className="text-[10px] text-neutral-900 dark:text-white">
+                                        ✓
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                  <DesignThumbnail designId={d.id} size={48} />
                                 </span>
-                                <DesignThumbnail designId={d.id} size={48} />
-                              </span>
-                              <span className="text-xs font-semibold leading-tight">
-                                {d.name}
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
+                                <span className="text-xs font-semibold leading-tight">
+                                  {d.name}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
                   </div>
 
                   <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -949,8 +1388,52 @@ export default function CustomClothesPage() {
                     </h3>
                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                       Sliders apply to the highlighted print on the mockup or in
-                      the list above.
+                      the list above, including precise X/Y position.
                     </p>
+
+                    <div className="mt-4 space-y-1">
+                      <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                        <span>Horizontal position</span>
+                        <span>{activeLayer ? `${Math.round(activeLayer.xPct)}%` : "—"}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={8}
+                        max={92}
+                        step={1}
+                        value={activeLayer?.xPct ?? 50}
+                        disabled={!activeLayer || !layerHasContent(activeLayer)}
+                        onChange={(e) =>
+                          activeLayer &&
+                          patchActiveLayer(activeLayer.id, {
+                            xPct: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-neutral-900 dark:accent-white"
+                      />
+                    </div>
+
+                    <div className="mt-4 space-y-1">
+                      <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                        <span>Vertical position</span>
+                        <span>{activeLayer ? `${Math.round(activeLayer.yPct)}%` : "—"}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={10}
+                        max={90}
+                        step={1}
+                        value={activeLayer?.yPct ?? 40}
+                        disabled={!activeLayer || !layerHasContent(activeLayer)}
+                        onChange={(e) =>
+                          activeLayer &&
+                          patchActiveLayer(activeLayer.id, {
+                            yPct: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-neutral-900 dark:accent-white"
+                      />
+                    </div>
 
                     <div className="mt-4 space-y-1">
                       <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
@@ -961,8 +1444,8 @@ export default function CustomClothesPage() {
                       </div>
                       <input
                         type="range"
-                        min={0.15}
-                        max={1.1}
+                        min={0.01}
+                        max={2.2}
                         step={0.01}
                         value={activeLayer?.scale ?? 0.4}
                         disabled={!activeLayer || !layerHasContent(activeLayer)}
@@ -985,8 +1468,8 @@ export default function CustomClothesPage() {
                       </div>
                       <input
                         type="range"
-                        min={-180}
-                        max={180}
+                        min={-360}
+                        max={360}
                         step={1}
                         value={activeLayer?.rotationDeg ?? 0}
                         disabled={!activeLayer || !layerHasContent(activeLayer)}

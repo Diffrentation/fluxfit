@@ -22,10 +22,12 @@ import {
 import { Button, message, Spin } from "antd";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCustomDesign } from "@/context/CustomDesignContext";
 import axios from "axios";
 import { addToRecentlyViewed } from "@/lib/recentlyViewed";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 import ProductCard from "@/components/ui/ProductCard";
+import AddCustomDesignButton from "@/components/product-detail/AddCustomDesignButton";
 import {
   normalizeProductDetailForPage,
   normalizeProductForCard,
@@ -54,6 +56,7 @@ function ProductDetails() {
   const infoSectionRef = useRef(null);
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { setCustomDesignSelection } = useCustomDesign();
 
   const [otherProducts, setOtherProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -362,6 +365,47 @@ function ProductDetails() {
       }
     );
     message.success("Added to cart");
+  };
+
+  const getVariantImage = (variant) => {
+    if (!variant || typeof variant !== "object") return "";
+
+    const firstImage = Array.isArray(variant.images) ? variant.images[0] : null;
+    const candidate =
+      variant.image ||
+      variant.imageUrl ||
+      variant.primaryImage?.url ||
+      variant.primaryImage ||
+      (typeof firstImage === "string" ? firstImage : firstImage?.url) ||
+      "";
+
+    return typeof candidate === "string" ? candidate : "";
+  };
+
+  const handleAddCustomDesign = () => {
+    if (!product) return;
+
+    const colorImageMap = (product.variants || []).reduce((acc, variant) => {
+      const color = String(variant?.color || "").trim().toLowerCase();
+      const image = getVariantImage(variant);
+      if (color && image && !acc[color]) {
+        acc[color] = image;
+      }
+      return acc;
+    }, {});
+
+    setCustomDesignSelection({
+      productId: product.id,
+      name: product.name,
+      images: product.images || [],
+      colors: product.colors || [],
+      colorImageMap,
+      selectedColor: selectedColor || product.colors?.[0] || "",
+      selectedImage: product.images?.[selectedImage] || product.images?.[0] || "",
+      sourceRoute: `/product-details/${params.id}`,
+    });
+
+    router.push("/custom-clothes");
   };
 
   const scrollToTop = () => {
@@ -794,7 +838,7 @@ function ProductDetails() {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-4"
+                  className="flex flex-wrap gap-4"
                 >
                   <Button
                     size="large"
@@ -814,6 +858,10 @@ function ProductDetails() {
                   >
                     BUY NOW
                   </Button>
+                  <AddCustomDesignButton
+                    onClick={handleAddCustomDesign}
+                    disabled={!displayPricing.inStock}
+                  />
                 </motion.div>
 
                 {/* Wishlist and Share */}
