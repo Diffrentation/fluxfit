@@ -57,11 +57,12 @@ export function mapApiOrderToLegacyUi(apiOrder) {
           ? String(line.product.id)
           : `line-${idx}`,
       name: line.product?.name || line.productName,
-      image: line.product?.image,
+      image: line.product?.image || line.productImage || null,
       size: line.variant?.size || "One Size",
       color: line.variant?.color || "",
       quantity: line.quantity,
       price: line.price,
+      customization: line.customization ?? null,
     })),
     orderSummary: {
       subtotal: apiOrder.subtotal ?? 0,

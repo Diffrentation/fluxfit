@@ -119,6 +119,7 @@ export default function DesignEditor({ product }) {
   const [selectedImage, setSelectedImage] = useState(() =>
     colorImageMap[colorOptions[0]] || imageOptions[0] || ""
   );
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   useEffect(() => {
     if (!colorOptions.length) {
@@ -282,24 +283,213 @@ export default function DesignEditor({ product }) {
     });
   }, [activeLayerId, activeView, layers.length]);
 
-  const handleAddToCart = () => {
-    const customization = buildCustomClothesPayload({
-      fabricId: selectedColor || "default",
-      categoryId: product?.category?.id || product?.category?._id || null,
-      categoryName: product?.category?.name || "",
-      mockupTemplateId: product?.id || product?._id || null,
-      mockupTemplateName: product?.name || "",
-      viewPlacements,
-    });
+  const resolveLayerSnapshotSource = useCallback((layer) => {
+    if (!layer) return "";
+    if (layer.customImageDataUrl) return layer.customImageDataUrl;
+    if (!layer.designId || layer.designId === "none" || layer.designId === "upload") {
+      return "";
+    }
+    return getDesignDataUrl(layer.designId, 2048) || "";
+  }, []);
 
-    addToCart(productForCart(product, selectedImage), {
-      size: "Custom",
-      color: selectedColor || "default",
-      quantity: 1,
-      customization,
+  const loadImageForCanvas = useCallback((src) => {
+    if (!src) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
     });
+  }, []);
 
-    message.success("Custom design added to cart");
+  const drawSimpleGarmentFallback = useCallback((ctx, width, height, fill) => {
+    ctx.fillStyle = fill || "#d4d0c8";
+    ctx.strokeStyle = "rgba(0,0,0,0.08)";
+    ctx.lineWidth = 2;
+
+    const p = new Path2D();
+    p.moveTo(width * 0.5, height * 0.16);
+    p.bezierCurveTo(width * 0.35, height * 0.16, width * 0.25, height * 0.24, width * 0.23, height * 0.33);
+    p.lineTo(width * 0.18, height * 0.42);
+    p.lineTo(width * 0.24, height * 0.46);
+    p.lineTo(width * 0.33, height * 0.36);
+    p.lineTo(width * 0.35, height * 0.86);
+    p.lineTo(width * 0.65, height * 0.86);
+    p.lineTo(width * 0.67, height * 0.36);
+    p.lineTo(width * 0.76, height * 0.46);
+    p.lineTo(width * 0.82, height * 0.42);
+    p.lineTo(width * 0.77, height * 0.33);
+    p.bezierCurveTo(width * 0.75, height * 0.24, width * 0.65, height * 0.16, width * 0.5, height * 0.16);
+    p.closePath();
+
+    ctx.fill(p);
+    ctx.stroke(p);
+  }, []);
+
+  const createCustomizationSnapshot = useCallback(async () => {
+    const canvas = document.createElement("canvas");
+    const width = 640;
+    const height = 800;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return selectedImage || imageOptions[0] || "";
+
+    ctx.clearRect(0, 0, width, height);
+
+    const views = ["front", "back"];
+    const bestView = views
+      .map((view) => {
+        const count = (viewPlacements[view]?.layers ?? []).filter((layer) =>
+          Boolean(resolveLayerSnapshotSource(layer))
+        ).length;
+        return { view, count };
+      })
+      .sort((a, b) => b.count - a.count)[0]?.view || activeView;
+
+    const layersForSnapshot = viewPlacements[bestView]?.layers ?? [];
+
+    const garmentImg = await loadImageForCanvas(selectedImage || imageOptions[0] || "");
+
+    if (garmentImg) {
+      const scale = Math.min(width / garmentImg.width, height / garmentImg.height);
+      const drawW = garmentImg.width * scale;
+      const drawH = garmentImg.height * scale;
+      const dx = (width - drawW) / 2;
+      const dy = (height - drawH) / 2;
+      ctx.drawImage(garmentImg, dx, dy, drawW, drawH);
+    } else {
+      drawSimpleGarmentFallback(ctx, width, height, resolveColorSwatch(selectedColor));
+    }
+
+    const layerSources = layersForSnapshot
+      .map((layer) => ({ layer, src: resolveLayerSnapshotSource(layer) }))
+      .filter((entry) => Boolean(entry.src));
+
+    for (const entry of layerSources) {
+      const img = await loadImageForCanvas(entry.src);
+      if (!img) continue;
+
+      const cx = (Number(entry.layer.xPct) / 100) * width;
+      const cy = (Number(entry.layer.yPct) / 100) * height;
+      const baseW = width * 0.52;
+      const w = Math.max(20, baseW * (Number(entry.layer.scale) || 0.4));
+      const h = w * (img.height / Math.max(1, img.width));
+      const rotationRad = ((Number(entry.layer.rotationDeg) || 0) * Math.PI) / 180;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rotationRad);
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
+
+    try {
+      return canvas.toDataURL("image/jpeg", 0.86);
+    } catch {
+      return selectedImage || imageOptions[0] || "";
+    }
+  }, [
+    activeView,
+    drawSimpleGarmentFallback,
+    imageOptions,
+    loadImageForCanvas,
+    resolveLayerSnapshotSource,
+    selectedColor,
+    selectedImage,
+    viewPlacements,
+  ]);
+
+  /** Generate a compact thumbnail for storing in the order (smaller than cart preview). */
+  const createAdminThumbnail = useCallback(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 300;
+    canvas.height = 375;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+
+    ctx.clearRect(0, 0, 300, 375);
+
+    const garmentImg = await loadImageForCanvas(selectedImage || imageOptions[0] || "");
+    if (garmentImg) {
+      const scale = Math.min(300 / garmentImg.width, 375 / garmentImg.height);
+      const drawW = garmentImg.width * scale;
+      const drawH = garmentImg.height * scale;
+      ctx.drawImage(garmentImg, (300 - drawW) / 2, (375 - drawH) / 2, drawW, drawH);
+    } else {
+      drawSimpleGarmentFallback(ctx, 300, 375, resolveColorSwatch(selectedColor));
+    }
+
+    const frontLayers = (viewPlacements.front?.layers ?? [])
+      .map((layer) => ({ layer, src: resolveLayerSnapshotSource(layer) }))
+      .filter((e) => Boolean(e.src));
+
+    for (const entry of frontLayers) {
+      const img = await loadImageForCanvas(entry.src);
+      if (!img) continue;
+      const cx = (Number(entry.layer.xPct) / 100) * 300;
+      const cy = (Number(entry.layer.yPct) / 100) * 375;
+      const w = Math.max(10, 300 * 0.52 * (Number(entry.layer.scale) || 0.4));
+      const h = w * (img.height / Math.max(1, img.width));
+      const rot = ((Number(entry.layer.rotationDeg) || 0) * Math.PI) / 180;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rot);
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
+
+    try {
+      return canvas.toDataURL("image/jpeg", 0.7);
+    } catch {
+      return "";
+    }
+  }, [
+    drawSimpleGarmentFallback,
+    imageOptions,
+    loadImageForCanvas,
+    resolveLayerSnapshotSource,
+    selectedColor,
+    selectedImage,
+    viewPlacements,
+  ]);
+
+  const handleAddToCart = async () => {
+    if (isAddingToCart) return;
+    setIsAddingToCart(true);
+
+    try {
+      const [snapshotImage, adminThumbnail] = await Promise.all([
+        createCustomizationSnapshot(),
+        createAdminThumbnail(),
+      ]);
+
+      const customization = buildCustomClothesPayload({
+        fabricId: selectedColor || "default",
+        categoryId: product?.category?.id || product?.category?._id || null,
+        categoryName: product?.category?.name || "",
+        mockupTemplateId: product?.id || product?._id || null,
+        mockupTemplateName: product?.name || "",
+        viewPlacements,
+      });
+
+      // Attach compact preview for order/admin display
+      if (adminThumbnail) {
+        customization.previewDataUrl = adminThumbnail;
+      }
+
+      addToCart(productForCart(product, snapshotImage || selectedImage), {
+        size: "Custom",
+        color: selectedColor || "default",
+        quantity: 1,
+        customization,
+      });
+
+      message.success("Custom design added to cart");
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   return (
@@ -604,9 +794,10 @@ export default function DesignEditor({ product }) {
         <button
           type="button"
           onClick={handleAddToCart}
+          disabled={isAddingToCart}
           className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
         >
-          Add configuration to cart
+          {isAddingToCart ? "Generating preview..." : "Add configuration to cart"}
         </button>
       </aside>
     </div>

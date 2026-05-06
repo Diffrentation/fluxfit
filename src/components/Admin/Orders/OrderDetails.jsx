@@ -23,6 +23,7 @@ import {
   IconUser,
   IconMapPin,
   IconCreditCard,
+  IconMaximize,
 } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
@@ -42,6 +43,7 @@ const OrderDetails = ({
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [isDeliveryModalVisible, setIsDeliveryModalVisible] = useState(false);
   const [isCancelModalVisible, setIsCancelModalVisible] = useState(false);
+  const [previewModal, setPreviewModal] = useState({ open: false, src: "", label: "" });
   const [statusForm] = Form.useForm();
   const [deliveryForm] = Form.useForm();
   const [cancelForm] = Form.useForm();
@@ -133,20 +135,134 @@ const OrderDetails = ({
           {/* Order Items */}
           <div>
             <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">Order Items</div>
-            <div className="space-y-2">
-              {order.items?.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-gray-700/50 rounded">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-xs sm:text-sm text-gray-900 dark:text-white truncate">{item.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {item.size} • {item.color} • Qty: {item.quantity}
+            <div className="space-y-3">
+              {order.items?.map((item, index) => {
+                const isCustom = item.customization?.type === "custom_clothes";
+                const previewSrc = item.customization?.previewDataUrl || item.image || null;
+
+                return (
+                  <div key={index} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    {/* Item header row */}
+                    <div className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-700/50">
+                      {/* Image / preview thumbnail — click to fullscreen */}
+                      <div className="shrink-0 flex flex-col items-center gap-1">
+                        <div className="relative w-16 h-20 rounded-md overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 flex items-center justify-center group">
+                          {previewSrc ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={previewSrc}
+                                alt={item.name}
+                                className="w-full h-full object-contain"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setPreviewModal({ open: true, src: previewSrc, label: item.name })}
+                                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-md"
+                                title="View full size"
+                              >
+                                <IconMaximize className="w-5 h-5 text-white" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-2xl text-gray-300 dark:text-gray-600 select-none">🛍</span>
+                          )}
+                        </div>
+                        {previewSrc && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewModal({ open: true, src: previewSrc, label: item.name })}
+                            className="flex items-center gap-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            <IconMaximize className="w-3 h-3" />
+                            View
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-xs sm:text-sm text-gray-900 dark:text-white truncate">{item.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {item.size} · {item.color} · Qty: {item.quantity}
+                        </div>
+                        {isCustom && (
+                          <span className="inline-block mt-1 px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold rounded">
+                            Custom Design
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white shrink-0">
+                        ₹{formatPrice(item.price * item.quantity)}
+                      </div>
                     </div>
+
+                    {/* Custom design detail panel */}
+                    {isCustom && (
+                      <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Custom Design Details
+                        </p>
+
+                        {/* Fabric / color */}
+                        {item.customization.fabricId && (
+                          <div className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                            <span className="font-medium text-gray-500 dark:text-gray-400 w-20 shrink-0">Fabric / Color</span>
+                            <span className="capitalize">{item.customization.fabricId}</span>
+                          </div>
+                        )}
+
+                        {/* Template name */}
+                        {item.customization.mockupTemplateName && (
+                          <div className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                            <span className="font-medium text-gray-500 dark:text-gray-400 w-20 shrink-0">Product</span>
+                            <span>{item.customization.mockupTemplateName}</span>
+                          </div>
+                        )}
+
+                        {/* Per-view layer summary */}
+                        {["front", "back"].map((view) => {
+                          const viewData = item.customization.views?.[view];
+                          const activeLayers = (viewData?.layers ?? []).filter(
+                            (l) => l.designId && l.designId !== "none"
+                          );
+                          if (!activeLayers.length) return null;
+                          return (
+                            <div key={view} className="text-xs text-gray-700 dark:text-gray-300">
+                              <span className="font-medium text-gray-500 dark:text-gray-400 capitalize">{view} prints: </span>
+                              <span>{activeLayers.map((l) => l.designId === "upload" ? "Custom upload" : l.designId).join(", ")}</span>
+                            </div>
+                          );
+                        })}
+
+                        {/* Large preview if snapshot available */}
+                        {item.customization.previewDataUrl && (
+                          <div className="pt-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Design Preview</p>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewModal({ open: true, src: item.customization.previewDataUrl, label: item.name })}
+                                className="flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                <IconMaximize className="w-3 h-3" />
+                                View Full
+                              </button>
+                            </div>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={item.customization.previewDataUrl}
+                              alt="Custom design preview"
+                              onClick={() => setPreviewModal({ open: true, src: item.customization.previewDataUrl, label: item.name })}
+                              className="w-full max-w-55 rounded-lg border border-gray-200 dark:border-gray-600 object-contain cursor-zoom-in"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white ml-2 shrink-0">
-                    ₹{formatPrice(item.price * item.quantity)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -264,6 +380,32 @@ const OrderDetails = ({
           </div>
         </div>
       </Card>
+
+      {/* Fullscreen design preview modal */}
+      <Modal
+        open={previewModal.open}
+        onCancel={() => setPreviewModal({ open: false, src: "", label: "" })}
+        footer={null}
+        width="min(92vw, 720px)"
+        centered
+        title={
+          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+            {previewModal.label || "Design Preview"}
+          </span>
+        }
+        styles={{ body: { padding: "12px", background: "#111827", borderRadius: "0 0 8px 8px" } }}
+      >
+        <div className="flex items-center justify-center min-h-[60vh]">
+          {previewModal.src && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={previewModal.src}
+              alt={previewModal.label || "Design Preview"}
+              className="max-h-[80vh] max-w-full rounded-lg object-contain"
+            />
+          )}
+        </div>
+      </Modal>
 
       {/* Status Change Modal */}
       <Modal
