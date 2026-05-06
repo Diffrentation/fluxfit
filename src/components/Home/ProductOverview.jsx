@@ -113,6 +113,7 @@ function ProductOverview() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md text-xs font-medium transition-colors text-gray-900 dark:text-gray-100"
+              suppressHydrationWarning
             >
               <motion.div
                 animate={{ rotate: showFilters ? 90 : 0 }}
@@ -139,6 +140,7 @@ function ProductOverview() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-auto pl-7 sm:pl-8 pr-2.5 sm:pr-3 py-1.5 sm:py-2 border border-gray-300 dark:border-gray-700 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 aria-label="Search products"
+                suppressHydrationWarning
               />
             </motion.div>
           </div>

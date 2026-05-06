@@ -205,6 +205,7 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
               ? "text-gray-900"
               : "text-gray-500 hover:text-gray-700"
           }`}
+          suppressHydrationWarning
         >
           All Products
           {!selectedId && (
@@ -254,6 +255,7 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
                   : "text-gray-500 hover:text-gray-700"
               }`}
               aria-haspopup={hasChildren(rootId) ? "menu" : undefined}
+              suppressHydrationWarning
             >
               {cat.name}
               {arrow && (

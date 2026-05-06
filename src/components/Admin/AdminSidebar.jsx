@@ -24,6 +24,7 @@ import {
   IconCurrencyRupee,
   IconMessageCircle,
   IconPalette,
+  IconPhoto,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -90,6 +91,12 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       label: "Custom clothes prints",
       icon: IconPalette,
       path: "/admin/custom-clothes-designs",
+    },
+    {
+      id: "hero-banners",
+      label: "Hero Banners",
+      icon: IconPhoto,
+      path: "/admin/hero-banners",
     },
     {
       id: "orders",

@@ -17,6 +17,10 @@ const nextConfig = {
         protocol: "http",
         hostname: "res.cloudinary.com",
       },
+      {
+        protocol: "https",
+        hostname: "www.mamp.one",
+      },
     ],
   },
   // Webpack config for --webpack flag
