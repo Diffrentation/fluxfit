@@ -51,6 +51,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   }
 
   const [form] = Form.useForm();
+  const watchedValues = Form.useWatch([], form) || {};
   const [imageList, setImageList] = useState([]);
   const [variants, setVariants] = useState([]);
   const [activeTab, setActiveTab] = useState("basic");
@@ -514,6 +515,176 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       }),
     [imageList],
   );
+
+  const isBasicStepComplete = useMemo(() => {
+    return Boolean(
+      watchedValues.name?.trim() &&
+      watchedValues.category &&
+      watchedValues.status &&
+      watchedValues.description?.trim() &&
+      watchedValues.description.trim().length <= 200 &&
+      watchedValues.basePrice !== undefined &&
+      watchedValues.basePrice !== null,
+    );
+  }, [watchedValues]);
+
+  const areImagesStepComplete = imageList.length > 0;
+
+  const areVariantsStepComplete = useMemo(() => {
+    return (
+      variants.length > 0 &&
+      variants.every(
+        (variant) =>
+          variant.size?.trim() &&
+          variant.color?.trim() &&
+          variant.price !== undefined &&
+          variant.price !== null &&
+          Number(variant.price) >= 0 &&
+          variant.stock !== undefined &&
+          variant.stock !== null &&
+          Number(variant.stock) >= 0,
+      )
+    );
+  }, [variants]);
+
+  const isInventoryStepComplete = useMemo(() => {
+    return watchedValues.lowStockThreshold === undefined
+      ? true
+      : Number(watchedValues.lowStockThreshold) >= 0;
+  }, [watchedValues.lowStockThreshold]);
+
+  const isSeoStepComplete = useMemo(() => {
+    return Boolean(watchedValues.metaTitle?.trim() && autoSlug);
+  }, [autoSlug, watchedValues.metaTitle]);
+
+  const createStepOrder = useMemo(
+    () => ["basic", "images", "variants", "inventory", "seo"],
+    [],
+  );
+
+  const stepCompletion = useMemo(
+    () => ({
+      basic: isBasicStepComplete,
+      images: areImagesStepComplete,
+      variants: areVariantsStepComplete,
+      inventory: isInventoryStepComplete,
+      seo: isSeoStepComplete,
+    }),
+    [
+      areImagesStepComplete,
+      areVariantsStepComplete,
+      isBasicStepComplete,
+      isInventoryStepComplete,
+      isSeoStepComplete,
+    ],
+  );
+
+  const allCreateStepsComplete = useMemo(
+    () => createStepOrder.every((step) => stepCompletion[step]),
+    [createStepOrder, stepCompletion],
+  );
+
+  const validateCurrentCreateStep = useCallback(async () => {
+    if (activeTab === "basic") {
+      await form.validateFields([
+        "name",
+        "basePrice",
+        "category",
+        "status",
+        "description",
+      ]);
+      return true;
+    }
+
+    if (activeTab === "images") {
+      if (!imageList.length) {
+        message.error("Please upload at least one product image");
+        return false;
+      }
+      return true;
+    }
+
+    if (activeTab === "variants") {
+      if (!variants.length) {
+        message.error("Please add at least one variant");
+        return false;
+      }
+
+      const hasInvalidVariant = variants.some(
+        (variant) =>
+          !variant.size?.trim() ||
+          !variant.color?.trim() ||
+          variant.price === undefined ||
+          variant.price === null ||
+          Number(variant.price) < 0 ||
+          variant.stock === undefined ||
+          variant.stock === null ||
+          Number(variant.stock) < 0,
+      );
+
+      if (hasInvalidVariant) {
+        message.error("Please complete all variant fields before continuing");
+        return false;
+      }
+      return true;
+    }
+
+    if (activeTab === "inventory") {
+      await form.validateFields(["lowStockThreshold"]);
+      return true;
+    }
+
+    if (activeTab === "seo") {
+      await form.validateFields(["metaTitle"]);
+      return Boolean(autoSlug);
+    }
+
+    return true;
+  }, [activeTab, autoSlug, form, imageList.length, variants]);
+
+  const handlePrimaryAction = useCallback(async () => {
+    const isEdit = Boolean(product?._id || product?.id);
+    if (isEdit) {
+      form.submit();
+      return;
+    }
+
+    if (allCreateStepsComplete) {
+      form.submit();
+      return;
+    }
+
+    try {
+      const currentStepValid = await validateCurrentCreateStep();
+      if (!currentStepValid) return;
+
+      const currentIndex = createStepOrder.indexOf(activeTab);
+      const nextIncompleteStep = createStepOrder.find(
+        (step, index) => index > currentIndex && !stepCompletion[step],
+      );
+      const nextStep = nextIncompleteStep || createStepOrder[currentIndex + 1];
+      if (nextStep) {
+        setActiveTab(nextStep);
+      }
+    } catch {
+      // Field validation already surfaced the relevant error.
+    }
+  }, [
+    activeTab,
+    allCreateStepsComplete,
+    createStepOrder,
+    form,
+    product,
+    stepCompletion,
+    validateCurrentCreateStep,
+  ]);
+
+  const primaryButtonLabel = useMemo(() => {
+    if (product?._id || product?.id) {
+      return "Update Product";
+    }
+    return allCreateStepsComplete ? "Create Product" : "Next";
+  }, [allCreateStepsComplete, product]);
 
   useEffect(() => {
     if (!visible) {
@@ -985,8 +1156,13 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
         <div className="flex justify-end gap-3">
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="primary" htmlType="submit" size="large">
-            {product ? "Update Product" : "Create Product"}
+          <Button
+            type="primary"
+            size="large"
+            loading={loading}
+            onClick={handlePrimaryAction}
+          >
+            {primaryButtonLabel}
           </Button>
         </div>
       </Form>
