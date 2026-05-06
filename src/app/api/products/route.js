@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import Product from "@/models/product.model";
 import mongoose from "mongoose";
 import Category from "@/models/category.model"
+import slugify from "slugify";
 
 /**
  * GET /api/products
@@ -336,6 +337,11 @@ export async function POST(request) {
         field: "description",
         message: "Product description is required",
       });
+    } else if (description.trim().length > 200) {
+      errors.push({
+        field: "description",
+        message: "Description must be 200 characters or less",
+      });
     }
 
     if (!category) {
@@ -475,36 +481,32 @@ export async function POST(request) {
       );
     }
 
-    // Generate slug from name if not provided
-    let slug = body.slug;
-    if (!slug || !slug.trim()) {
-      slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-    } else {
-      slug = slug.toLowerCase().trim();
+    const slugSource = body.slug || metaTitle || name;
+    let slug = slugify(String(slugSource || ""), {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+
+    if (!slug) {
+      slug = slugify(String(name || "product"), {
+        lower: true,
+        strict: true,
+        trim: true,
+      });
     }
 
-    // Check if slug already exists
+    // Ensure slug uniqueness before saving
     const existingProduct = await Product.findOne({ slug, isDeleted: false });
     if (existingProduct) {
-      // Append timestamp to make it unique
       slug = `${slug}-${Date.now()}`;
     }
 
-    // Calculate stock from variants if not provided
-    let calculatedStock = stock;
-    if (variants && Array.isArray(variants) && variants.length > 0) {
-      calculatedStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-    }
-    if (calculatedStock === undefined || calculatedStock === null) {
-      calculatedStock = 0;
-    }
-
-    // Determine inStock status
-    const calculatedInStock =
-      calculatedStock > 0 || (variants && variants.some((v) => v.stock > 0));
+    // Stock is auto-computed by pre-save middleware from variants; send 0 as placeholder.
+    const calculatedStock =
+      variants && Array.isArray(variants) && variants.length > 0
+        ? variants.reduce((sum, v) => sum + (v.stock || 0), 0)
+        : typeof stock === "number" ? stock : 0;
 
     // Build product data
     const productData = {
@@ -515,7 +517,7 @@ export async function POST(request) {
       category,
       basePrice: parseFloat(basePrice),
       stock: calculatedStock,
-      inStock: inStock !== undefined ? inStock : calculatedInStock,
+      inStock: calculatedStock > 0,
       status,
       isFeatured: isFeatured || false,
       isNew: isNew || false,

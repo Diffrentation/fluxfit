@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import Product from "@/models/product.model";
 import mongoose from "mongoose";
 import Category from "@/models/category.model";
+import slugify from "slugify";
 
 /**
  * GET /api/products/:id
@@ -273,6 +274,8 @@ export async function PUT(request, { params }) {
     if (description !== undefined) {
       if (!description?.trim()) {
         errors.push({ field: "description", message: "Product description cannot be empty" });
+      } else if (description.trim().length > 200) {
+        errors.push({ field: "description", message: "Description must be 200 characters or less" });
       } else {
         updateData.description = description.trim();
       }
@@ -342,59 +345,36 @@ export async function PUT(request, { params }) {
     }
 
     const slugFromClientProvided = Object.prototype.hasOwnProperty.call(body, "slug");
+    const nameForSlug = updateData.name !== undefined ? updateData.name : product.name;
+    const metaTitleForSlug =
+      metaTitle !== undefined ? metaTitle?.trim() : product.metaTitle;
 
-    const slugifyFromName = (str) =>
-      String(str || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+    if (slugFromClientProvided || name !== undefined || metaTitle !== undefined) {
+      const currentSlugNorm = String(product.slug || "").toLowerCase().trim();
+      const rawSlug = slugFromClientProvided ? slug : undefined;
+      const slugSource = rawSlug || metaTitleForSlug || nameForSlug;
 
-    if (slugFromClientProvided) {
-      const raw = slug;
-      const currentSlugNorm = String(product.slug || "")
-        .toLowerCase()
-        .trim();
+      let nextSlug = slugify(String(slugSource || ""), {
+        lower: true,
+        strict: true,
+        trim: true,
+      });
 
-      if (raw == null || (typeof raw === "string" && !raw.trim())) {
-        const nameForSlug =
-          updateData.name !== undefined ? updateData.name : product.name;
-        const base = slugifyFromName(nameForSlug);
-        if (!base) {
-          errors.push({
-            field: "slug",
-            message: "Cannot generate slug: product name is empty",
-          });
-        } else {
-          let candidate = base;
-          const taken = await Product.findOne({
-            slug: candidate,
-            _id: { $ne: product._id },
-            isDeleted: false,
-          });
-          if (taken) {
-            candidate = `${base}-${Date.now()}`;
-          }
-          updateData.slug = candidate;
-        }
-      } else {
-        const newSlug = String(raw).toLowerCase().trim();
-        if (newSlug === currentSlugNorm) {
-          // Explicit but unchanged — keep existing slug; skip uniqueness check
-        } else {
-          const existingProduct = await Product.findOne({
-            slug: newSlug,
-            _id: { $ne: product._id },
-            isDeleted: false,
-          });
-          if (existingProduct) {
-            errors.push({
-              field: "slug",
-              message: "A product with this slug already exists",
-            });
-          } else {
-            updateData.slug = newSlug;
-          }
-        }
+      if (!nextSlug) {
+        nextSlug = currentSlugNorm || slugify(String(nameForSlug || "product"), {
+          lower: true,
+          strict: true,
+          trim: true,
+        });
+      }
+
+      if (nextSlug && nextSlug !== currentSlugNorm) {
+        const existingProduct = await Product.findOne({
+          slug: nextSlug,
+          _id: { $ne: product._id },
+          isDeleted: false,
+        });
+        updateData.slug = existingProduct ? `${nextSlug}-${Date.now()}` : nextSlug;
       }
     }
 

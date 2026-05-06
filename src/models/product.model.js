@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import slugify from "slugify";
 import "./category.model.js";
 import "./brand.model.js";
 
@@ -65,6 +66,7 @@ const productSchema = new mongoose.Schema(
     description: {
       type: String,
       required: true,
+      maxlength: 200,
     },
     shortDescription: {
       type: String,
@@ -381,16 +383,53 @@ productSchema.statics.search = async function (query, filters = {}) {
   };
 };
 
-// Pre-save: fill slug only when missing (never replace slug because name changed)
-productSchema.pre("save", function () {
-  if (this.slug && String(this.slug).trim()) return;
-  const n = this.name && String(this.name).trim();
-  if (n) {
-    this.slug = n
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+// Pre-save: auto-slug, auto-SKU, auto-stock, auto-inStock
+productSchema.pre("save", function (next) {
+  // 1. Auto-generate slug from meta title with name fallback when missing
+  if (!this.slug || !String(this.slug).trim()) {
+    const source = this.metaTitle || this.name || "";
+    const nextSlug = slugify(String(source).trim(), {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+    if (nextSlug) {
+      this.slug = nextSlug;
+    }
   }
+
+  // 2. Auto-generate SKU for any variant that lacks one
+  if (Array.isArray(this.variants) && this.variants.length > 0) {
+    const namePrefix = (this.name || "")
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 3)
+      .toUpperCase();
+    this.variants.forEach((variant) => {
+      if (!variant.sku || !String(variant.sku).trim()) {
+        const colorCode = (variant.color || "")
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .slice(0, 3)
+          .toUpperCase();
+        const sizeCode = (variant.size || "")
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .toUpperCase();
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        variant.sku = [namePrefix, colorCode, sizeCode, rand]
+          .filter(Boolean)
+          .join("-");
+      }
+    });
+
+    // 3. Auto-compute total stock from variants
+    this.stock = this.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+  }
+
+  // 4. Auto-manage inStock flag
+  const hasVariantStock =
+    Array.isArray(this.variants) && this.variants.some((v) => v.stock > 0 && v.isActive !== false);
+  this.inStock = this.stock > 0 || hasVariantStock;
+
+  next();
 });
 
 const Product = mongoose.models.Product || mongoose.model("Product", productSchema);

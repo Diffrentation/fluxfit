@@ -28,8 +28,9 @@ import {
 import axios from "axios";
 import { uploadImage } from "@/lib/upload-client";
 import { AgGridReact } from "ag-grid-react";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+import { ModuleRegistry, AllCommunityModule, themeQuartz } from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 const { TextArea } = Input;
 
@@ -80,6 +81,7 @@ export default function HeroBannerManagement() {
   const [banners, setBanners] = useState([]);
   const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
@@ -89,6 +91,7 @@ export default function HeroBannerManagement() {
 
   const fetchBanners = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const { data } = await axios.get("/api/admin/hero-banners", {
         headers: authHeaders(),
@@ -102,7 +105,9 @@ export default function HeroBannerManagement() {
         setBanners(normalized);
       }
     } catch (err) {
-      message.error(err?.response?.data?.message || "Failed to load hero banners");
+      const msg = err?.response?.data?.message || "Failed to load hero banners";
+      setLoadError(msg);
+      message.error(msg);
     } finally {
       setLoading(false);
     }
@@ -432,6 +437,12 @@ export default function HeroBannerManagement() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Manage your homepage hero carousel slides
           </p>
+          {!loading && !loadError && (
+            <p className="text-xs text-gray-400 mt-1">Total slides: {rowData.length}</p>
+          )}
+          {!!loadError && (
+            <p className="text-xs text-red-500 mt-1">{loadError}</p>
+          )}
         </div>
         <Space>
           <Button
@@ -453,8 +464,10 @@ export default function HeroBannerManagement() {
 
       <Card>
         {isClient ? (
-          <div className="ag-theme-quartz w-full" style={{ height: 460 }}>
+          <div style={{ width: "100%", height: 460 }}>
             <AgGridReact
+              theme={themeQuartz}
+              modules={[AllCommunityModule]}
               rowData={rowData}
               columnDefs={columnDefs}
               defaultColDef={{ sortable: true, resizable: true }}
@@ -470,6 +483,19 @@ export default function HeroBannerManagement() {
         ) : (
           <div className="h-[460px] flex items-center justify-center text-sm text-gray-500">
             Loading banners...
+          </div>
+        )}
+
+        {!loading && rowData.length > 0 && (
+          <div className="mt-3 rounded border border-gray-200 dark:border-gray-700 p-3">
+            <p className="text-xs text-gray-500 mb-2">Fallback list:</p>
+            <div className="space-y-1">
+              {rowData.map((item) => (
+                <div key={item._id} className="text-sm text-gray-700 dark:text-gray-300">
+                  {item.title} ({item.isActive ? "Active" : "Inactive"})
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </Card>

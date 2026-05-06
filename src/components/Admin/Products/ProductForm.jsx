@@ -12,6 +12,7 @@ import {
   Button,
   Upload,
   Tabs,
+  Popover,
   message,
   Divider,
   Space,
@@ -24,9 +25,23 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 import { uploadImage } from "@/lib/upload-client";
+import { HexColorInput, HexColorPicker } from "react-colorful";
+import slugify from "slugify";
 
 const { TextArea } = Input;
 const { Option } = Select;
+const COLOR_PRESETS = [
+  { label: "Black", value: "#111827" },
+  { label: "White", value: "#F9FAFB" },
+  { label: "Red", value: "#DC2626" },
+  { label: "Blue", value: "#2563EB" },
+  { label: "Green", value: "#16A34A" },
+  { label: "Yellow", value: "#EAB308" },
+  { label: "Orange", value: "#EA580C" },
+  { label: "Purple", value: "#7C3AED" },
+  { label: "Pink", value: "#EC4899" },
+  { label: "Gray", value: "#6B7280" },
+];
 
 const ProductForm = ({ visible, product, onClose, onSave }) => {
   // Early return if not visible to prevent useForm warning
@@ -41,6 +56,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [nameValue, setNameValue] = useState("");
+  const [metaTitleValue, setMetaTitleValue] = useState("");
   const buildCategoryTreeData = useCallback(() => {
     const nodeById = new Map();
     const childrenByParentId = new Map();
@@ -230,6 +247,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               ) || [],
             );
             setVariants(productData.variants || []);
+            setNameValue(productData.name || "");
+            setMetaTitleValue(productData.metaTitle || "");
           }
         } catch (error) {
           console.error("Failed to fetch product details:", error);
@@ -248,6 +267,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             ) || [],
           );
           setVariants(product.variants || []);
+          setNameValue(product.name || "");
+          setMetaTitleValue(product.metaTitle || "");
         } finally {
           setLoading(false);
         }
@@ -262,11 +283,15 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           .toLowerCase();
         setImageList(product.images || []);
         setVariants(product.variants || []);
+        setNameValue(product.name || "");
+        setMetaTitleValue(product.metaTitle || "");
       } else {
         form.resetFields();
         initialEditSlugRef.current = "";
         setImageList([]);
         setVariants([]);
+        setNameValue("");
+        setMetaTitleValue("");
       }
     };
 
@@ -274,12 +299,40 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   }, [product, form]);
 
   /* ---------------- SLUG GENERATOR ---------------- */
-  const generateSlug = useCallback((name) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+  const generateSlug = useCallback((value) => {
+    return slugify(String(value || ""), {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
   }, []);
+
+  /* ---------------- AUTO-COMPUTED VALUES ---------------- */
+  const slugSource = useMemo(
+    () => metaTitleValue || nameValue,
+    [metaTitleValue, nameValue],
+  );
+
+  const autoSlug = useMemo(
+    () => generateSlug(slugSource || ""),
+    [slugSource, generateSlug],
+  );
+
+  const computedStock = useMemo(
+    () => variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0),
+    [variants],
+  );
+
+  const autoSkuForVariant = useCallback(
+    (variant) => {
+      const prefix = (nameValue || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 3).toUpperCase();
+      const colorCode = (variant.color || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 3).toUpperCase();
+      const sizeCode = (variant.size || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+      const seed = variant._randSuffix || "????";
+      return [prefix, colorCode, sizeCode, seed].filter(Boolean).join("-") || "—";
+    },
+    [nameValue],
+  );
 
   /* ---------------- IMAGE UPLOAD ---------------- */
   const handleImageUpload = useCallback(async (info) => {
@@ -306,7 +359,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   const handleAddVariant = useCallback(() => {
     setVariants((prev) => [
       ...prev,
-      { size: "", color: "", price: 0, stock: 0, sku: "" },
+      { size: "", color: "", price: 0, stock: 0, sku: "", _randSuffix: Math.floor(1000 + Math.random() * 9000) },
     ]);
   }, []);
 
@@ -322,6 +375,61 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     setVariants((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const renderColorPickerContent = useCallback(
+    (variant, index) => (
+      <div className="w-64 space-y-3">
+        <div>
+          <p className="text-xs font-medium text-gray-700 mb-2">Preset colors</p>
+          <div className="grid grid-cols-5 gap-2">
+            {COLOR_PRESETS.map((color) => (
+              <button
+                key={color.value}
+                type="button"
+                aria-label={color.label}
+                title={color.label}
+                className={`h-8 w-8 rounded-full border-2 transition ${
+                  String(variant.color || "").toLowerCase() === color.value.toLowerCase()
+                    ? "border-gray-900 scale-105"
+                    : "border-gray-200"
+                }`}
+                style={{ backgroundColor: color.value }}
+                onClick={() => handleVariantChange(index, "color", color.value)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium text-gray-700 mb-2">Custom color</p>
+          <div className="space-y-3">
+            <div className="flex justify-center rounded-lg border border-gray-200 bg-white p-3">
+              <HexColorPicker
+                color={variant.color || "#1677ff"}
+                onChange={(value) => handleVariantChange(index, "color", value)}
+              />
+            </div>
+            <HexColorInput
+              color={variant.color || "#1677ff"}
+              onChange={(value) => handleVariantChange(index, "color", value)}
+              prefixed
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium text-gray-700 mb-2">Color value</p>
+          <Input
+            value={variant.color}
+            onChange={(e) => handleVariantChange(index, "color", e.target.value)}
+            placeholder="#111827 or black"
+          />
+        </div>
+      </div>
+    ),
+    [handleVariantChange],
+  );
+
   /* ---------------- FORM SUBMIT ---------------- */
   const handleSubmit = useCallback(
     async (values) => {
@@ -330,11 +438,6 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
         const editingId = product?._id || product?.id;
         const isEdit = !!editingId;
-
-        const stockNum =
-          values.stock !== null && values.stock !== undefined
-            ? Number(values.stock)
-            : undefined;
 
         const payload = {
           name: values.name,
@@ -345,8 +448,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           originalPrice: values.originalPrice,
           images: imageList.map((url, i) => ({ url, isPrimary: i === 0 })),
           variants,
-          stock: stockNum,
-          inStock: values.inStock,
+          // stock and inStock are auto-computed by the model pre-save hook
           metaTitle: values.metaTitle,
           metaDescription: values.metaDescription,
           metaKeywords:
@@ -354,15 +456,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               ? values.keywords.split(",").map((k) => k.trim())
               : values.keywords,
           status: values.status,
+          slug: autoSlug,
         };
 
-        const slugNorm = (values.slug || "").trim().toLowerCase();
-        if (!isEdit) {
-          payload.slug = slugNorm;
-        } else if (slugNorm === initialEditSlugRef.current) {
-          // Omit slug so PUT keeps the existing URL slug
-        } else {
-          payload.slug = slugNorm;
+        if (isEdit && autoSlug === initialEditSlugRef.current) {
+          payload.slug = initialEditSlugRef.current;
         }
 
         const headers = {
@@ -399,7 +497,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         setLoading(false);
       }
     },
-    [imageList, variants, form, onClose, onSave, product],
+    [autoSlug, imageList, initialEditSlugRef, onClose, onSave, product, variants],
   );
 
   const uploadFileList = useMemo(
@@ -434,7 +532,10 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             label="Product Name"
             rules={[{ required: true, message: "Please enter product name" }]}
           >
-            <Input placeholder="Enter product name" />
+            <Input
+              placeholder="Enter product name"
+              onChange={(e) => setNameValue(e.target.value)}
+            />
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-4">
@@ -495,9 +596,17 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           <Form.Item
             name="description"
             label="Description"
-            rules={[{ required: true, message: "Please enter description" }]}
+            rules={[
+              { required: true, message: "Please enter description" },
+              { max: 200, message: "Description must be 200 characters or less" },
+            ]}
           >
-            <TextArea rows={4} placeholder="Enter product description" />
+            <TextArea
+              rows={4}
+              placeholder="Enter product description"
+              maxLength={200}
+              showCount
+            />
           </Form.Item>
 
           <p className="text-xs text-gray-500 -mt-2 mb-0">
@@ -623,11 +732,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           ) : (
             <div className="space-y-4">
               {variants.map((variant, index) => (
-                <div
-                  key={index}
-                  className="p-4 border border-gray-200 rounded-lg bg-gray-50"
-                >
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div key={index}>
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Size
@@ -653,13 +760,32 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Color
                       </label>
-                      <Input
-                        value={variant.color}
-                        onChange={(e) =>
-                          handleVariantChange(index, "color", e.target.value)
-                        }
-                        placeholder="Color"
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          value={variant.color}
+                          onChange={(e) =>
+                            handleVariantChange(index, "color", e.target.value)
+                          }
+                          placeholder="#111827 or black"
+                        />
+                        <Popover
+                          trigger="click"
+                          placement="bottomRight"
+                          content={renderColorPickerContent(variant, index)}
+                        >
+                          <Button
+                            type="default"
+                            className="shrink-0"
+                            style={{
+                              backgroundColor: variant.color || "transparent",
+                              color: variant.color ? "#ffffff" : undefined,
+                              borderColor: variant.color || undefined,
+                            }}
+                          >
+                            Pick
+                          </Button>
+                        </Popover>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -688,18 +814,18 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                         style={{ width: "100%" }}
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        SKU
-                      </label>
-                      <Input
-                        value={variant.sku}
-                        onChange={(e) =>
-                          handleVariantChange(index, "sku", e.target.value)
-                        }
-                        placeholder="SKU"
-                      />
-                    </div>
+                  </div>
+                  {/* Auto-SKU preview */}
+                  <div className="mt-3 grid gap-2 md:grid-cols-[120px_1fr] md:items-center">
+                    <span className="text-xs text-gray-500">Auto SKU</span>
+                    <Input
+                      readOnly
+                      value={
+                        variant.sku && !variant._randSuffix
+                          ? variant.sku
+                          : autoSkuForVariant(variant)
+                      }
+                    />
                   </div>
                   <Button
                     type="text"
@@ -710,6 +836,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                   >
                     Remove
                   </Button>
+                </div>
                 </div>
               ))}
             </div>
@@ -722,46 +849,62 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       label: "Inventory",
       children: (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              name="stock"
-              label="Total Stock"
-              rules={[
-                { required: true, message: "Please enter stock quantity" },
-              ]}
-            >
-              <InputNumber placeholder="0" min={0} style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="inStock"
-              label="In Stock"
-              valuePropName="checked"
-              initialValue={true}
-            >
-              <Switch />
-            </Form.Item>
+          {/* Auto-computed total stock */}
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Total Stock</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Auto-calculated from variant stocks
+                </p>
+              </div>
+              <div className="text-right">
+                <span
+                  className={`text-3xl font-bold ${
+                    computedStock > 0 ? "text-green-600" : "text-red-500"
+                  }`}
+                >
+                  {computedStock}
+                </span>
+                <p
+                  className={`text-xs font-medium mt-0.5 ${
+                    computedStock > 0 ? "text-green-600" : "text-red-500"
+                  }`}
+                >
+                  {computedStock > 0 ? "● In Stock" : "● Out of Stock"}
+                </p>
+              </div>
+            </div>
+            {variants.length === 0 && (
+              <p className="text-xs text-amber-600 mt-3 border-t border-amber-200 pt-2">
+                Add variants in the Variants tab to calculate stock automatically.
+              </p>
+            )}
+            {variants.length > 0 && (
+              <div className="mt-3 border-t border-gray-200 pt-3 space-y-1">
+                {variants.map((v, i) => (
+                  <div key={i} className="flex justify-between text-xs text-gray-600">
+                    <span>
+                      {v.size || "—"} / {v.color || "—"}
+                    </span>
+                    <span className="font-medium">{Number(v.stock) || 0} units</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-
-          <Divider>Low Stock Alert</Divider>
 
           <Form.Item
             name="lowStockThreshold"
-            label="Low Stock Threshold"
+            label="Low Stock Alert Threshold"
             initialValue={10}
+            help="Get notified when stock falls below this number."
           >
             <Space.Compact style={{ width: "100%" }}>
               <InputNumber placeholder="10" min={0} style={{ width: "100%" }} />
               <Button disabled>units</Button>
             </Space.Compact>
           </Form.Item>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> You will receive notifications when stock
-              falls below the threshold.
-            </p>
-          </div>
         </div>
       ),
     },
@@ -774,69 +917,24 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             name="metaTitle"
             label="Meta Title"
             rules={[{ required: true, message: "Please enter meta title" }]}
-            help="Used for SEO (50–60 characters). When creating a product, the URL slug follows meta title until you edit the slug field. When editing, the slug stays the same unless you change it below."
+            help="Slug updates live from meta title. If meta title is empty, product name is used as fallback."
           >
             <Input
               placeholder="Enter meta title"
               maxLength={60}
               showCount
-              onChange={(e) => {
-                const editingId = product?._id || product?.id;
-                if (!editingId) {
-                  form.setFieldsValue({
-                    slug: generateSlug(e.target.value || ""),
-                  });
-                }
-              }}
+              onChange={(e) => setMetaTitleValue(e.target.value)}
             />
           </Form.Item>
 
           <Form.Item
-            name="slug"
             label="URL Slug"
-            validateTrigger={["onSubmit"]}
-            rules={[
-              { required: true, message: "Please enter URL slug" },
-              {
-                pattern: /^[a-z0-9-]+$/,
-                message:
-                  "Slug can only contain lowercase letters, numbers, and hyphens",
-              },
-              {
-                validator: async (_, value) => {
-                  const slug = value?.trim()?.toLowerCase();
-                  if (!slug) return;
-                  const editingId = product?._id || product?.id;
-                  try {
-                    const { data } = await axios.get(
-                      `/api/products/${encodeURIComponent(slug)}`,
-                    );
-                    if (data?.success && data?.data?.product) {
-                      const pid = data.data.product.id || data.data.product._id;
-                      if (editingId && String(pid) === String(editingId)) {
-                        return;
-                      }
-                      return Promise.reject(
-                        new Error("A product with this slug already exists"),
-                      );
-                    }
-                  } catch (e) {
-                    if (e?.response?.status === 404) return;
-                    if (e?.response) return;
-                  }
-                },
-              },
-            ]}
-            help="Auto-filled from meta title; editable if needed"
+            help="Preview only. The backend auto-adjusts duplicates instead of blocking save."
           >
             <Input
-              placeholder="product-name"
-              onChange={(e) => {
-                const value = e.target.value
-                  .toLowerCase()
-                  .replace(/[^a-z0-9-]/g, "-");
-                form.setFieldsValue({ slug: value });
-              }}
+              readOnly
+              value={autoSlug}
+              placeholder="slug-preview"
             />
           </Form.Item>
 
@@ -860,54 +958,6 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           >
             <Input placeholder="keyword1, keyword2, keyword3" />
           </Form.Item>
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      label: "Status",
-      children: (
-        <div className="space-y-4">
-          <Form.Item
-            name="status"
-            label="Product Status"
-            rules={[{ required: true, message: "Please select status" }]}
-          >
-            <Select placeholder="Select status">
-              <Option value="draft">Draft</Option>
-              <Option value="pending">Pending Approval</Option>
-              <Option value="approved">Approved</Option>
-              <Option value="rejected">Rejected</Option>
-            </Select>
-          </Form.Item>
-
-          {form.getFieldValue("status") === "rejected" && (
-            <Form.Item name="rejectionReason" label="Rejection Reason">
-              <TextArea rows={3} placeholder="Enter reason for rejection" />
-            </Form.Item>
-          )}
-
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-900 mb-2">
-              Status Workflow
-            </h4>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>
-                • <strong>Draft:</strong> Product is being created/edited
-              </li>
-              <li>
-                • <strong>Pending:</strong> Awaiting admin approval
-              </li>
-              <li>
-                • <strong>Approved:</strong> Product is live and visible to
-                customers
-              </li>
-              <li>
-                • <strong>Rejected:</strong> Product was rejected and needs
-                revision
-              </li>
-            </ul>
-          </div>
         </div>
       ),
     },
