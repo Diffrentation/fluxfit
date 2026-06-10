@@ -322,17 +322,8 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                       )}
                       title={isCollapsed ? item.label : ""}
                     >
-                      <motion.div
-                        animate={{
-                          marginLeft: isCollapsed ? "auto" : 0,
-                          marginRight: isCollapsed ? "auto" : 0,
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 30,
-                        }}
-                        className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1"
+                      <div
+                        className={`flex items-center gap-2 sm:gap-3 min-w-0 flex-1 ${isCollapsed ? "justify-center" : "justify-start"}`}
                       >
                         <span className="relative inline-flex shrink-0">
                           <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
@@ -360,7 +351,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                             </motion.span>
                           )}
                         </AnimatePresence>
-                      </motion.div>
+                      </div>
                       {/* Tooltip for collapsed state */}
                       {isCollapsed && (
                         <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
