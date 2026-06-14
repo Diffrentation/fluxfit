@@ -511,7 +511,7 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
   ];
 
   // Grid view for mobile and tablet
-  const ProductCard = ({ product }) => {
+  const renderProductCard = (product) => {
     return (
       <Card
         className="h-full hover:shadow-md transition-shadow"
@@ -621,8 +621,8 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
     );
   };
 
-  // Filter controls component
-  const FilterControls = () => (
+  // Filter controls JSX
+  const filterControlsJSX = (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6 shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
@@ -760,7 +760,7 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
       transition={{ delay: 0.1 }}
     >
       {/* Filter Controls */}
-      <FilterControls />
+      {filterControlsJSX}
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -845,7 +845,9 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {products.map((product) => (
-                  <ProductCard key={product.id || Math.random()} product={product} />
+                  <React.Fragment key={product.id || Math.random()}>
+                    {renderProductCard(product)}
+                  </React.Fragment>
                 ))}
               </div>
             )}

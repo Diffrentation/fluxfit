@@ -16,6 +16,7 @@ import {
   message,
   Divider,
   Space,
+  Image,
 } from "antd";
 import {
   IconUpload,
@@ -358,11 +359,12 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
   /* ---------------- VARIANTS ---------------- */
   const handleAddVariant = useCallback(() => {
+    const currentBasePrice = form.getFieldValue("basePrice") || 0;
     setVariants((prev) => [
       ...prev,
-      { size: "", color: "", price: 0, stock: 0, sku: "", _randSuffix: Math.floor(1000 + Math.random() * 9000) },
+      { size: "", color: "", price: currentBasePrice, stock: 0, sku: "", _randSuffix: Math.floor(1000 + Math.random() * 9000) },
     ]);
-  }, []);
+  }, [form]);
 
   const handleVariantChange = useCallback((index, field, value) => {
     setVariants((prev) => {
@@ -712,7 +714,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           <div className="grid grid-cols-2 gap-4">
             <Form.Item
               name="basePrice"
-              label="Price (₹)"
+              label="Base Price (₹)"
               rules={[{ required: true, message: "Please enter price" }]}
             >
               <InputNumber
@@ -724,6 +726,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                   `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                 }
                 parser={(value) => value.replace(/₹\s?|(,*)/g, "")}
+                onKeyPress={(event) => {
+                  if (!/[0-9.]/.test(event.key)) {
+                    event.preventDefault();
+                  }
+                }}
               />
             </Form.Item>
 
@@ -737,6 +744,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                   `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                 }
                 parser={(value) => value.replace(/₹\s?|(,*)/g, "")}
+                onKeyPress={(event) => {
+                  if (!/[0-9.]/.test(event.key)) {
+                    event.preventDefault();
+                  }
+                }}
               />
             </Form.Item>
           </div>
@@ -841,15 +853,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
                   return (
                     <div key={index} className="relative group">
-                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100">
-                        <img
+                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                        <Image
                           src={imageUrl}
                           alt={`Product image ${index + 1}`}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src =
-                              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                          fallback='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E'
+                          preview={{
+                            mask: <div className="text-white text-xs bg-black/50 w-full h-full flex items-center justify-center">Preview</div>
                           }}
                         />
                       </div>
@@ -970,6 +981,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                         min={0}
                         step={0.01}
                         style={{ width: "100%" }}
+                        onKeyPress={(event) => {
+                          if (!/[0-9.]/.test(event.key)) {
+                            event.preventDefault();
+                          }
+                        }}
                       />
                     </div>
                     <div>
@@ -983,6 +999,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                         }
                         min={0}
                         style={{ width: "100%" }}
+                        onKeyPress={(event) => {
+                          if (!/[0-9]/.test(event.key)) {
+                            event.preventDefault();
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -1143,6 +1164,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       width={900}
       destroyOnHidden={true}
       className="product-form-modal"
+      maskClosable={false}
     >
       <Form
         form={form}

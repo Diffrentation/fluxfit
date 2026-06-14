@@ -22,6 +22,15 @@ const GetInTouch = () => {
       text: "fluxfit1@gmail.com",
       link: "mailto:fluxfit1@gmail.com",
       label: "Email us",
+      onClick: (e) => {
+        e.preventDefault();
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          window.location.href = "mailto:fluxfit1@gmail.com";
+        } else {
+          window.open("https://mail.google.com/mail/?view=cm&fs=1&to=fluxfit1@gmail.com", "_blank");
+        }
+      }
     },
     {
       icon: IconPhone,
@@ -65,7 +74,8 @@ const GetInTouch = () => {
                 <motion.a
                   key={index}
                   href={info.link}
-                  target={info.link.startsWith("http") ? "_blank" : "_self"}
+                  onClick={info.onClick}
+                  target={info.link.startsWith("http") || info.onClick ? "_blank" : "_self"}
                   rel={info.link.startsWith("http") ? "noopener noreferrer" : ""}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
@@ -19,6 +20,7 @@ const CouponManagementPage = () => {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("coupons");
 
@@ -28,7 +30,7 @@ const CouponManagementPage = () => {
 
   useEffect(() => {
     filterCoupons();
-  }, [coupons, searchQuery, statusFilter]);
+  }, [coupons, debouncedSearchQuery, statusFilter]);
 
   const loadCoupons = () => {
     // Mock data - in production, fetch from API
@@ -79,9 +81,9 @@ const CouponManagementPage = () => {
   const filterCoupons = () => {
     let filtered = [...coupons];
 
-    if (searchQuery) {
+    if (debouncedSearchQuery) {
       filtered = filtered.filter((coupon) =>
-        coupon.code.toLowerCase().includes(searchQuery.toLowerCase())
+        coupon.code.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       );
     }
 

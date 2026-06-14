@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
 import axios from "axios";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
@@ -28,6 +29,7 @@ const OrderManagementPage = () => {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
@@ -90,8 +92,8 @@ const OrderManagementPage = () => {
   const filteredOrders = useMemo(() => {
     let filtered = [...orders];
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    if (debouncedSearchQuery) {
+      const q = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(
         (order) =>
           order.orderId?.toLowerCase().includes(q) ||
@@ -113,7 +115,7 @@ const OrderManagementPage = () => {
     }
 
     return filtered;
-  }, [orders, searchQuery, statusFilter, dateRange]);
+  }, [orders, debouncedSearchQuery, statusFilter, dateRange]);
 
   const handleStatusChange = useCallback(
     async (orderId, newStatus, note) => {

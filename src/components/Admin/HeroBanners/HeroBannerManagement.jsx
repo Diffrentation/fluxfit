@@ -13,6 +13,7 @@ import {
   message,
   Spin,
   Card,
+  Image,
 } from "antd";
 import {
   IconPlus,
@@ -299,10 +300,12 @@ export default function HeroBannerManagement() {
         cellRenderer: (params) => {
           const imageUrl = params.value;
           return imageUrl ? (
-            <img
+            <Image
               src={imageUrl}
               alt="banner"
-              className="w-[70px] h-[50px] rounded object-cover border border-gray-200"
+              width={70}
+              height={50}
+              className="rounded object-cover border border-gray-200"
             />
           ) : (
             <div className="w-[70px] h-[50px] bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">

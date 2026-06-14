@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
@@ -18,6 +19,7 @@ const UserManagementPage = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   // roleFilter maps to backend role: buyer/admin
   // display values: all/user/admin
   const [roleFilter, setRoleFilter] = useState("all");
@@ -69,7 +71,7 @@ const UserManagementPage = () => {
         params: {
           page: pagination.page,
           limit: pagination.limit,
-          search: searchQuery ? searchQuery : undefined,
+          search: debouncedSearchQuery ? debouncedSearchQuery : undefined,
           role: roleForApi,
           isBlocked: isBlockedForApi,
           sort: "newest",
@@ -94,7 +96,7 @@ const UserManagementPage = () => {
     } finally {
       setLoadingUsers(false);
     }
-  }, [getAuthHeaders, mapApiUserToUi, pagination.page, pagination.limit, searchQuery, roleFilter, statusFilter]);
+  }, [getAuthHeaders, mapApiUserToUi, pagination.page, pagination.limit, debouncedSearchQuery, roleFilter, statusFilter]);
 
   const fetchUserDetails = useCallback(
     async (userId) => {

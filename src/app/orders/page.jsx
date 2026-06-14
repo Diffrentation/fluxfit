@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { motion } from "framer-motion";
@@ -27,6 +28,7 @@ const OrdersPageContent = () => {
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
@@ -82,8 +84,8 @@ const OrdersPageContent = () => {
       filtered = filtered.filter((order) => order.status === statusFilter);
     }
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    if (debouncedSearchQuery) {
+      const q = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(
         (order) =>
           String(order.orderId || "")
@@ -98,7 +100,7 @@ const OrdersPageContent = () => {
     }
 
     setFilteredOrders(filtered);
-  }, [orders, searchQuery, statusFilter]);
+  }, [orders, debouncedSearchQuery, statusFilter]);
 
   const getStatusColor = (status) => {
     const colors = {

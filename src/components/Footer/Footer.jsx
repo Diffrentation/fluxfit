@@ -24,6 +24,15 @@ const Footer = () => {
       icon: IconMail,
       text: "fluxfit1@gmail.com",
       link: "mailto:fluxfit1@gmail.com",
+      onClick: (e) => {
+        e.preventDefault();
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          window.location.href = "mailto:fluxfit1@gmail.com";
+        } else {
+          window.open("https://mail.google.com/mail/?view=cm&fs=1&to=fluxfit1@gmail.com", "_blank");
+        }
+      }
     },
     {
       icon: IconPhone,
@@ -113,6 +122,7 @@ const Footer = () => {
                   <li key={index}>
                     <a
                       href={info.link}
+                      onClick={info.onClick}
                       className="flex items-start gap-2 sm:gap-3 text-gray-400 dark:text-gray-500 hover:text-white dark:hover:text-white transition-colors text-xs sm:text-sm group"
                     >
                       <Icon className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 group-hover:text-white dark:group-hover:text-white" />

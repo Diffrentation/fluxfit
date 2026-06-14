@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import axios from "axios";
 import { Button, Input, message, Modal, Select, Space, Spin, Table } from "antd";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
@@ -18,6 +19,7 @@ export default function AdminReviewsPage() {
   const [limit] = useState(10);
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
   const [selectedReview, setSelectedReview] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editRating, setEditRating] = useState(5);
@@ -35,7 +37,7 @@ export default function AdminReviewsPage() {
           page,
           limit,
           status,
-          search: search || undefined,
+          search: debouncedSearch || undefined,
         },
         headers: getAuthHeaders(),
       });
@@ -52,7 +54,7 @@ export default function AdminReviewsPage() {
     } finally {
       setLoading(false);
     }
-  }, [limit, page, search, status]);
+  }, [limit, page, debouncedSearch, status]);
 
   useEffect(() => {
     fetchReviews();

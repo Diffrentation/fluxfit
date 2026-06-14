@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useMemo, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { Table, Tag, Button, Input, Select, DatePicker, Dropdown, Badge, Card, Pagination, Modal, message } from "antd";
 import { IconSearch, IconDots, IconEye, IconAlertTriangle } from "@tabler/icons-react";
@@ -12,6 +13,7 @@ const { Option } = Select;
 
 const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,12 +46,12 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
   const filteredPayments = useMemo(() => {
     let filtered = [...payments];
 
-    if (searchQuery) {
+    if (debouncedSearchQuery) {
       filtered = filtered.filter(
         (payment) =>
-          payment.transactionId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          payment.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          payment.customer?.toLowerCase().includes(searchQuery.toLowerCase())
+          payment.transactionId?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          payment.orderId?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          payment.customer?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       );
     }
 
@@ -65,7 +67,7 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
     }
 
     return filtered;
-  }, [payments, searchQuery, statusFilter, dateRange]);
+  }, [payments, debouncedSearchQuery, statusFilter, dateRange]);
 
   // Pagination
   const startIndex = (currentPage - 1) * pageSize;

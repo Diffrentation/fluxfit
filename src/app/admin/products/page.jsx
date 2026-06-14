@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
 import ProductList from "@/components/Admin/Products/ProductList";
 import ProductForm from "@/components/Admin/Products/ProductForm";
@@ -28,6 +29,7 @@ const ProductManagementPage = () => {
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
   const [isBulkUploadVisible, setIsBulkUploadVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [uploadKey, setUploadKey] = useState(0);
@@ -78,11 +80,11 @@ const ProductManagementPage = () => {
     let filtered = [...products];
 
     // Search filter
-    if (searchQuery) {
+    if (debouncedSearchQuery) {
       filtered = filtered.filter(
         (product) =>
-          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.id.toString().includes(searchQuery)
+          product.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          product.id.toString().includes(debouncedSearchQuery)
       );
     }
 
@@ -99,7 +101,7 @@ const ProductManagementPage = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [products, searchQuery, statusFilter, categoryFilter]);
+  }, [products, debouncedSearchQuery, statusFilter, categoryFilter]);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);

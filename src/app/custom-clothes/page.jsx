@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Spin } from "antd";
 import CategoryList from "@/components/CustomClothesFlow/CategoryList";
@@ -13,10 +13,10 @@ import { useCustomDesign } from "@/context/CustomDesignContext";
 
 export default function CustomClothesFlowPage() {
   const router = useRouter();
-  const { flowSelection, updateFlowSelection } = useCustomDesign();
-  const [step, setStep] = useState("categories");
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const { updateFlowSelection } = useCustomDesign();
+  const [categoryPath, setCategoryPath] = useState([]);
+
+  const currentCategory = categoryPath[categoryPath.length - 1] || null;
 
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
 
@@ -24,122 +24,56 @@ export default function CustomClothesFlowPage() {
     subcategories,
     loading: subcategoriesLoading,
     error: subcategoriesError,
-  } = useSubcategories(selectedCategory?.id);
+  } = useSubcategories(currentCategory?.id);
+
+  const isShowingProducts = Boolean(currentCategory) && !subcategoriesLoading && !subcategoriesError && subcategories.length === 0;
 
   const productFilters = useMemo(
     () => ({
-      categoryId: selectedCategory?.id || null,
-      subcategoryId: selectedSubcategory?.id || null,
+      categoryId: currentCategory?.id || null,
     }),
-    [selectedCategory?.id, selectedSubcategory?.id]
+    [currentCategory?.id]
   );
-
-  const shouldPrefetchProducts =
-    step === "subcategories" &&
-    Boolean(selectedCategory?.id) &&
-    !subcategoriesLoading &&
-    !subcategoriesError &&
-    subcategories.length === 0;
-
-  const shouldLoadProducts =
-    (step === "products" || shouldPrefetchProducts) &&
-    Boolean(selectedCategory?.id || selectedSubcategory?.id);
 
   const { products, loading: productsLoading, error: productsError } = useProducts(
     productFilters,
-    shouldLoadProducts
+    isShowingProducts
   );
 
-  useEffect(() => {
-    if (!categories.length || selectedCategory || !flowSelection?.category?.id) return;
-    const restoredCategory = categories.find(
-      (cat) => String(cat.id) === String(flowSelection.category.id)
-    );
-    if (!restoredCategory) return;
-
-    setSelectedCategory(restoredCategory);
-    setStep(flowSelection?.subcategory?.id ? "subcategories" : "categories");
-  }, [categories, selectedCategory, flowSelection]);
-
-  useEffect(() => {
-    if (
-      !subcategories.length ||
-      selectedSubcategory ||
-      !flowSelection?.subcategory?.id
-    ) {
-      return;
-    }
-    const restoredSubcategory = subcategories.find(
-      (sub) => String(sub.id) === String(flowSelection.subcategory.id)
-    );
-    if (!restoredSubcategory) return;
-
-    setSelectedSubcategory(restoredSubcategory);
-    setStep("products");
-  }, [subcategories, selectedSubcategory, flowSelection]);
-
-  useEffect(() => {
-    if (step !== "subcategories" || !selectedCategory?.id || subcategoriesLoading) return;
-    if (subcategoriesError) return;
-
-    if (!subcategories.length) {
-      setSelectedSubcategory(null);
-      setStep("products");
-    }
-  }, [
-    step,
-    selectedCategory?.id,
-    subcategories,
-    subcategoriesLoading,
-    subcategoriesError,
-  ]);
-
   const onSelectCategory = (category) => {
-    setSelectedCategory(category);
-    setSelectedSubcategory(null);
-    setStep("subcategories");
-    updateFlowSelection({
-      category: { id: category.id, name: category.name },
-      subcategory: null,
-      product: null,
-    });
-  };
-
-  const onSelectSubcategory = (subcategory) => {
-    setSelectedSubcategory(subcategory);
-    setStep("products");
-    updateFlowSelection({
-      subcategory: { id: subcategory.id, name: subcategory.name },
-      product: null,
-    });
+    setCategoryPath([...categoryPath, { id: category.id, name: category.name }]);
   };
 
   const onSelectProduct = (product) => {
     const id = product?.id || product?._id;
     if (!id) return;
-    updateFlowSelection({
-      product: { id, name: product.name || "" },
-    });
+    
+    // Create flow selection to keep editor context happy
+    let flowState = { product: { id, name: product.name || "" } };
+    if (categoryPath.length > 0) {
+      flowState.category = categoryPath[0];
+    }
+    if (categoryPath.length > 1) {
+      flowState.subcategory = categoryPath[categoryPath.length - 1];
+    }
+    updateFlowSelection(flowState);
+    
     router.push(`/custom-clothes/editor?productId=${encodeURIComponent(String(id))}`);
   };
 
-  const onBackFromSubcategories = () => {
-    setSelectedSubcategory(null);
-    setStep("categories");
-    updateFlowSelection({ subcategory: null, product: null });
-  };
-
-  const onBackFromProducts = () => {
-    if (selectedSubcategory) {
-      setStep("subcategories");
-      updateFlowSelection({ product: null });
-      return;
+  const onBreadcrumbClick = (index) => {
+    if (index === -1) {
+      setCategoryPath([]);
+    } else {
+      setCategoryPath(categoryPath.slice(0, index + 1));
     }
-    setStep("categories");
-    updateFlowSelection({ subcategory: null, product: null });
   };
 
-  const pageLoading = categoriesLoading || (step === "subcategories" && subcategoriesLoading);
+  const onBack = () => {
+    setCategoryPath(categoryPath.slice(0, -1));
+  };
+
+  const pageLoading = categoriesLoading || (currentCategory && subcategoriesLoading && !isShowingProducts);
 
   return (
     <div className="min-h-[70vh] bg-neutral-50 dark:bg-neutral-950">
@@ -152,13 +86,7 @@ export default function CustomClothesFlowPage() {
             Category to design flow
           </h1>
           <p className="mt-3 text-neutral-600 dark:text-neutral-400">
-            Pick a category, choose a subcategory if available, then select a product to open the design editor.
-          </p>
-
-          <p className="mt-4 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            {step === "categories" && "Step 1: Category"}
-            {step === "subcategories" && "Step 2: Subcategory"}
-            {step === "products" && "Step 3: Product"}
+            Pick a category, navigate through subcategories if available, then select a product to open the design editor.
           </p>
 
           <nav
@@ -167,14 +95,10 @@ export default function CustomClothesFlowPage() {
           >
             <button
               type="button"
-              onClick={() => {
-                setStep("categories");
-                setSelectedSubcategory(null);
-                updateFlowSelection({ subcategory: null, product: null });
-              }}
+              onClick={() => onBreadcrumbClick(-1)}
               className={[
                 "rounded-md px-2 py-1",
-                step === "categories"
+                categoryPath.length === 0
                   ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
                   : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800",
               ].join(" ")}
@@ -182,36 +106,26 @@ export default function CustomClothesFlowPage() {
               Categories
             </button>
 
-            {selectedCategory ? (
-              <>
-                <span className="text-neutral-400">/</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep("subcategories");
-                    setSelectedSubcategory(null);
-                    updateFlowSelection({ subcategory: null, product: null });
-                  }}
-                  className={[
-                    "rounded-md px-2 py-1",
-                    step === "subcategories"
-                      ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                      : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800",
-                  ].join(" ")}
-                >
-                  {selectedCategory.name}
-                </button>
-              </>
-            ) : null}
-
-            {step === "products" ? (
-              <>
-                <span className="text-neutral-400">/</span>
-                <span className="rounded-md bg-neutral-900 px-2 py-1 text-white dark:bg-white dark:text-neutral-900">
-                  {selectedSubcategory?.name || "Products"}
+            {categoryPath.map((cat, index) => {
+              const isLast = index === categoryPath.length - 1;
+              return (
+                <span key={cat.id} className="flex items-center gap-2">
+                  <span className="text-neutral-400">/</span>
+                  <button
+                    type="button"
+                    onClick={() => onBreadcrumbClick(index)}
+                    className={[
+                      "rounded-md px-2 py-1",
+                      isLast
+                        ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                        : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800",
+                    ].join(" ")}
+                  >
+                    {cat.name}
+                  </button>
                 </span>
-              </>
-            ) : null}
+              );
+            })}
           </nav>
         </header>
 
@@ -228,31 +142,31 @@ export default function CustomClothesFlowPage() {
           </div>
         ) : null}
 
-        {step === "categories" && !categoriesLoading ? (
+        {categoryPath.length === 0 && !categoriesLoading ? (
           <CategoryList
             categories={categories}
-            activeCategoryId={selectedCategory?.id}
+            activeCategoryId={null}
             onSelect={onSelectCategory}
           />
         ) : null}
 
-        {step === "subcategories" && !subcategoriesLoading ? (
+        {categoryPath.length > 0 && !subcategoriesLoading && !isShowingProducts ? (
           subcategoriesError ? (
             <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
               {subcategoriesError}
             </div>
           ) : subcategories.length > 0 ? (
             <SubcategoryList
-              categoryName={selectedCategory?.name || "Selected category"}
+              categoryName={currentCategory?.name || "Selected category"}
               subcategories={subcategories}
-              activeSubcategoryId={selectedSubcategory?.id}
-              onBack={onBackFromSubcategories}
-              onSelect={onSelectSubcategory}
+              activeSubcategoryId={null}
+              onBack={onBack}
+              onSelect={onSelectCategory}
             />
           ) : null
         ) : null}
 
-        {step === "products" ? (
+        {isShowingProducts ? (
           productsError ? (
             <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
               {productsError}
@@ -264,13 +178,9 @@ export default function CustomClothesFlowPage() {
             </div>
           ) : (
             <ProductGrid
-              heading={
-                selectedSubcategory?.name
-                  ? `Products in ${selectedSubcategory.name}`
-                  : `Products in ${selectedCategory?.name || "category"}`
-              }
+              heading={`Products in ${currentCategory?.name || "category"}`}
               products={products}
-              onBack={onBackFromProducts}
+              onBack={onBack}
               onSelect={onSelectProduct}
             />
           )

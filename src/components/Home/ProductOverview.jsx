@@ -18,6 +18,7 @@ import { Button, Spin } from "antd";
 import { useRouter } from "next/navigation";
 import { usePublicProducts } from "@/hooks/usePublicProducts";
 import { getProductDetailPath } from "@/lib/publicProductsApi";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const sortOptions = [
   { value: "default", label: "Default" },
@@ -41,16 +42,6 @@ const colors = ["Black", "Grey", "Green", "Red", "Blue", "White"];
 const tags = ["Fashion", "Lifestyle", "Denim", "Streetstyle", "Crafts"];
 // CategoryNav pulls categories from the backend; no hardcoded category list needed.
 
-/** Debounce search input to limit GET /api/products calls while typing */
-function useDebouncedValue(value, delayMs = 400) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(t);
-  }, [value, delayMs]);
-  return debounced;
-}
-
 function ProductOverview() {
   const router = useRouter();
   // backend category `slug` or null for "All Products"
@@ -62,7 +53,7 @@ function ProductOverview() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const debouncedSearch = useDebouncedValue(searchQuery.trim(), 400);
+  const debouncedSearch = useDebounce(searchQuery.trim(), 400);
 
   const { products, pagination, loading } = usePublicProducts({
     page: 1,

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useMemo, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { Table, Tag, Button, Modal, Form, Input, Select, message, Card, Pagination } from "antd";
 import { IconCheck, IconX, IconEye, IconSearch } from "@tabler/icons-react";
@@ -19,6 +20,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -72,12 +74,12 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
   const filteredRefunds = useMemo(() => {
     let filtered = [...refunds];
 
-    if (searchQuery) {
+    if (debouncedSearchQuery) {
       filtered = filtered.filter(
         (refund) =>
-          refund.id?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
-          refund.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          refund.customer?.toLowerCase().includes(searchQuery.toLowerCase())
+          refund.id?.toString().toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          refund.orderId?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          refund.customer?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       );
     }
 
@@ -86,7 +88,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
     }
 
     return filtered;
-  }, [refunds, searchQuery, statusFilter]);
+  }, [refunds, debouncedSearchQuery, statusFilter]);
 
   // Pagination
   const startIndex = (currentPage - 1) * pageSize;
