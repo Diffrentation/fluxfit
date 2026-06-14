@@ -1,57 +1,89 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { IconArrowLeft } from "@tabler/icons-react";
+
+const SUB_COLORS = [
+  "from-sky-400 to-blue-500",
+  "from-violet-400 to-purple-500",
+  "from-emerald-400 to-teal-500",
+  "from-rose-400 to-pink-500",
+  "from-amber-400 to-orange-500",
+  "from-cyan-400 to-sky-500",
+  "from-fuchsia-400 to-purple-500",
+  "from-lime-400 to-green-500",
+];
+
 export default function SubcategoryList({
   categoryName,
   subcategories,
-  activeSubcategoryId,
   onBack,
   onSelect,
 }) {
   return (
     <section>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
-          {categoryName} subcategories
-        </h2>
-        <button
+      <div className="flex items-center gap-3 mb-6">
+        <motion.button
           type="button"
           onClick={onBack}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.96 }}
+          className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
         >
-          Back to categories
-        </button>
+          <IconArrowLeft size={16} />
+          Back
+        </motion.button>
+        <div>
+          <h2 className="font-bold text-gray-900 dark:text-white text-lg">
+            {categoryName}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Select a subcategory
+          </p>
+        </div>
       </div>
 
-      <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {subcategories.map((sub) => {
-          const isActive = String(activeSubcategoryId || "") === String(sub.id || "");
+      <motion.ul
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.06 } },
+        }}
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+      >
+        {subcategories.map((sub, idx) => {
+          const gradient = SUB_COLORS[idx % SUB_COLORS.length];
           return (
-            <li key={String(sub.id)}>
-              <button
+            <motion.li
+              key={String(sub.id)}
+              variants={{
+                hidden: { opacity: 0, scale: 0.95 },
+                visible: { opacity: 1, scale: 1 },
+              }}
+            >
+              <motion.button
                 type="button"
                 onClick={() => onSelect(sub)}
-                className={[
-                  "w-full rounded-xl border px-4 py-4 text-left transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
-                  isActive
-                    ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                    : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-600 dark:hover:bg-neutral-800/80",
-                ].join(" ")}
+                whileHover={{ scale: 1.04, y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                className={`group relative w-full overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-5 min-h-[100px] flex flex-col justify-between text-left hover:shadow-xl dark:hover:shadow-black/40 transition-shadow duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
               >
-                <p className="text-base font-semibold">{sub.name}</p>
-                <p
-                  className={[
-                    "mt-1 text-sm",
-                    isActive ? "opacity-90" : "text-neutral-500 dark:text-neutral-400",
-                  ].join(" ")}
-                >
-                  View products
-                </p>
-              </button>
-            </li>
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-white blur-2xl" />
+                <div className="text-2xl mb-2">📦</div>
+                <div>
+                  <p className="font-bold text-white text-sm leading-tight drop-shadow-sm">
+                    {sub.name}
+                  </p>
+                  <p className="text-white/70 text-xs mt-0.5 font-medium">
+                    View products →
+                  </p>
+                </div>
+              </motion.button>
+            </motion.li>
           );
         })}
-      </ul>
+      </motion.ul>
     </section>
   );
 }

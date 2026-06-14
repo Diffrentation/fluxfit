@@ -25,6 +25,7 @@ import {
   IconMessageCircle,
   IconPalette,
   IconPhoto,
+  IconShirt,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -91,6 +92,12 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       label: "Custom clothes prints",
       icon: IconPalette,
       path: "/admin/custom-clothes-designs",
+    },
+    {
+      id: "custom-orders",
+      label: "Custom Orders",
+      icon: IconShirt,
+      path: "/admin/custom-orders",
     },
     {
       id: "hero-banners",
