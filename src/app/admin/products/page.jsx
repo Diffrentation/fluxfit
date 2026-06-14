@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import ProductList from "@/components/Admin/Products/ProductList";
 import ProductForm from "@/components/Admin/Products/ProductForm";
+import ProductDetailsModal from "@/components/Admin/Products/ProductDetailsModal";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import {
@@ -24,6 +25,7 @@ const ProductManagementPage = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
   const [isBulkUploadVisible, setIsBulkUploadVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -345,7 +347,7 @@ const ProductManagementPage = () => {
               onDelete={handleDeleteProduct}
               onView={(product) => {
                 setSelectedProduct(product);
-                setIsFormVisible(true);
+                setIsDetailsVisible(true);
               }}
             />
           </div>
@@ -361,6 +363,16 @@ const ProductManagementPage = () => {
           setSelectedProduct(null);
         }}
         onSave={handleSaveProduct}
+      />
+
+      {/* Product Details Modal */}
+      <ProductDetailsModal
+        visible={isDetailsVisible}
+        product={selectedProduct}
+        onClose={() => {
+          setIsDetailsVisible(false);
+          setSelectedProduct(null);
+        }}
       />
 
       {/* Bulk Upload Modal */}

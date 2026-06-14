@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -44,6 +44,7 @@ const formatPrice = (price) => {
 function ProductDetails() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -121,8 +122,16 @@ function ProductDetails() {
           const productData = data.data.product;
           const normalized = normalizeProductDetailForPage(productData);
           setProduct(normalized);
-          setSelectedSize(normalized.sizes?.[0] || "One Size");
-          setSelectedColor(normalized.colors?.[0] || "");
+          
+          const paramSize = searchParams.get('size');
+          const paramColor = searchParams.get('color');
+          const paramQty = searchParams.get('qty');
+
+          setSelectedSize(paramSize || normalized.sizes?.[0] || "One Size");
+          setSelectedColor(paramColor || normalized.colors?.[0] || "");
+          if (paramQty) {
+            setQuantity(parseInt(paramQty, 10) || 1);
+          }
 
           const cat = productData.category;
           const categoryId =
@@ -343,12 +352,40 @@ function ProductDetails() {
     [product, selectedVariant]
   );
 
+  const handleSizeSelect = (size) => {
+    setSelectedSize(size);
+    const variant = findMatchingProductVariant(product?.variants, size, selectedColor);
+    const tempPricing = getVariantAwarePricing(product, variant);
+    if (!tempPricing.inStock) {
+      message.warning(`The selected variant (${size}, ${selectedColor || "default"}) is out of stock.`);
+    }
+  };
+
+  const handleColorSelect = (color) => {
+    setSelectedColor(color);
+    const variant = findMatchingProductVariant(product?.variants, selectedSize, color);
+    const tempPricing = getVariantAwarePricing(product, variant);
+    if (!tempPricing.inStock) {
+      message.warning(`The selected variant (${selectedSize || "One Size"}, ${color}) is out of stock.`);
+    }
+  };
+
   const handleQuickView = (p) => {
     router.push(getProductDetailPath(p));
   };
 
   const handleAddToCart = () => {
     if (!product) return;
+    
+    if (!displayPricing.inStock) {
+      if (!product.inStock || product.stock === 0) {
+        message.error(`Sorry, ${product.name} is completely out of stock.`);
+      } else {
+        message.error(`Sorry, the selected variant (${selectedSize}, ${selectedColor}) is out of stock.`);
+      }
+      return;
+    }
+
     addToCart(
       {
         id: product.id,
@@ -693,7 +730,7 @@ function ProductDetails() {
                         animate={{ opacity: 1, scale: 1 }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedSize(size)}
+                        onClick={() => handleSizeSelect(size)}
                         className={`px-4 py-2 border-2 rounded font-medium text-sm transition-all ${
                           selectedSize === size
                             ? "border-blue-500 bg-blue-50 text-blue-700"
@@ -724,7 +761,7 @@ function ProductDetails() {
                         animate={{ opacity: 1, scale: 1 }}
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => setSelectedColor(color)}
+                        onClick={() => handleColorSelect(color)}
                         className={`w-10 h-10 rounded-full ${
                           colorMap[color] || "bg-gray-200"
                         } border-2 transition-all ${
@@ -849,20 +886,20 @@ function ProductDetails() {
                   <Button
                     size="large"
                     onClick={handleAddToCart}
-                    className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-600 hover:bg-blue-50 px-8"
+                    className={`flex items-center justify-center gap-2 border-2 px-8 ${!displayPricing.inStock ? "border-gray-300 text-gray-400 bg-gray-50" : "border-blue-500 text-blue-600 hover:bg-blue-50"}`}
                     disabled={!displayPricing.inStock}
-                    icon={<IconShoppingCart className="w-5 h-5" />}
+                    icon={!displayPricing.inStock ? null : <IconShoppingCart className="w-5 h-5" />}
                   >
-                    ADD TO CART
+                    {!displayPricing.inStock ? "OUT OF STOCK" : "ADD TO CART"}
                   </Button>
                   <Button
-                    type="primary"
+                    type={!displayPricing.inStock ? "default" : "primary"}
                     size="large"
                     onClick={handleAddToCart}
                     className="px-8"
                     disabled={!displayPricing.inStock}
                   >
-                    BUY NOW
+                    {!displayPricing.inStock ? "OUT OF STOCK" : "BUY NOW"}
                   </Button>
                   <AddCustomDesignButton
                     onClick={handleAddCustomDesign}

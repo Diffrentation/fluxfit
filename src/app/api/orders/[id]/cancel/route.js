@@ -125,20 +125,36 @@ export async function POST(request, { params }) {
         if (item.variant.size || item.variant.color) {
           const variant = product.variants.find(
             (v) =>
-              v.size === (item.variant.size || null) &&
-              v.color === (item.variant.color || null)
+              (v.size || null) === (item.variant.size || null) &&
+              (v.color || null) === (item.variant.color || null)
           );
 
           if (variant) {
             variant.stock += item.quantity;
             variant.isActive = true;
           }
+
+          // Re-calculate main product stock to bypass save hooks safely
+          product.stock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+          product.inStock = product.stock > 0 || product.variants.some(v => v.stock > 0 && v.isActive !== false);
+
         } else {
           product.stock += item.quantity;
           product.inStock = product.stock > 0;
         }
 
-        await product.save();
+        // Use updateOne to bypass save hooks safely
+        const ProductModel = mongoose.models.Product || (await import("@/models/product.model")).default;
+        await ProductModel.updateOne(
+          { _id: product._id },
+          { 
+            $set: { 
+              stock: product.stock, 
+              variants: product.variants, 
+              inStock: product.inStock 
+            } 
+          }
+        );
       }
     }
 

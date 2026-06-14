@@ -96,6 +96,14 @@ const CartPage = () => {
     message.success("Coupon removed");
   };
 
+  const handleNavigateToProduct = (item) => {
+    const queryParams = new URLSearchParams();
+    if (item.size) queryParams.set('size', item.size);
+    if (item.color) queryParams.set('color', item.color);
+    if (item.quantity) queryParams.set('qty', item.quantity);
+    router.push(`/product-details/${item.id}?${queryParams.toString()}`);
+  };
+
   const handleMoveToCart = (item) => {
     addToCart(productDatabase[item.id], {
       size: item.size,
@@ -213,12 +221,15 @@ const CartPage = () => {
                     >
                       <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                         {/* Product Image */}
-                        <div className="relative w-full sm:w-40 md:w-48 h-48 sm:h-40 md:h-48 shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                        <div 
+                          className="relative w-full sm:w-40 md:w-48 h-48 sm:h-40 md:h-48 shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden cursor-pointer"
+                          onClick={() => handleNavigateToProduct(item)}
+                        >
                           <Image
                             src={item.image || product?.images?.[0] || ""}
                             alt={item.name}
                             fill
-                            className="object-cover"
+                            className="object-cover hover:scale-105 transition-transform duration-300"
                           />
                         </div>
 
@@ -226,7 +237,10 @@ const CartPage = () => {
                         <div className="flex-1 flex flex-col">
                           {/* Product Name and Description */}
                           <div className="mb-2 sm:mb-3">
-                            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                            <h2 
+                              className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              onClick={() => handleNavigateToProduct(item)}
+                            >
                               {item.name}
                             </h2>
                             {product?.description && (
@@ -371,12 +385,10 @@ const CartPage = () => {
                                 Save for later
                               </button>
                               <button
-                                onClick={() =>
-                                  router.push(`/product-details/${item.id}`)
-                                }
+                                onClick={() => handleNavigateToProduct(item)}
                                 className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                               >
-                                See more like this
+                                View product details
                               </button>
                               <button
                                 onClick={() => handleShare(item)}

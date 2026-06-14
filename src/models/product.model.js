@@ -429,7 +429,7 @@ productSchema.pre("save", function (next) {
     Array.isArray(this.variants) && this.variants.some((v) => v.stock > 0 && v.isActive !== false);
   this.inStock = this.stock > 0 || hasVariantStock;
 
-  next();
+  if (typeof next === 'function') next();
 });
 
 const Product = mongoose.models.Product || mongoose.model("Product", productSchema);

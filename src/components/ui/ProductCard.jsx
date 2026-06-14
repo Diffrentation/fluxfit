@@ -17,12 +17,36 @@ const ProductCard = ({ product, onQuickView }) => {
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
+    
+    if (product.inStock === false || product.stock === 0) {
+      message.error(`${product.name} is currently out of stock`);
+      return;
+    }
+
     setIsAddingToCart(true);
 
-    // Add to cart with default options
+    let selectedSize = product.sizes?.[0] || "One Size";
+    let selectedColor = product.color || product.colors?.[0] || "default";
+
+    if (product.variants && product.variants.length > 0) {
+      const defaultVariant = product.variants.find(v => v.size === selectedSize && v.color === selectedColor);
+      if (!defaultVariant || defaultVariant.stock === 0 || defaultVariant.isActive === false) {
+        const availableVariant = product.variants.find(v => v.stock > 0 && v.isActive !== false);
+        if (availableVariant) {
+          selectedSize = availableVariant.size || selectedSize;
+          selectedColor = availableVariant.color || selectedColor;
+        } else {
+          message.error(`${product.name} is completely out of stock`);
+          setIsAddingToCart(false);
+          return;
+        }
+      }
+    }
+
+    // Add to cart with auto-selected available options
     addToCart(product, {
-      size: product.sizes?.[0] || "One Size",
-      color: product.color || product.colors?.[0] || "default",
+      size: selectedSize,
+      color: selectedColor,
       quantity: 1,
     });
 
@@ -62,8 +86,15 @@ const ProductCard = ({ product, onQuickView }) => {
             src={product.image}
             alt={product.name}
             fill
-            className="object-cover"
+            className={`object-cover ${product.inStock === false || product.stock === 0 ? "opacity-60 grayscale" : ""}`}
           />
+          {(product.inStock === false || product.stock === 0) && (
+            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none">
+              <div className="bg-red-500 text-white px-4 py-2 rounded-sm font-bold tracking-wider transform -rotate-12 shadow-lg">
+                OUT OF STOCK
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* Wishlist Icon */}
@@ -131,14 +162,15 @@ const ProductCard = ({ product, onQuickView }) => {
                 Quick View
               </Button>
               <Button
-                type="primary"
+                type={product.inStock === false || product.stock === 0 ? "default" : "primary"}
                 onClick={handleAddToCart}
                 className="flex-1 flex items-center justify-center gap-2"
                 size="large"
                 loading={isAddingToCart}
-                icon={<IconShoppingCart className="w-4 h-4" />}
+                disabled={product.inStock === false || product.stock === 0}
+                icon={product.inStock === false || product.stock === 0 ? null : <IconShoppingCart className="w-4 h-4" />}
               >
-                {isAddingToCart ? "Adding..." : "Add to Cart"}
+                {product.inStock === false || product.stock === 0 ? "Out of Stock" : (isAddingToCart ? "Adding..." : "Add to Cart")}
               </Button>
             </motion.div>
           ) : (

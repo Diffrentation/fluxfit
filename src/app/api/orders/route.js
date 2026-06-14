@@ -600,6 +600,10 @@ export async function POST(request) {
       if (variant) {
         variant.stock -= cartItem.quantity;
         variant.isActive = variant.stock > 0;
+        
+        // Also update main product stock since we bypass save hooks
+        product.stock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+        product.inStock = product.stock > 0 || product.variants.some(v => v.stock > 0 && v.isActive !== false);
       } else {
         product.stock -= cartItem.quantity;
         product.inStock = product.stock > 0;
@@ -700,9 +704,19 @@ export async function POST(request) {
     const newOrder = new Order(orderData);
     await newOrder.save();
 
-    // Update product stock
+    // Update product stock using updateOne to bypass save hooks
+    const Product = (await import("@/models/product.model")).default;
     for (const product of productUpdates) {
-      await product.save();
+      await Product.updateOne(
+        { _id: product._id },
+        { 
+          $set: { 
+            stock: product.stock, 
+            variants: product.variants, 
+            inStock: product.inStock 
+          } 
+        }
+      );
     }
 
     // Clear cart if requested
