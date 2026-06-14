@@ -23,9 +23,9 @@ const AuthContext = createContext(null);
 
 /** Cross-tab logout signal (storage event fires in other tabs) */
 export const AUTH_LOGOUT_STORAGE_KEY = "__fluxfit_auth_logout";
-const REFRESH_BUFFER_MS = 60 * 1000;
-const REFRESH_RETRY_MS = 30 * 1000;
-const ACTIVITY_REFRESH_THROTTLE_MS = 2 * 60 * 1000;
+const REFRESH_BUFFER_MS = 60 * 1000;       // Refresh 1 minute before expiry
+const REFRESH_RETRY_MS = 30 * 1000;        // Retry after 30s on transient failure
+const ACTIVITY_REFRESH_THROTTLE_MS = 10 * 60 * 1000; // Max 1 activity-refresh per 10 min
 
 function isHardAuthFailure(error) {
   const status = error?.response?.status;
@@ -164,9 +164,18 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const t = localStorage.getItem("token");
     const u = localStorage.getItem("user");
+
+    // Check if stored token is already expired before restoring it
+    const expMs = getJwtExpiryMs(t);
+    const isExpired = expMs ? expMs < Date.now() : false;
+
     startTransition(() => {
-      if (t && t !== "null" && t !== "undefined") {
+      // Only restore token if it is NOT already expired
+      if (t && t !== "null" && t !== "undefined" && !isExpired) {
         setAccessToken(t);
+      } else if (isExpired) {
+        // Token expired — clear stale localStorage, refresh cookie will re-auth
+        localStorage.removeItem("token");
       }
       if (u) {
         try {
@@ -191,10 +200,26 @@ export function AuthProvider({ children }) {
   }, [hydrated, isAuthenticated, accessToken, user]);
 
   useEffect(() => {
-    if (!hydrated || !accessToken) {
+    if (!hydrated) return;
+
+    // If we have user state but no accessToken (expired token cleared on hydration),
+    // immediately try to refresh using the httpOnly refresh cookie.
+    if (!accessToken && user) {
+      refreshRef.current().catch((error) => {
+        if (isHardAuthFailure(error)) {
+          // Refresh cookie also expired — full logout
+          setUserState(null);
+          localStorage.removeItem("user");
+        }
+      });
+      return;
+    }
+
+    if (!accessToken) {
       clearExpiryTimer();
       return;
     }
+
     const expMs = getJwtExpiryMs(accessToken);
     if (!expMs) return;
     const delay = Math.max(0, expMs - Date.now() - REFRESH_BUFFER_MS);
@@ -213,7 +238,7 @@ export function AuthProvider({ children }) {
       }
     }, delay);
     return () => clearExpiryTimer();
-  }, [hydrated, accessToken, clearExpiryTimer, scheduleQuickRefreshRetry]);
+  }, [hydrated, accessToken, user, clearExpiryTimer, scheduleQuickRefreshRetry]);
 
   useEffect(() => {
     if (!hydrated || !accessToken) return;
@@ -222,6 +247,11 @@ export function AuthProvider({ children }) {
       const now = Date.now();
       if (now - activityRefreshRef.current < ACTIVITY_REFRESH_THROTTLE_MS) {
         return;
+      }
+      // Only refresh if token is close to expiry (within 5 minutes)
+      const expMs = getJwtExpiryMs(accessToken);
+      if (expMs && expMs - Date.now() > 5 * 60 * 1000) {
+        return; // Plenty of time left, no need to refresh yet
       }
       activityRefreshRef.current = now;
       refreshRef
@@ -234,7 +264,8 @@ export function AuthProvider({ children }) {
         });
     };
 
-    const events = ["click", "keydown", "mousemove", "scroll", "touchstart"];
+    // Only meaningful user actions — removed mousemove/scroll (too noisy)
+    const events = ["click", "keydown", "touchstart"];
     events.forEach((eventName) =>
       window.addEventListener(eventName, maybeRefreshOnActivity, { passive: true })
     );

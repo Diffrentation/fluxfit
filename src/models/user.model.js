@@ -280,8 +280,7 @@ userSchema.statics.findByCredentials = async function (
 
   // Update last login
   user.lastLogin = new Date();
-  await user.save({ validateBeforeSave: false });
-
+  // Note: caller (login route) will call user.save() after generateTokenPair
   return user;
 };
 

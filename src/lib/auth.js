@@ -31,7 +31,7 @@ export async function authenticateUser(request) {
     // Extract token
     const token = authHeader.substring(7);
 
-    // Verify token
+    // Verify token signature and expiry (stateless — no DB lookup needed for this)
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "your-secret-key-change-in-production"
@@ -54,10 +54,10 @@ export async function authenticateUser(request) {
     // Connect to database
     await connectDB();
 
-    // Find user by ID and verify token matches
+    // Find user by ID only — JWT signature already proves authenticity.
+    // We no longer match token field in DB to avoid race conditions during refresh rotation.
     const user = await User.findOne({
       _id: decoded.userId,
-      token: token,
       isdeleted: false,
     });
 
@@ -66,7 +66,7 @@ export async function authenticateUser(request) {
         error: NextResponse.json(
           {
             success: false,
-            message: "Invalid or expired token. Please login again.",
+            message: "User not found. Please login again.",
           },
           { status: 401 }
         ),
@@ -169,11 +169,10 @@ export async function authenticateUserWithPassword(request) {
     // Connect to database
     await connectDB();
 
-    // Find user by ID and verify token matches
+    // Find user by ID only — JWT signature already proves authenticity.
     // Need to select password field for comparison
     const user = await User.findOne({
       _id: decoded.userId,
-      token: token,
       isdeleted: false,
     }).select("+password");
 
