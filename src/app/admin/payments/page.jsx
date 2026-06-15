@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import PaymentHistory from "@/components/Admin/Payments/PaymentHistory";
 import RefundManagement from "@/components/Admin/Payments/RefundManagement";
@@ -248,8 +247,6 @@ const PaymentManagementPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
-        <AdminSidebar activeItem="payments" />
-
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
             <motion.div

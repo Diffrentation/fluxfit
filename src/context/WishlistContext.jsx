@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { blockAdminAction } from "@/lib/adminBlocker";
 
 const WishlistContext = createContext();
 
@@ -51,6 +52,7 @@ export const WishlistProvider = ({ children }) => {
   }, [savedForLaterItems]);
 
   const addToWishlist = (product) => {
+    if (blockAdminAction()) return false;
     setWishlistItems((prevItems) => {
       // Check if item already exists
       const existingItem = prevItems.find((item) => item.id === product.id);
@@ -70,9 +72,11 @@ export const WishlistProvider = ({ children }) => {
         },
       ];
     });
+    return true;
   };
 
   const removeFromWishlist = (itemId) => {
+    if (blockAdminAction()) return;
     setWishlistItems((prevItems) =>
       prevItems.filter((item) => item.id !== itemId)
     );
@@ -83,6 +87,7 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const addToSavedForLater = (item) => {
+    if (blockAdminAction()) return false;
     setSavedForLaterItems((prevItems) => {
       // Check if item already exists
       const existingItem = prevItems.find(
@@ -94,9 +99,11 @@ export const WishlistProvider = ({ children }) => {
       }
       return [...prevItems, { ...item, savedAt: new Date().toISOString() }];
     });
+    return true;
   };
 
   const removeFromSavedForLater = (itemId, size, color) => {
+    if (blockAdminAction()) return;
     setSavedForLaterItems((prevItems) =>
       prevItems.filter(
         (item) =>

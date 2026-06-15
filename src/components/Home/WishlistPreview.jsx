@@ -41,11 +41,12 @@ function WishlistPreview() {
   }
 
   const handleAddToCart = (product) => {
-    addToCart(product, {
+    const success = addToCart(product, {
       size: product.sizes?.[0] || "One Size",
       color: product.color || product.colors?.[0] || "default",
       quantity: 1,
     });
+    if (success === false) return;
     message.success(`${product.name} added to cart!`);
   };
 

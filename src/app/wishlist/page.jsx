@@ -67,24 +67,28 @@ const WishlistPageContent = () => {
   };
 
   const handleAddToCart = (product, options = {}) => {
-    addToCart(product, {
+    const success = addToCart(product, {
       size: options.size || product.sizes?.[0] || "One Size",
       color: options.color || product.color || product.colors?.[0] || "default",
       quantity: options.quantity || 1,
     });
-    message.success(`${product.name} added to cart!`);
+    if (success !== false) {
+      message.success(`${product.name} added to cart!`);
+    }
   };
 
   const handleMoveToCart = (item) => {
     const product = productDatabase[item.id];
     if (product) {
-      addToCart(product, {
+      const success = addToCart(product, {
         size: item.size,
         color: item.color,
         quantity: item.quantity,
       });
-      removeFromSavedForLater(item.id, item.size, item.color);
-      message.success("Item moved to cart");
+      if (success !== false) {
+        removeFromSavedForLater(item.id, item.size, item.color);
+        message.success("Item moved to cart");
+      }
     }
   };
 

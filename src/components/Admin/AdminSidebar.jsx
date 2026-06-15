@@ -26,16 +26,40 @@ import {
   IconPalette,
   IconPhoto,
   IconShirt,
+  IconPin,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
 
 const AdminSidebar = ({ activeItem = "dashboard" }) => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingContacts, setPendingContacts] = useState(0);
   const { isCollapsed, setIsCollapsed } = useSidebar();
+  const { logout } = useAuth();
   const sidebarRef = useRef(null);
+  const [isPinned, setIsPinned] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const pinned = localStorage.getItem("adminSidebarPinned") === "true";
+      setIsPinned(pinned);
+      if (pinned && window.innerWidth >= 1024) {
+        setIsCollapsed(false);
+      }
+    }
+  }, [setIsCollapsed]);
+
+  const togglePin = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newPinned = !isPinned;
+    setIsPinned(newPinned);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("adminSidebarPinned", newPinned);
+    }
+  };
 
   const fetchPendingContacts = useCallback(async () => {
     if (typeof window === "undefined") return;
@@ -186,7 +210,8 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
         sidebarRef.current &&
         !sidebarRef.current.contains(event.target) &&
         !event.target.closest("[data-sidebar-toggle]") &&
-        window.innerWidth >= 1024 // Only for desktop
+        window.innerWidth >= 1024 && // Only for desktop
+        !isPinned
       ) {
         setIsCollapsed(true);
       }
@@ -197,7 +222,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [setIsCollapsed]);
+  }, [setIsCollapsed, isPinned]);
 
   // Handle sidebar hover to expand (only if collapsed)
   const handleSidebarEnter = () => {
@@ -208,7 +233,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
 
   // Handle sidebar hover out to collapse
   const handleSidebarLeave = () => {
-    if (window.innerWidth >= 1024) {
+    if (window.innerWidth >= 1024 && !isPinned) {
       setIsCollapsed(true);
     }
   };
@@ -272,7 +297,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
             >
               <Link
                 href="/admin"
-                className="flex items-center gap-2 sm:gap-3 w-full"
+                className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
                 onClick={handleMenuClose}
               >
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 dark:bg-blue-500 rounded-lg flex items-center justify-center shrink-0">
@@ -317,12 +342,13 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                   ) : null;
 
                 return (
-                  <li key={item.id}>
+                  <li key={item.id} className="relative">
                     <Link
                       href={item.path}
                       onClick={handleMenuClose}
                       className={cn(
                         "flex items-center px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-colors text-sm sm:text-base relative group w-full",
+                        item.id === "dashboard" && !isCollapsed ? "pr-10" : "", // Add padding for pin icon
                         active
                           ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
                           : "text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white"
@@ -366,6 +392,28 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                         </div>
                       )}
                     </Link>
+
+                    {/* Pin button for Dashboard item */}
+                    <AnimatePresence>
+                      {item.id === "dashboard" && !isCollapsed && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.15 }}
+                          onClick={togglePin}
+                          className={cn(
+                            "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors z-10",
+                            isPinned 
+                              ? "bg-blue-600/20 text-blue-500 hover:bg-blue-600/30" 
+                              : "text-gray-400 hover:text-white hover:bg-gray-800"
+                          )}
+                          title={isPinned ? "Unpin sidebar" : "Pin sidebar"}
+                        >
+                          <IconPin className={cn("w-4 h-4 sm:w-5 sm:h-5", isPinned && "fill-current")} stroke={isPinned ? 2 : 1.5} />
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
                   </li>
                 );
               })}
@@ -378,6 +426,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
               <div className="p-2 sm:p-3 flex justify-center">
                 <button
                   type="button"
+                  onClick={logout}
                   title="Log out"
                   className="flex items-center justify-center p-2 sm:p-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white w-full transition-colors"
                 >
@@ -388,6 +437,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
               <div className="p-3 sm:p-4">
                 <button
                   type="button"
+                  onClick={logout}
                   className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base"
                 >
                   <IconLogout className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
@@ -475,7 +525,10 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
 
                 {/* Logout */}
                 <div className="p-3 sm:p-4 border-t border-gray-800 dark:border-gray-700">
-                  <button className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base">
+                  <button 
+                    onClick={logout}
+                    className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base"
+                  >
                     <IconLogout className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>Log out</span>
                   </button>

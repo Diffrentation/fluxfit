@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import CategoryTree from "@/components/Admin/Categories/CategoryTree";
 import BrandList from "@/components/Admin/Categories/BrandList";
@@ -272,8 +271,6 @@ const CategoryManagementPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
-        <AdminSidebar activeItem="categories" />
-
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
             <motion.div

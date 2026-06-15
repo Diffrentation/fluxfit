@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { CustomDesignProvider } from "@/context/CustomDesignContext";
 import AppToasterShell from "@/components/providers/AppToasterShell";
+import RouteGuard from "@/components/RouteGuard";
 
 export const metadata = {
   title: "Create Next App",
@@ -45,9 +46,11 @@ export default function RootLayout({ children }) {
             <CustomDesignProvider>
               <CartProvider>
                 <WishlistProvider>
-                  <Nav />
-                  {children}
-                  <ConditionalFooter />
+                  <RouteGuard>
+                    <Nav />
+                    {children}
+                    <ConditionalFooter />
+                  </RouteGuard>
                 </WishlistProvider>
               </CartProvider>
             </CustomDesignProvider>

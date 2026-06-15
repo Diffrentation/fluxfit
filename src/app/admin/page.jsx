@@ -10,7 +10,9 @@ import {
   IconDownload,
   IconCalendar,
   IconRefresh,
+  IconEye,
 } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
 import { Card, Statistic, DatePicker, Button, Select, message } from "antd";
 import axios from "axios";
 import DashboardStats from "@/components/Admin/DashboardStats";
@@ -19,7 +21,6 @@ import OrdersChart from "@/components/Admin/OrdersChart";
 import TopProducts from "@/components/Admin/TopProducts";
 import AbandonedCartStats from "@/components/Admin/AbandonedCartStats";
 import UserRegistrations from "@/components/Admin/UserRegistrations";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import SupportInboxAlert from "@/components/Admin/SupportInboxAlert";
 import {
@@ -36,6 +37,12 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [exportDataType, setExportDataType] = useState("sales");
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const router = useRouter();
+
+  const handleUserView = () => {
+    localStorage.setItem("admin_user_view_mode", "true");
+    router.push("/");
+  };
 
   const readAuthToken = () => {
     const raw = localStorage.getItem("token");
@@ -174,9 +181,6 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
-        {/* Sidebar */}
-        <AdminSidebar activeItem="dashboard" />
-
         {/* Main Content */}
         <AdminContent className="pt-16 sm:pt-20 lg:pt-16">
           <div className="p-3 sm:p-4 md:p-6 pb-6 sm:pb-8">
@@ -244,6 +248,14 @@ const AdminDashboard = () => {
                     className="w-full sm:w-auto"
                   >
                     <span className="hidden sm:inline">Export </span>Excel
+                  </Button>
+                  <Button
+                    type="default"
+                    icon={<IconEye className="w-4 h-4" />}
+                    onClick={handleUserView}
+                    className="w-full sm:w-auto bg-white hover:bg-gray-50 border-gray-300 shadow-sm transition-all text-gray-700"
+                  >
+                    View as User
                   </Button>
                 </div>
               </div>

@@ -479,14 +479,16 @@ export default function DesignEditor({ product }) {
         customization.previewDataUrl = adminThumbnail;
       }
 
-      addToCart(productForCart(product, snapshotImage || selectedImage), {
+      const success = addToCart(productForCart(product, snapshotImage || selectedImage), {
         size: "Custom",
         color: selectedColor || "default",
         quantity: 1,
         customization,
       });
 
-      message.success("Custom design added to cart");
+      if (success !== false) {
+        message.success("Custom design added to cart");
+      }
     } finally {
       setIsAddingToCart(false);
     }

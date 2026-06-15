@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import CouponList from "@/components/Admin/Coupons/CouponList";
 import CouponForm from "@/components/Admin/Coupons/CouponForm";
@@ -123,8 +122,6 @@ const CouponManagementPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
-        <AdminSidebar activeItem="coupons" />
-
         <AdminContent className="pt-20 lg:pt-16">
           <div className="p-4 md:p-6 pb-8">
             <motion.div

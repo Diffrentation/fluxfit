@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { addItemToServerCart } from "@/lib/cart-api-client";
+import { blockAdminAction } from "@/lib/adminBlocker";
 
 const CartContext = createContext();
 
@@ -62,6 +63,7 @@ export const CartProvider = ({ children }) => {
   }, [appliedCoupon]);
 
   const addToCart = (product, options = {}) => {
+    if (blockAdminAction()) return false;
     const { size, color, quantity = 1, customization } = options;
     const productId = product?.id ?? product?._id;
 
@@ -114,15 +116,17 @@ export const CartProvider = ({ children }) => {
         );
       });
     });
+    return true;
   };
 
-  const removeFromCart = (itemId, size, color, customization) => {
+  const removeFromCart = (id, size, color, customization = null) => {
+    if (blockAdminAction()) return;
     const cKey = customizationKey(customization);
     setCartItems((prevItems) =>
       prevItems.filter(
         (item) =>
           !(
-            item.id === itemId &&
+            item.id === id &&
             item.size === size &&
             item.color === color &&
             customizationKey(item.customization) === cKey
@@ -131,16 +135,17 @@ export const CartProvider = ({ children }) => {
     );
   };
 
-  const updateQuantity = (itemId, size, color, newQuantity, customization) => {
-    if (newQuantity <= 0) {
-      removeFromCart(itemId, size, color, customization);
+  const updateQuantity = (id, size, color, customization, newQuantity) => {
+    if (blockAdminAction()) return;
+    if (newQuantity < 1) {
+      removeFromCart(id, size, color, customization);
       return;
     }
 
     const cKey = customizationKey(customization);
     setCartItems((prevItems) =>
       prevItems.map((item) =>
-        item.id === itemId &&
+        item.id === id &&
         item.size === size &&
         item.color === color &&
         customizationKey(item.customization) === cKey
@@ -151,7 +156,9 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = () => {
+    if (blockAdminAction()) return;
     setCartItems([]);
+    setAppliedCoupon(null);
   };
 
   const getCartCount = () => {

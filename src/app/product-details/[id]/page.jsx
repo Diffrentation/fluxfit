@@ -386,7 +386,7 @@ function ProductDetails() {
       return;
     }
 
-    addToCart(
+    const success = addToCart(
       {
         id: product.id,
         slug: product.slug,
@@ -401,6 +401,7 @@ function ProductDetails() {
         quantity,
       }
     );
+    if (success === false) return;
     message.success("Added to cart");
   };
 
@@ -463,7 +464,7 @@ function ProductDetails() {
       removeFromWishlist(product.id);
       message.success("Removed from wishlist");
     } else {
-      addToWishlist({
+      const success = addToWishlist({
         id: product.id,
         slug: product.slug,
         name: product.name,
@@ -473,7 +474,9 @@ function ProductDetails() {
         originalPrice: displayPricing.originalPrice ?? product.originalPrice,
         discount: displayPricing.discountPercent ?? product.discount,
       });
-      message.success("Added to wishlist");
+      if (success !== false) {
+        message.success("Added to wishlist");
+      }
     }
   };
 

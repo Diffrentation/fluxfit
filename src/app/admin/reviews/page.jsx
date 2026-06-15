@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import axios from "axios";
 import { Button, Input, message, Modal, Select, Space, Spin, Table } from "antd";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 
 const getAuthHeaders = () => {
@@ -237,7 +236,6 @@ export default function AdminReviewsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
-        <AdminSidebar activeItem="reviews" />
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
             <div className="p-4 sm:p-6 space-y-4 max-w-[1600px]">

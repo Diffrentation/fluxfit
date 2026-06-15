@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import axios from "axios";
 import { Button, Input, Switch, Table, message, Upload } from "antd";
 import { IconUpload, IconSparkles, IconTrash } from "@tabler/icons-react";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 
 const readToken = () => {
@@ -219,7 +218,6 @@ export default function CustomClothesDesignsAdminPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AdminSidebar activeItem="custom-clothes-designs" />
       <AdminContent>
         <motion.div
           initial={{ opacity: 0, y: 8 }}

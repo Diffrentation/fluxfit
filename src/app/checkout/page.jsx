@@ -16,6 +16,7 @@ import { Button, Steps, message } from "antd";
 import AddressStep from "@/components/Checkout/AddressStep";
 import PaymentStep from "@/components/Checkout/PaymentStep";
 import ReviewStep from "@/components/Checkout/ReviewStep";
+import { blockAdminAction } from "@/lib/adminBlocker";
 
 const { Step } = Steps;
 
@@ -61,6 +62,7 @@ const CheckoutPageContent = () => {
   ];
 
   const handleAddressSelect = (address, shouldProceed = false) => {
+    if (blockAdminAction()) return;
     setSelectedAddress(address);
     if (shouldProceed) {
       setCurrentStep(1);
@@ -68,12 +70,14 @@ const CheckoutPageContent = () => {
   };
 
   const handlePaymentSelect = (method, details = {}) => {
+    if (blockAdminAction()) return;
     setPaymentMethod(method);
     setPaymentDetails(details);
     setCurrentStep(2);
   };
 
   const handleOrderPlace = (order) => {
+    if (blockAdminAction()) return;
     setOrderData(order);
     const ref = order?.orderNumber || order?.orderId;
     router.push(

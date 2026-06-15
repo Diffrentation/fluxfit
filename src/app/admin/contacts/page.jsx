@@ -16,7 +16,6 @@ import {
   Tag,
 } from "antd";
 import { IconBrandWhatsapp, IconMail } from "@tabler/icons-react";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 
 const { Option } = Select;
@@ -347,7 +346,6 @@ export default function AdminContactsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex min-w-0">
-        <AdminSidebar activeItem="contacts" />
         <AdminContent className="pt-16 sm:pt-20 lg:pt-16">
           <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-4 p-3 sm:gap-5 sm:p-4 md:gap-6 md:p-6 pb-8">
             {/* Page header + filters: 12-col grid on large screens */}

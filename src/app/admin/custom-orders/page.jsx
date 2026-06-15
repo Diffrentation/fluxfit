@@ -26,7 +26,6 @@ import {
 } from "@tabler/icons-react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import dayjs from "dayjs";
 
@@ -291,7 +290,6 @@ export default function AdminCustomOrdersPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AdminSidebar activeItem="custom-orders" />
       <AdminContent>
         <motion.div
           initial={{ opacity: 0, y: 8 }}

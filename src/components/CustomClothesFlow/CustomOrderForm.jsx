@@ -15,6 +15,7 @@ import {
   IconChevronDown,
 } from "@tabler/icons-react";
 import axios from "axios";
+import { blockAdminAction } from "@/lib/adminBlocker";
 
 const CLOTH_TYPES = [
   "T-Shirt",
@@ -115,6 +116,7 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (blockAdminAction()) return;
 
     const token = getToken();
     if (!token) {

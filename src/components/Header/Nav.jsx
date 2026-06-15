@@ -10,17 +10,25 @@ import {
   MobileNavToggle,
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
-import { useMemo, useState } from "react";
-import { IconShoppingCart, IconUser, IconChevronDown } from "@tabler/icons-react";
+import { useMemo, useState, useEffect } from "react";
+import { IconShoppingCart, IconUser, IconChevronDown, IconLogout } from "@tabler/icons-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Dropdown, Avatar } from "antd";
 
 export function Nav() {
   const { user, hydrated, isAuthenticated, logout } = useAuth();
+  const pathname = usePathname();
+  const [isUserViewMode, setIsUserViewMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsUserViewMode(localStorage.getItem("admin_user_view_mode") === "true");
+    }
+  }, [pathname]);
 
   const desktopNavItems = useMemo(() => {
     const items = [
@@ -31,9 +39,6 @@ export function Nav() {
       { name: "About", link: "/about" },
       { name: "Contact", link: "/contact" },
     ];
-    if (hydrated && user?.role === "admin") {
-      items.push({ name: "Admin", link: "/admin" });
-    }
     return items;
   }, [hydrated, user?.role]);
 
@@ -47,9 +52,6 @@ export function Nav() {
       { name: "Cart", link: "/cart" },
       { name: "Orders", link: "/orders" },
     ];
-    if (hydrated && user?.role === "admin") {
-      items.push({ name: "Admin", link: "/admin" });
-    }
     return items;
   }, [hydrated, user?.role]);
 
@@ -89,6 +91,10 @@ export function Nav() {
   };
 
   const showAuthChrome = hydrated && isAuthenticated && user;
+
+  if (pathname?.startsWith("/admin") || (hydrated && user?.role === "admin" && !isUserViewMode)) {
+    return null;
+  }
 
   return (
     <div className="relative w-full">
@@ -165,6 +171,20 @@ export function Nav() {
                 Cart
               </NavbarButton>
             </Link>
+            {isUserViewMode && (
+              <NavbarButton
+                onClick={() => {
+                  localStorage.removeItem("admin_user_view_mode");
+                  setIsUserViewMode(false);
+                  router.push("/admin");
+                }}
+                variant="secondary"
+                className="flex items-center gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:hover:bg-red-900/20"
+              >
+                <IconLogout className="w-4 h-4" />
+                <span className="hidden sm:inline">Exit View</span>
+              </NavbarButton>
+            )}
           </div>
         </NavBody>
 

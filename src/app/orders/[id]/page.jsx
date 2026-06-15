@@ -38,6 +38,7 @@ import {
   fetchMyOrderById,
   getOrdersAuthHeaders,
 } from "@/lib/orders-api-client";
+import { blockAdminAction } from "@/lib/adminBlocker";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -102,6 +103,7 @@ const OrderDetailsPageContent = () => {
   };
 
   const handleCancelOrder = async (values) => {
+    if (blockAdminAction()) return;
     const id = params.id;
     setLoading(true);
     try {
@@ -129,6 +131,7 @@ const OrderDetailsPageContent = () => {
   };
 
   const handleReturnRequest = async (values) => {
+    if (blockAdminAction()) return;
     const id = params.id;
     setLoading(true);
     try {
@@ -162,10 +165,12 @@ const OrderDetailsPageContent = () => {
   };
 
   const handleRefundRequest = async () => {
+    if (blockAdminAction()) return;
     message.info("Refund is processed by support after return approval.");
   };
 
   const generateInvoice = async () => {
+    if (blockAdminAction()) return;
     if (!order) return;
     const id = params.id;
     setLoading(true);
@@ -196,6 +201,7 @@ const OrderDetailsPageContent = () => {
   };
 
   const handleReorder = async () => {
+    if (blockAdminAction()) return;
     if (!order) return;
     const id = params.id;
     setLoading(true);
@@ -617,7 +623,10 @@ const OrderDetailsPageContent = () => {
                     size="large"
                     danger
                     icon={<IconX className="w-4 h-4" />}
-                    onClick={() => setIsCancelModalVisible(true)}
+                    onClick={() => {
+                      if (blockAdminAction()) return;
+                      setIsCancelModalVisible(true);
+                    }}
                   >
                     Cancel Order
                   </Button>
@@ -628,7 +637,10 @@ const OrderDetailsPageContent = () => {
                     block
                     size="large"
                     icon={<IconRefresh className="w-4 h-4" />}
-                    onClick={() => setIsReturnModalVisible(true)}
+                    onClick={() => {
+                      if (blockAdminAction()) return;
+                      setIsReturnModalVisible(true);
+                    }}
                   >
                     Request Return
                   </Button>

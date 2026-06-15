@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import ProductList from "@/components/Admin/Products/ProductList";
 import ProductForm from "@/components/Admin/Products/ProductForm";
 import ProductDetailsModal from "@/components/Admin/Products/ProductDetailsModal";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import {
   IconPlus,
@@ -297,9 +296,6 @@ const ProductManagementPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
-        {/* Sidebar */}
-        <AdminSidebar activeItem="products" />
-
         {/* Main Content */}
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">

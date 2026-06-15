@@ -44,11 +44,16 @@ const ProductCard = ({ product, onQuickView }) => {
     }
 
     // Add to cart with auto-selected available options
-    addToCart(product, {
+    const success = addToCart(product, {
       size: selectedSize,
       color: selectedColor,
       quantity: 1,
     });
+
+    if (success === false) {
+      setIsAddingToCart(false);
+      return;
+    }
 
     message.success(`${product.name} added to cart!`, 2);
 
@@ -101,12 +106,14 @@ const ProductCard = ({ product, onQuickView }) => {
         <motion.button
           onClick={(e) => {
             e.stopPropagation();
-            if (isWishlisted) {
+            if (isInWishlist(productId)) {
               removeFromWishlist(productId);
-              message.success("Removed from wishlist");
+              message.success(`${product.name} removed from wishlist`);
             } else {
-              addToWishlist(product);
-              message.success("Added to wishlist");
+              const success = addToWishlist(product);
+              if (success !== false) {
+                message.success(`${product.name} added to wishlist`);
+              }
             }
           }}
           whileHover={{ scale: 1.1 }}

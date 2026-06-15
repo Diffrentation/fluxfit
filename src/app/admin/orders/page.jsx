@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
 import axios from "axios";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import OrderList from "@/components/Admin/Orders/OrderList";
 import OrderDetails from "@/components/Admin/Orders/OrderDetails";
@@ -242,8 +241,6 @@ const OrderManagementPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
-        <AdminSidebar activeItem="orders" />
-
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
             <motion.div

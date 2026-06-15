@@ -105,13 +105,15 @@ const CartPage = () => {
   };
 
   const handleMoveToCart = (item) => {
-    addToCart(productDatabase[item.id], {
+    const success = addToCart(productDatabase[item.id], {
       size: item.size,
       color: item.color,
       quantity: item.quantity,
     });
-    removeFromSavedForLater(item.id, item.size, item.color);
-    message.success("Item moved to cart");
+    if (success !== false) {
+      removeFromSavedForLater(item.id, item.size, item.color);
+      message.success("Item moved to cart");
+    }
   };
 
   const handleShare = (item) => {

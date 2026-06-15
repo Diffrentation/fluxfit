@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminContent from "@/components/Admin/AdminContent";
 import WebsiteSettings from "@/components/Admin/Settings/WebsiteSettings";
 import CurrencyTaxSettings from "@/components/Admin/Settings/CurrencyTaxSettings";
@@ -29,8 +28,6 @@ const SettingsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
-        <AdminSidebar activeItem="settings" />
-
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
             <motion.div
