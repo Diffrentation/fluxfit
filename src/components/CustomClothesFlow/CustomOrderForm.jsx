@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import ImageUploadZone from "./ImageUploadZone";
@@ -13,6 +13,7 @@ import {
   IconSend,
   IconLoader2,
   IconChevronDown,
+  IconX,
 } from "@tabler/icons-react";
 import axios from "axios";
 import { blockAdminAction } from "@/lib/adminBlocker";
@@ -96,6 +97,25 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
     rightSleeve: null,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [adminDesigns, setAdminDesigns] = useState([]);
+  const [loadingDesigns, setLoadingDesigns] = useState(true);
+  const [previewImage, setPreviewImage] = useState(null);
+
+  useEffect(() => {
+    const fetchDesigns = async () => {
+      try {
+        const { data } = await axios.get("/api/custom-clothes-designs");
+        if (data?.success) {
+          setAdminDesigns(data.data.designs || []);
+        }
+      } catch (err) {
+        console.error("Failed to load admin designs:", err);
+      } finally {
+        setLoadingDesigns(false);
+      }
+    };
+    fetchDesigns();
+  }, []);
 
   const activeSides = PLACEMENT_IMAGES_MAP[printPlacement] || ["front"];
 
@@ -354,8 +374,54 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="space-y-4"
+          className="space-y-4 lg:space-y-6"
         >
+          {/* Admin Designs Card */}
+          <div className="rounded-3xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-6 shadow-sm backdrop-blur-sm">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              Design Library
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              Drag and drop any of these templates into the upload zones below.
+            </p>
+            {loadingDesigns ? (
+              <div className="flex justify-center p-4">
+                <IconLoader2 size={24} className="animate-spin text-indigo-500" />
+              </div>
+            ) : adminDesigns.length > 0 ? (
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                {adminDesigns.map((design) => (
+                  <div
+                    key={design.id}
+                    className="flex-shrink-0 w-24 h-24 relative rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden group cursor-pointer bg-gray-50 dark:bg-gray-700/50"
+                    onClick={() => setPreviewImage(design.imageUrl)}
+                  >
+                    <img
+                      src={design.imageUrl}
+                      alt={design.name}
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.setData("text/plain", design.imageUrl);
+                        e.dataTransfer.effectAllowed = "copy";
+                      }}
+                      className="w-full h-full object-contain p-1"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-[10px] text-white text-center py-1 truncate px-1">
+                        {design.name}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                No templates available right now.
+              </p>
+            )}
+          </div>
+
           <div className="rounded-3xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-6 shadow-sm backdrop-blur-sm">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
               Design Images
@@ -424,6 +490,47 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
           </p>
         </motion.div>
       </div>
+
+      {/* Preview Modal */}
+      {previewImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative max-w-3xl w-full max-h-[90vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 p-2 rounded-full transition-colors z-10"
+            >
+              <IconX size={20} />
+            </button>
+            <div className="w-full h-full p-4 flex items-center justify-center overflow-auto">
+              <img
+                src={previewImage}
+                alt="Preview"
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              />
+            </div>
+            <div className="absolute bottom-4 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-md">
+              Drag this image to apply it
+            </div>
+            <img
+              src={previewImage}
+              alt="Drag Source"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-grab active:cursor-grabbing"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("text/plain", previewImage);
+                e.dataTransfer.effectAllowed = "copy";
+              }}
+            />
+          </motion.div>
+        </div>
+      )}
     </form>
   );
 }

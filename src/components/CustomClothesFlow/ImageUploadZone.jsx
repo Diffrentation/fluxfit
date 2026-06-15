@@ -87,10 +87,21 @@ export default function ImageUploadZone({ label, value, onChange, side }) {
     (e) => {
       e.preventDefault();
       setDragging(false);
+      
       const file = e.dataTransfer.files?.[0];
-      if (file) uploadFile(file);
+      if (file) {
+        uploadFile(file);
+        return;
+      }
+
+      // Check for dropped URL from another element
+      const url = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("text/uri-list");
+      if (url && typeof url === "string" && (url.startsWith("http") || url.startsWith("/"))) {
+        onChange(url);
+        toast.success(`${label} design applied!`);
+      }
     },
-    [uploadFile]
+    [uploadFile, onChange, label]
   );
 
   const handleFileChange = useCallback(
@@ -186,7 +197,7 @@ export default function ImageUploadZone({ label, value, onChange, side }) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {dragging ? "Drop to upload" : "Drop image or click"}
+                    {dragging ? "Drop here" : "Drop image or click"}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                     JPG, PNG, WebP · Max {MAX_SIZE_MB}MB
