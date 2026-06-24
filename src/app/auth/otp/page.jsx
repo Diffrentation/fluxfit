@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
+import { IconShieldCheck, IconArrowRight, IconRefresh } from "@tabler/icons-react";
+import AuthLayout from "@/components/auth/AuthLayout";
 
 function OTPPageContent() {
   const { login: authLogin } = useAuth();
@@ -146,18 +148,25 @@ function OTPPageContent() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="border p-10 rounded-2xl w-[450px] shadow-md">
-        <h2 className="text-2xl font-bold mb-3 text-center">Enter OTP</h2>
-        <p className="text-center text-gray-500 mb-6 text-sm">
+    <AuthLayout>
+      <div className="w-full">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-[#f4fbf7] flex items-center justify-center shrink-0">
+            <IconShieldCheck className="w-5 h-5 text-[#1e9a58]" />
+          </div>
+          <h2 className="text-xl font-bold text-[#111827]">Enter OTP</h2>
+          <div className="flex-1 h-px bg-gray-100 ml-4"></div>
+        </div>
+
+        <p className="mb-6 text-sm text-neutral-600 dark:text-neutral-300">
           OTP has been sent to your email. Please enter it below.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-3">
-            <label className="text-lg">OTP Code</label>
+            <label className="text-sm font-bold text-gray-700">OTP Code</label>
 
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-between gap-2 sm:gap-4">
               {otp.map((digit, index) => (
                 <input
                   key={index}
@@ -170,8 +179,8 @@ function OTPPageContent() {
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={handlePaste}
                   className={cn(
-                    "w-12 h-12 text-lg text-center border rounded-md outline-none transition-all",
-                    "focus:border-cyan-500 focus:ring-2 focus:ring-cyan-300",
+                    "w-12 h-12 sm:w-14 sm:h-14 text-xl font-bold text-center bg-white border border-gray-200 rounded-xl outline-none transition-all",
+                    "focus-visible:ring-[#1e9a58] focus-visible:border-[#1e9a58]",
                     "dark:bg-zinc-800 dark:text-white dark:border-gray-600"
                   )}
                 />
@@ -183,24 +192,25 @@ function OTPPageContent() {
           <button
             type="submit"
             disabled={loading || otp.join("").length !== 6}
-            className="group/btn relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-700 font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_4px_14px_0_rgba(30,154,88,0.39)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Verifying..." : "Verify OTP"}
-            <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-            <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
+            {loading ? "Verifying..." : "Verify OTP"} <IconArrowRight className="w-5 h-5" />
           </button>
 
           {/* ✅ Resend Section */}
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3 mt-6">
             <button
               type="button"
               onClick={handleResendOtp}
               disabled={resendLoading || timer > 0}
               className={cn(
-                "w-full h-10 rounded-md border font-medium transition disabled:opacity-50 disabled:cursor-not-allowed",
-                timer > 0 ? "border-gray-300 text-gray-400" : "border-black text-black"
+                "w-full flex items-center justify-center gap-2 h-12 rounded-xl border-2 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                timer > 0 
+                  ? "border-gray-200 text-gray-400 bg-gray-50" 
+                  : "border-[#1e9a58] text-[#1e9a58] hover:bg-[#f4fbf7]"
               )}
             >
+              <IconRefresh className="w-5 h-5" />
               {resendLoading
                 ? "Resending..."
                 : timer > 0
@@ -208,13 +218,13 @@ function OTPPageContent() {
                 : "Resend OTP"}
             </button>
 
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 text-center">
               Didn’t receive OTP? Check spam folder or resend after timer ends.
             </p>
           </div>
         </form>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
 

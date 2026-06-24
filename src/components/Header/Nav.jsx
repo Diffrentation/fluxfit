@@ -10,7 +10,7 @@ import {
   MobileNavToggle,
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { IconShoppingCart, IconUser, IconChevronDown, IconLogout } from "@tabler/icons-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -23,6 +23,18 @@ export function Nav() {
   const { user, hydrated, isAuthenticated, logout } = useAuth();
   const pathname = usePathname();
   const [isUserViewMode, setIsUserViewMode] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -67,28 +79,7 @@ export function Nav() {
   const cartCount = getCartCount();
   const router = useRouter();
 
-  const profileMenu = {
-    items: [
-      {
-        key: "profile",
-        label: "My Profile",
-        onClick: () => {
-          router.push("/profile");
-          setIsMobileMenuOpen(false);
-        },
-      },
-      { type: "divider" },
-      {
-        key: "logout",
-        label: "Logout",
-        danger: true,
-        onClick: () => {
-          setIsMobileMenuOpen(false);
-          logout();
-        },
-      },
-    ],
-  };
+
 
   const showAuthChrome = hydrated && isAuthenticated && user;
 
@@ -113,20 +104,17 @@ export function Nav() {
                 </NavbarButton>
                 <NavbarButton
                   onClick={() => router.push("/auth/register")}
-                  variant="primary"
+                  variant="outline-green"
                 >
                   Register
                 </NavbarButton>
               </>
             ) : (
-              <Dropdown
-                menu={profileMenu}
-                trigger={["click"]}
-                placement="bottomRight"
-              >
+              <div className="relative" ref={dropdownRef}>
                 <button
                   type="button"
-                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-2 rounded-full pl-2 pr-3 py-1.5 text-sm font-semibold text-black hover:bg-[#f4fbf7] transition-colors border border-transparent hover:border-[#eaf5ef]"
                 >
                   <Avatar
                     size={36}
@@ -137,9 +125,48 @@ export function Nav() {
                   <span className="hidden sm:inline max-w-[120px] truncate">
                     {displayName}
                   </span>
-                  <IconChevronDown className="h-4 w-4 opacity-70 hidden sm:block" />
+                  <IconChevronDown className={`h-4 w-4 text-gray-400 transition-transform hidden sm:block ${isDropdownOpen ? "rotate-180" : ""}`} />
                 </button>
-              </Dropdown>
+
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] py-2 z-50 overflow-hidden"
+                    >
+                      <div className="px-4 py-3 border-b border-gray-50 mb-2 bg-gray-50/50 mx-2 rounded-lg">
+                        <p className="text-sm font-bold text-gray-900 truncate">{displayName}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email || `@${user.username}`}</p>
+                      </div>
+                      
+                      <button 
+                        onClick={() => { setIsDropdownOpen(false); router.push("/profile"); }} 
+                        className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-[#f4fbf7] hover:text-[#1e9a58] flex items-center gap-2.5 transition-colors"
+                      >
+                        <div className="bg-gray-50 p-1.5 rounded-md text-gray-500 group-hover:text-[#1e9a58] group-hover:bg-[#eaf5ef] transition-colors">
+                          <IconUser className="w-4 h-4" />
+                        </div>
+                        My Profile
+                      </button>
+
+                      <div className="h-px bg-gray-100 my-2 mx-4"></div>
+
+                      <button 
+                        onClick={() => { setIsDropdownOpen(false); logout(); }} 
+                        className="group w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
+                      >
+                        <div className="bg-red-50 p-1.5 rounded-md text-red-500 group-hover:bg-red-100 transition-colors">
+                          <IconLogout className="w-4 h-4" />
+                        </div>
+                        Logout
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             )}
             <Link href="/cart" className="inline-block">
               <NavbarButton

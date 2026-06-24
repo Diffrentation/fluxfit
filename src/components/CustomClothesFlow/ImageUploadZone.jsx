@@ -173,7 +173,7 @@ export default function ImageUploadZone({ label, value, onChange, side }) {
 
             {uploading ? (
               <div className="flex flex-col items-center gap-3 px-4 w-full">
-                <IconLoader2 size={28} className="text-indigo-500 animate-spin" />
+                <IconLoader2 size={28} className="text-[#1e9a58] animate-spin" />
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                   <motion.div
                     className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
@@ -190,7 +190,7 @@ export default function ImageUploadZone({ label, value, onChange, side }) {
               <div className="flex flex-col items-center gap-2 text-center px-4">
                 <div className={`p-3 rounded-full transition-colors ${dragging ? "bg-indigo-100 dark:bg-indigo-900/40" : "bg-gray-100 dark:bg-gray-700"}`}>
                   {dragging ? (
-                    <IconPhoto size={24} className="text-indigo-500" />
+                    <IconPhoto size={24} className="text-[#1e9a58]" />
                   ) : (
                     <IconUpload size={24} className="text-gray-400 dark:text-gray-500" />
                   )}

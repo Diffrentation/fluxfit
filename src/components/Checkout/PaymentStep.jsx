@@ -152,10 +152,15 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-      <div className="mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Payment Method</h2>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Select your preferred payment method</p>
+    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
+            <IconCreditCard className="w-6 h-6 text-[#1e9a58]" />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Payment Method</h2>
+        </div>
+        <p className="text-sm sm:text-base text-gray-500 font-medium ml-13">Select your preferred payment method</p>
       </div>
 
       <Radio.Group
@@ -173,39 +178,19 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
             >
               <Radio value={method.id} className="w-full">
                 <div
-                  className={`w-full p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  className={`w-full p-4 border-2 rounded-2xl cursor-pointer transition-all ${
                     selectedPaymentType === method.id
-                      ? method.color === "green"
-                        ? "border-green-600 dark:border-green-500 bg-green-50 dark:bg-green-900/20"
-                        : method.color === "blue"
-                        ? "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                        : method.color === "purple"
-                        ? "border-purple-600 dark:border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                        : method.color === "orange"
-                        ? "border-orange-600 dark:border-orange-500 bg-orange-50 dark:bg-orange-900/20"
-                        : method.color === "indigo"
-                        ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
-                        : "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      ? "border-[#1e9a58] bg-green-50/50"
+                      : "border-gray-100 hover:border-gray-300"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                       <div
-                        className={`p-2 sm:p-3 rounded-lg shrink-0 ${
+                        className={`p-2.5 rounded-xl shrink-0 ${
                           selectedPaymentType === method.id
-                            ? method.color === "green"
-                              ? "bg-green-600 dark:bg-green-500 text-white"
-                              : method.color === "blue"
-                              ? "bg-blue-600 dark:bg-blue-500 text-white"
-                              : method.color === "purple"
-                              ? "bg-purple-600 dark:bg-purple-500 text-white"
-                              : method.color === "orange"
-                              ? "bg-orange-600 dark:bg-orange-500 text-white"
-                              : method.color === "indigo"
-                              ? "bg-indigo-600 dark:bg-indigo-500 text-white"
-                              : "bg-blue-600 dark:bg-blue-500 text-white"
-                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                            ? "bg-[#1e9a58] text-white shadow-sm"
+                            : "bg-gray-100 text-gray-500"
                         }`}
                       >
                         <div className="w-5 h-5 sm:w-6 sm:h-6">{method.icon}</div>
@@ -216,21 +201,7 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
                       </div>
                     </div>
                     {selectedPaymentType === method.id && (
-                      <IconCheck
-                        className={`w-5 h-5 sm:w-6 sm:h-6 shrink-0 ${
-                          method.color === "green"
-                            ? "text-green-600 dark:text-green-400"
-                            : method.color === "blue"
-                            ? "text-blue-600 dark:text-blue-400"
-                            : method.color === "purple"
-                            ? "text-purple-600 dark:text-purple-400"
-                            : method.color === "orange"
-                            ? "text-orange-600 dark:text-orange-400"
-                            : method.color === "indigo"
-                            ? "text-indigo-600 dark:text-indigo-400"
-                            : "text-blue-600 dark:text-blue-400"
-                        }`}
-                      />
+                      <IconCheck className="w-6 h-6 shrink-0 text-[#1e9a58]" />
                     )}
                   </div>
                 </div>
@@ -316,9 +287,12 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
                   </span>
                 </div>
 
-                <Button type="primary" htmlType="submit" block size="large">
+                <button
+                  type="submit"
+                  className="w-full py-3.5 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors shadow-md mt-4"
+                >
                   Save Card Details
-                </Button>
+                </button>
               </Form>
             </Card>
           </motion.div>
@@ -346,15 +320,14 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
                   Enter your UPI ID (e.g., yourname@paytm, yourname@phonepe)
                 </p>
               </div>
-              <Button
-                type="primary"
-                block
-                size="large"
+              <button
+                type="button"
+                className="w-full py-3.5 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleUpiSubmit}
                 disabled={!upiId.trim()}
               >
                 Verify & Continue
-              </Button>
+              </button>
             </Card>
           </motion.div>
         )}
@@ -384,15 +357,14 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
                   ))}
                 </select>
               </div>
-              <Button
-                type="primary"
-                block
-                size="large"
+              <button
+                type="button"
+                className="w-full py-3.5 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors shadow-md mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleNetBankingSubmit}
                 disabled={!netBankingBank}
               >
                 Continue to Bank
-              </Button>
+              </button>
             </Card>
           </motion.div>
         )}
@@ -413,14 +385,13 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
                   Amount to pay: <span className="font-bold">₹{amount}</span>
                 </p>
               </div>
-              <Button
-                type="primary"
-                block
-                size="large"
+              <button
+                type="button"
+                className="w-full py-3.5 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors shadow-md"
                 onClick={() => handleGatewayPayment(selectedPaymentType)}
               >
                 Continue to {paymentMethods.find(m => m.id === selectedPaymentType)?.name}
-              </Button>
+              </button>
             </Card>
           </motion.div>
         )}
@@ -441,13 +412,13 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   Pay ₹{amount} when you receive your order
                 </p>
-                <Button
-                  type="primary"
-                  className="mt-4"
+                <button
+                  type="button"
+                  className="w-full py-3.5 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors shadow-md mt-4"
                   onClick={() => onPaymentSelect("cod", {})}
                 >
                   Confirm COD
-                </Button>
+                </button>
               </div>
             </Card>
           </motion.div>

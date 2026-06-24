@@ -66,7 +66,7 @@ function WishlistPreview() {
   const wishlistCount = getWishlistCount();
 
   return (
-    <section className="w-full bg-white dark:bg-gray-900 py-8 sm:py-10 md:py-12 lg:py-14 transition-colors duration-300">
+    <section className="w-full bg-transparent py-8 sm:py-10 md:py-12 lg:py-14 transition-colors duration-300">
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
         {/* Header */}
         <motion.div

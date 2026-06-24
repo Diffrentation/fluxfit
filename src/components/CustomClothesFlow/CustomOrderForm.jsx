@@ -198,11 +198,11 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          <div className="rounded-3xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-6 shadow-sm backdrop-blur-sm space-y-6">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 lg:p-8 shadow-sm space-y-6">
             {/* Cloth Type */}
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <IconShirt size={16} className="text-indigo-500" />
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#0d1c2f] mb-3">
+                <IconShirt size={16} className="text-[#1e9a58]" />
                 Cloth Type
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -214,8 +214,8 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
                     className={[
                       "px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 border",
                       clothType === type
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200 dark:shadow-indigo-900/30"
-                        : "bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20",
+                        ? "bg-[#1e9a58] text-white border-[#1e9a58] shadow-md"
+                        : "bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-100",
                     ].join(" ")}
                   >
                     {type}
@@ -226,8 +226,8 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
 
             {/* Color */}
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <IconPalette size={16} className="text-indigo-500" />
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#0d1c2f] mb-3">
+                <IconPalette size={16} className="text-[#1e9a58]" />
                 Cloth Color
               </label>
               <div className="flex flex-wrap gap-2 mb-3">
@@ -240,8 +240,8 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
                     className={[
                       "w-8 h-8 rounded-full transition-all duration-200 border-2 hover:scale-110 focus:outline-none",
                       clothColor.hex === color.hex && !useCustomColor
-                        ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-800 scale-110 border-white"
-                        : "border-gray-200 dark:border-gray-600",
+                        ? "ring-2 ring-offset-2 ring-[#1e9a58] scale-110 border-white"
+                        : "border-gray-200",
                     ].join(" ")}
                     style={{ backgroundColor: color.hex }}
                   />
@@ -289,8 +289,8 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
 
             {/* Print Placement */}
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <IconPrinter size={16} className="text-indigo-500" />
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#0d1c2f] mb-3">
+                <IconPrinter size={16} className="text-[#1e9a58]" />
                 Print Placement
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -302,8 +302,8 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
                     className={[
                       "px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 border",
                       printPlacement === p.value
-                        ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-200 dark:shadow-purple-900/30"
-                        : "bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20",
+                        ? "bg-[#1e9a58] text-white border-[#1e9a58] shadow-md"
+                        : "bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-100",
                     ].join(" ")}
                   >
                     {p.label}
@@ -314,15 +314,15 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
 
             {/* Quantity */}
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <IconPackage size={16} className="text-indigo-500" />
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#0d1c2f] mb-3">
+                <IconPackage size={16} className="text-[#1e9a58]" />
                 Quantity
               </label>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-10 h-10 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-lg font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+                  className="w-10 h-10 rounded-xl border border-gray-300 bg-gray-50 text-lg font-bold text-gray-700 hover:bg-gray-100 transition-colors flex items-center justify-center"
                 >
                   −
                 </button>
@@ -334,12 +334,12 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
                   onChange={(e) =>
                     setQuantity(Math.max(1, parseInt(e.target.value) || 1))
                   }
-                  className="w-20 h-10 text-center rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-20 h-10 text-center rounded-xl border border-gray-300 bg-white text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#1e9a58]"
                 />
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.min(10000, q + 1))}
-                  className="w-10 h-10 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-lg font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+                  className="w-10 h-10 rounded-xl border border-gray-300 bg-gray-50 text-lg font-bold text-gray-700 hover:bg-gray-100 transition-colors flex items-center justify-center"
                 >
                   +
                 </button>
@@ -349,8 +349,8 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
 
             {/* Notes */}
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <IconNotes size={16} className="text-indigo-500" />
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#0d1c2f] mb-3">
+                <IconNotes size={16} className="text-[#1e9a58]" />
                 Additional Notes{" "}
                 <span className="text-gray-400 font-normal">(optional)</span>
               </label>
@@ -360,7 +360,7 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
                 maxLength={1000}
                 rows={3}
                 placeholder="e.g. specific font request, special instructions…"
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/60 px-4 py-3 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition-colors"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e9a58] resize-none transition-colors"
               />
               <p className="text-xs text-gray-400 mt-1 text-right">
                 {notes.length}/1000
@@ -377,16 +377,16 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
           className="space-y-4 lg:space-y-6"
         >
           {/* Admin Designs Card */}
-          <div className="rounded-3xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-6 shadow-sm backdrop-blur-sm">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 lg:p-8 shadow-sm">
+            <h3 className="text-sm font-bold text-[#0d1c2f] mb-1">
               Design Library
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-xs text-gray-500 mb-4">
               Drag and drop any of these templates into the upload zones below.
             </p>
             {loadingDesigns ? (
               <div className="flex justify-center p-4">
-                <IconLoader2 size={24} className="animate-spin text-indigo-500" />
+                <IconLoader2 size={24} className="animate-spin text-[#1e9a58]" />
               </div>
             ) : adminDesigns.length > 0 ? (
               <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
@@ -422,11 +422,11 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
             )}
           </div>
 
-          <div className="rounded-3xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-6 shadow-sm backdrop-blur-sm">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 lg:p-8 shadow-sm">
+            <h3 className="text-sm font-bold text-[#0d1c2f] mb-1">
               Design Images
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
+            <p className="text-xs text-gray-500 mb-5">
               Upload your designs for the selected placement areas. Each image
               should be high-res (min 300 DPI recommended).
             </p>
@@ -449,7 +449,7 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
             </div>
 
             {/* Placement hint */}
-            <div className="mt-4 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl px-3 py-2.5">
+            <div className="mt-4 text-xs font-medium text-[#1B8A4D] bg-[#e4f7ed] border border-[#bbf0d4] rounded-xl px-3 py-2.5">
               💡 Showing upload zones for:{" "}
               <strong>
                 {PRINT_PLACEMENTS.find((p) => p.value === printPlacement)?.label}
@@ -465,10 +465,10 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
             whileHover={{ scale: submitting ? 1 : 1.02 }}
             whileTap={{ scale: submitting ? 1 : 0.98 }}
             className={[
-              "w-full py-4 px-6 rounded-2xl text-base font-bold text-white transition-all duration-200 shadow-lg flex items-center justify-center gap-2",
+              "w-full py-4 px-6 rounded-2xl text-base font-bold text-white transition-all duration-200 shadow-md flex items-center justify-center gap-2",
               submitting
-                ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
-                : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-200 dark:shadow-indigo-900/40",
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#1e9a58] hover:bg-green-700",
             ].join(" ")}
           >
             {submitting ? (

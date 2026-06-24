@@ -13,6 +13,11 @@ import {
   IconCheck,
   IconX,
   IconRefresh,
+  IconMessageCircleQuestion,
+  IconArrowRight,
+  IconShoppingBag,
+  IconShieldCheck,
+  IconHeadset
 } from "@tabler/icons-react";
 import { Button, Input, Select, Card, Badge, Empty, message, Spin } from "antd";
 import Image from "next/image";
@@ -167,24 +172,114 @@ const OrdersPageContent = () => {
 
   if (orders.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 sm:pt-24 pb-8 sm:pb-12 transition-colors duration-300">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              My Orders
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              Track and manage your orders
-            </p>
+      <div className="min-h-screen bg-[#fafcfb] pt-24 pb-12 transition-colors duration-300">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111827] mb-2 tracking-tight">
+                My Orders
+              </h1>
+              <p className="text-gray-500 text-sm sm:text-base font-medium">
+                Track and manage your orders
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 max-w-sm">
+              <div className="w-10 h-10 bg-[#f4fbf7] rounded-full flex items-center justify-center shrink-0">
+                <IconMessageCircleQuestion className="w-5 h-5 text-[#1e9a58]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-[#111827] text-sm">Need Help?</p>
+                <p className="text-gray-500 text-xs">We're here to assist you</p>
+              </div>
+              <button className="text-[#1e9a58] font-bold text-xs sm:text-sm flex items-center gap-1 hover:text-green-700 transition-colors shrink-0">
+                Contact Support <IconArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <Empty
-            description="No orders yet"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          >
-            <Button type="primary" onClick={() => router.push("/product-list")}>
+
+          {/* Empty State Main Card */}
+          <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8 sm:p-16 flex flex-col items-center justify-center text-center mb-10">
+            {/* Custom Empty Box Illustration */}
+            <div className="relative w-64 h-48 mb-8 flex items-center justify-center">
+              {/* Soft Green Circle Background */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#eef8f2] to-transparent rounded-full opacity-60"></div>
+
+              {/* Box Icon */}
+              <IconPackage className="w-24 h-24 text-[#1e9a58] relative z-10" stroke={1.5} />
+
+              {/* Decorative Elements */}
+              <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-green-300 rounded-full"></div>
+              <div className="absolute bottom-1/4 right-1/4 w-3 h-3 bg-[#1e9a58] rounded-full opacity-40"></div>
+              <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+
+              <svg className="absolute w-full h-full text-green-200 opacity-50" viewBox="0 0 100 100">
+                <path d="M 20 80 Q 50 10 80 20" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
+                <polygon points="80,20 75,15 85,25" fill="currentColor" />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] mb-3">
+              You don't have any orders yet
+            </h2>
+            <p className="text-gray-500 font-medium text-sm sm:text-base max-w-md mx-auto mb-8">
+              Looks like you haven't placed any orders. Start shopping and explore our amazing collection!
+            </p>
+
+            <button
+              onClick={() => router.push("/")}
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors shadow-lg shadow-green-200"
+            >
+              <IconShoppingBag className="w-5 h-5" />
               Start Shopping
-            </Button>
-          </Empty>
+            </button>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 border-t border-gray-100 pt-10">
+            <div className="flex items-center gap-5 min-h-[100px]">
+              <div className="w-14 h-14 bg-[#f4fbf7] rounded-full flex items-center justify-center shrink-0">
+                <IconShieldCheck className="w-7 h-7 text-[#1e9a58]" />
+              </div>
+              <div>
+                <p className="font-bold text-[#1e9a58] text-sm mb-1">Secure Shopping</p>
+                <p className="text-gray-500 text-xs leading-relaxed">Your data and payments are 100% safe.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-5 min-h-[100px] sm:border-l border-gray-100 sm:pl-6 lg:pl-8">
+              <div className="w-14 h-14 bg-[#f4fbf7] rounded-full flex items-center justify-center shrink-0">
+                <IconTruck className="w-7 h-7 text-[#1e9a58]" />
+              </div>
+              <div>
+                <p className="font-bold text-[#1e9a58] text-sm mb-1">Fast Delivery</p>
+                <p className="text-gray-500 text-xs leading-relaxed">Get your order delivered on time, every time.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-5 min-h-[100px] lg:border-l border-gray-100 lg:pl-8">
+              <div className="w-14 h-14 bg-[#f4fbf7] rounded-full flex items-center justify-center shrink-0">
+                <IconRefresh className="w-7 h-7 text-[#1e9a58]" />
+              </div>
+              <div>
+                <p className="font-bold text-[#1e9a58] text-sm mb-1">Easy Returns</p>
+                <p className="text-gray-500 text-xs leading-relaxed">Hassle-free returns within 7 days.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-5 min-h-[100px] sm:border-l border-gray-100 sm:pl-6 lg:pl-8">
+              <div className="w-14 h-14 bg-[#f4fbf7] rounded-full flex items-center justify-center shrink-0">
+                <IconHeadset className="w-7 h-7 text-[#1e9a58]" />
+              </div>
+              <div>
+                <p className="font-bold text-[#1e9a58] text-sm mb-1">24/7 Support</p>
+                <p className="text-gray-500 text-xs leading-relaxed">We're always here to help you.</p>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     );

@@ -2,10 +2,14 @@
 import React, { useState, useCallback } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
-import { cn } from "@/lib/utils";
-import { useMotionTemplate, useMotionValue, motion } from "motion/react";
+import { 
+  IconUser, 
+  IconMail, 
+  IconPhone, 
+  IconTag, 
+  IconSend, 
+  IconLock 
+} from "@tabler/icons-react";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -34,10 +38,9 @@ function validateContactForm(data) {
 }
 
 const ContactForm = ({
-  title = "Get in Touch With Us",
-  subtitle = "Have questions about our products, orders, or fashion trends? Send us a message and our team will connect with you shortly. We're here to help you find your perfect style!",
+  title = "Send us a message",
+  subtitle = "Fill out the form below and we'll get back to you as soon as possible.",
   onSubmit,
-  className = " text-sm",
 }) => {
   const [formData, setFormData] = useState({
     name: "",
@@ -120,161 +123,111 @@ const ContactForm = ({
   );
 
   return (
-    <div
-      className={cn(
-        "w-full mt-12 sm:mt-16 md:mt-20 px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12",
-        className
-      )}
-    >
-      <div className="shadow-input w-full rounded-none bg-white p-4 sm:p-6 md:rounded-2xl md:p-8 dark:bg-black">
-        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">
-          {title}
-        </h2>
-        <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
-          {subtitle}
-        </p>
-        <form className="my-8" onSubmit={handleSubmit}>
-          <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
-            <LabelInputContainer>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="John Doe"
+    <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 min-h-full">
+      <h2 className="text-xl font-bold text-[#111827]">
+        {title}
+      </h2>
+      <p className="mt-1 text-sm text-gray-500 mb-8">
+        {subtitle}
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Name */}
+          <div className="flex flex-col space-y-1.5">
+            <label className="text-sm font-bold text-gray-700">Name</label>
+            <div className="relative">
+              <IconUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+              <input
                 type="text"
+                name="name"
                 value={formData.name}
                 onChange={handleChange}
-                autoComplete="name"
+                placeholder="John Doe"
+                className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
               />
-            </LabelInputContainer>
-            <LabelInputContainer>
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                name="email"
-                placeholder="you@example.com"
+            </div>
+          </div>
+
+          {/* Email */}
+          <div className="flex flex-col space-y-1.5">
+            <label className="text-sm font-bold text-gray-700">Email Address</label>
+            <div className="relative">
+              <IconMail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+              <input
                 type="email"
+                name="email"
                 value={formData.email}
                 onChange={handleChange}
-                autoComplete="email"
+                placeholder="you@example.com"
+                className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
               />
-            </LabelInputContainer>
+            </div>
           </div>
-          <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
-            <LabelInputContainer>
-              <Label htmlFor="phone">Phone (optional)</Label>
-              <Input
-                id="phone"
-                name="phone"
-                placeholder="+91 9876543210"
+
+          {/* Phone */}
+          <div className="flex flex-col space-y-1.5">
+            <label className="text-sm font-bold text-gray-700">Phone (optional)</label>
+            <div className="relative">
+              <IconPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+              <input
                 type="tel"
+                name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                autoComplete="tel"
+                placeholder="+91 98765 43210"
+                className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
               />
-            </LabelInputContainer>
-            <LabelInputContainer>
-              <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                name="subject"
-                placeholder="Product inquiry, Order support..."
+            </div>
+          </div>
+
+          {/* Subject */}
+          <div className="flex flex-col space-y-1.5">
+            <label className="text-sm font-bold text-gray-700">Subject</label>
+            <div className="relative">
+              <IconTag className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+              <input
                 type="text"
+                name="subject"
                 value={formData.subject}
                 onChange={handleChange}
+                placeholder="Product inquiry, Order support..."
+                className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
               />
-            </LabelInputContainer>
+            </div>
           </div>
-          <LabelInputContainer className="mb-4">
-            <Label htmlFor="message">Your Message</Label>
-            <Textarea
-              id="message"
-              name="message"
-              placeholder="Tell us about your fashion needs, product questions, or how we can help you find your perfect style..."
-              rows={6}
-              value={formData.message}
-              onChange={handleChange}
-            />
-          </LabelInputContainer>
+        </div>
 
-          <div className="flex justify-center">
-            <button
-              className="group/btn relative inline-flex h-10 min-h-10 min-w-[350px] items-center justify-center rounded-md bg-gradient-to-br from-black to-neutral-600 px-10 text-sm font-medium text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] disabled:cursor-not-allowed disabled:opacity-50"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting
-                ? "Sending your message…"
-                : "Send message to support"}
-              <BottomGradient />
-            </button>
+        {/* Message */}
+        <div className="flex flex-col space-y-1.5">
+          <label className="text-sm font-bold text-gray-700">Your Message</label>
+          <textarea
+            name="message"
+            value={formData.message}
+            onChange={handleChange}
+            rows={5}
+            placeholder="Tell us about your fashion needs, product questions, or how we can help you find your perfect style..."
+            className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58] resize-y"
+          />
+        </div>
+
+        {/* Submit */}
+        <div className="pt-2 flex flex-col items-center">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full md:w-[60%] lg:w-[50%] bg-[#1e9a58] hover:bg-green-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          >
+            <IconSend className="w-5 h-5" />
+            {isSubmitting ? "Sending..." : "Send message to support"}
+          </button>
+          <div className="flex items-center gap-1.5 mt-3 text-xs text-[#1e9a58] font-semibold">
+            <IconLock className="w-3.5 h-3.5" /> We typically reply within a few hours
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };
-
-const BottomGradient = () => {
-  return (
-    <>
-      <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-      <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
-    </>
-  );
-};
-
-const LabelInputContainer = ({ children, className }) => {
-  return (
-    <div className={cn("flex w-full flex-col space-y-2", className)}>
-      {children}
-    </div>
-  );
-};
-
-// Textarea component with Aceternity UI styling
-const Textarea = React.forwardRef(({ className, rows = 4, ...props }, ref) => {
-  const radius = 100;
-  const [visible, setVisible] = React.useState(false);
-  let mouseX = useMotionValue(0);
-  let mouseY = useMotionValue(0);
-
-  function handleMouseMove({ currentTarget, clientX, clientY }) {
-    let { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
-
-  return (
-    <motion.div
-      style={{
-        background: useMotionTemplate`
-            radial-gradient(
-              ${
-                visible ? radius + "px" : "0px"
-              } circle at ${mouseX}px ${mouseY}px,
-              #3b82f6,
-              transparent 80%
-            )
-          `,
-      }}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
-      className="group/input rounded-lg p-[2px] transition duration-300"
-    >
-      <textarea
-        ref={ref}
-        rows={rows}
-        className={cn(
-          `shadow-input dark:placeholder-text-neutral-600 flex w-full rounded-md border-none bg-gray-50 px-3 py-2 text-sm text-black transition duration-400 group-hover/input:shadow-none placeholder:text-neutral-400 focus-visible:ring-[2px] focus-visible:ring-neutral-400 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-800 dark:text-white dark:shadow-[0px_0px_1px_1px_#404040] dark:focus-visible:ring-neutral-600 resize-y`,
-          className
-        )}
-        {...props}
-      />
-    </motion.div>
-  );
-});
-Textarea.displayName = "Textarea";
 
 export default ContactForm;

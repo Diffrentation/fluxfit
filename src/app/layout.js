@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ConfigProvider } from "antd";
 import "./globals.css";
 import { Nav } from "@/components/Header/Nav";
 import AdminAccessNotice from "@/components/AdminAccessNotice";
@@ -37,25 +38,27 @@ export default function RootLayout({ children }) {
         className="antialiased"
         suppressHydrationWarning
       >
-        <ThemeProvider>
-          <AuthProvider>
-            <AppToasterShell />
-            <Suspense fallback={null}>
-              <AdminAccessNotice />
-            </Suspense>
-            <CustomDesignProvider>
-              <CartProvider>
-                <WishlistProvider>
-                  <RouteGuard>
-                    <Nav />
-                    {children}
-                    <ConditionalFooter />
-                  </RouteGuard>
-                </WishlistProvider>
-              </CartProvider>
-            </CustomDesignProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <ConfigProvider theme={{ token: { colorPrimary: '#1e9a58' } }}>
+          <ThemeProvider>
+            <AuthProvider>
+              <AppToasterShell />
+              <Suspense fallback={null}>
+                <AdminAccessNotice />
+              </Suspense>
+              <CustomDesignProvider>
+                <CartProvider>
+                  <WishlistProvider>
+                    <RouteGuard>
+                      <Nav />
+                      {children}
+                      <ConditionalFooter />
+                    </RouteGuard>
+                  </WishlistProvider>
+                </CartProvider>
+              </CustomDesignProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </ConfigProvider>
       </body>
     </html>
   );

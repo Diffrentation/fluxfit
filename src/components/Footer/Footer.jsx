@@ -147,12 +147,12 @@ const Footer = () => {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="w-full px-3 sm:px-4 py-2 bg-gray-800 dark:bg-gray-800 border border-gray-700 dark:border-gray-700 rounded-md text-white dark:text-white placeholder-gray-500 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent text-xs sm:text-sm"
+                className="w-full px-3 sm:px-4 py-2 bg-gray-800 dark:bg-gray-800 border border-gray-700 dark:border-gray-700 rounded-md text-white dark:text-white placeholder-gray-500 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:border-transparent text-xs sm:text-sm"
                 suppressHydrationWarning
               />
               <button
                 type="submit"
-                className="w-full px-3 sm:px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium"
+                className="w-full px-3 sm:px-4 py-2 bg-[#1e9a58] dark:bg-green-600 text-white rounded-md hover:bg-[#188149] dark:hover:bg-green-700 transition-colors text-xs sm:text-sm font-medium"
                 suppressHydrationWarning
               >
                 Subscribe

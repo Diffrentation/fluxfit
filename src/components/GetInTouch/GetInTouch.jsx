@@ -47,8 +47,26 @@ const GetInTouch = () => {
   ];
 
   return (
-    <section className="py-16 md:py-24 bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      <div className="container mx-auto px-4">
+    <section className="relative py-16 md:py-24 bg-gradient-to-b from-[#f4f8ff] to-[#e6f0fe] overflow-hidden">
+      {/* Background Decor Elements */}
+      
+      {/* Subtle Gradient Orbs */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
+        <div className="absolute top-0 left-10 w-[500px] h-[500px] bg-blue-300/20 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-0 right-10 w-[600px] h-[600px] bg-indigo-300/10 rounded-full blur-[120px]"></div>
+      </div>
+
+      {/* Dotted Pattern */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 2px)', backgroundSize: '30px 30px' }}></div>
+
+      {/* Top Wave Divider */}
+      <div className="absolute top-0 left-0 w-full h-[150px] md:h-[250px] pointer-events-none opacity-50 z-0 transform rotate-180 mix-blend-overlay">
+        <svg viewBox="0 0 1440 320" className="absolute bottom-0 left-0 w-full h-full" preserveAspectRatio="none">
+          <path fill="#ffffff" fillOpacity="1" d="M0,256L48,224C96,192,192,128,288,128C384,128,480,192,576,213.3C672,235,768,213,864,186.7C960,160,1056,128,1152,128C1248,128,1344,160,1392,176L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        </svg>
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -81,11 +99,11 @@ const GetInTouch = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-blue-300 group"
+                  className="relative overflow-hidden bg-gradient-to-b from-white/95 to-[#f8fafe]/95 backdrop-blur-md p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] transition-all duration-300 border border-white/60 hover:border-blue-200 group"
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-500 transition-colors duration-300">
-                      <Icon className="w-7 h-7 text-blue-600 group-hover:text-white transition-colors duration-300" />
+                    <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#1e9a58] transition-colors duration-300">
+                      <Icon className="w-7 h-7 text-green-600 group-hover:text-white transition-colors duration-300" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       {info.label}
@@ -108,7 +126,7 @@ const GetInTouch = () => {
           >
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-[#1e9a58] hover:bg-[#188149] text-white rounded-md font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl"
             >
               Send Us a Message
               <IconArrowRight className="w-5 h-5" />

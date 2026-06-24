@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { IconLock, IconEye, IconEyeOff, IconArrowRight, IconShieldLock } from "@tabler/icons-react";
 import axios from "axios";
+import AuthLayout from "@/components/auth/AuthLayout";
 
 function ChangePasswordContent() {
   const router = useRouter();
@@ -54,72 +55,81 @@ function ChangePasswordContent() {
   };
 
   return (
-    <div
-      className="
-        shadow-input mx-auto mt-16
-        w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[70vw] xl:w-[55vw] 2xl:w-[50vw]
-        max-w-5xl rounded-none bg-white p-6 md:rounded-2xl md:p-10 dark:bg-black
-      "
-    >
-      <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-200">
-        Change Your Password
-      </h2>
-
-      <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
-        Update your account password for better security.
-      </p>
-
-      <form className="mt-8" onSubmit={handleSubmit}>
-        {/* NEW PASSWORD */}
-        <LabelInputContainer className="mt-4">
-          <Label htmlFor="newPassword">New Password</Label>
-          <div className="relative">
-            <Input
-              id="newPassword"
-              name="newPassword"
-              type={showNew ? "text" : "password"}
-              placeholder="At least 6 characters"
-              required
-            />
-            <span
-              className="absolute right-3 top-3 cursor-pointer text-gray-600 dark:text-gray-300"
-              onClick={() => setShowNew(!showNew)}
-            >
-              {showNew ? <EyeOff size={20} /> : <Eye size={20} />}
-            </span>
+    <AuthLayout>
+      <div className="w-full">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-[#f4fbf7] flex items-center justify-center shrink-0">
+            <IconShieldLock className="w-5 h-5 text-[#1e9a58]" />
           </div>
-        </LabelInputContainer>
+          <h2 className="text-xl font-bold text-[#111827]">Change Password</h2>
+          <div className="flex-1 h-px bg-gray-100 ml-4"></div>
+        </div>
 
-        {/* CONFIRM PASSWORD */}
-        <LabelInputContainer className="mt-4">
-          <Label htmlFor="confirmPassword">Confirm New Password</Label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              name="confirmPassword"
-              type={showConfirm ? "text" : "password"}
-              placeholder="Re-type new password"
-              required
-            />
-            <span
-              className="absolute right-3 top-3 cursor-pointer text-gray-600 dark:text-gray-300"
-              onClick={() => setShowConfirm(!showConfirm)}
-            >
-              {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
-            </span>
+        <p className="mb-6 text-sm text-neutral-600 dark:text-neutral-300">
+          Update your account password for better security.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* NEW PASSWORD */}
+          <div className="flex flex-col space-y-1.5 mb-5">
+            <Label htmlFor="newPassword" className="text-sm font-bold text-gray-700 mb-1">
+              New Password
+            </Label>
+            <div className="relative">
+              <IconLock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+              <Input
+                id="newPassword"
+                name="newPassword"
+                type={showNew ? "text" : "password"}
+                placeholder="At least 6 characters"
+                required
+                className="pl-11 pr-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base font-mono tracking-widest"
+              />
+              <button
+                type="button"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => setShowNew(!showNew)}
+              >
+                {showNew ? <IconEye className="w-5 h-5" /> : <IconEyeOff className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
-        </LabelInputContainer>
 
-        <button
-          disabled={loading}
-          className="group/btn mt-6 relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-700 font-medium text-white"
-          type="submit"
-        >
-          {loading ? "Processing..." : "Change Password →"}
-          <BottomGradient />
-        </button>
-      </form>
-    </div>
+          {/* CONFIRM PASSWORD */}
+          <div className="flex flex-col space-y-1.5 mb-8">
+            <Label htmlFor="confirmPassword" className="text-sm font-bold text-gray-700 mb-1">
+              Confirm New Password
+            </Label>
+            <div className="relative">
+              <IconLock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirm ? "text" : "password"}
+                placeholder="Re-type new password"
+                required
+                className="pl-11 pr-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base font-mono tracking-widest"
+              />
+              <button
+                type="button"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => setShowConfirm(!showConfirm)}
+              >
+                {showConfirm ? <IconEye className="w-5 h-5" /> : <IconEyeOff className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            disabled={loading}
+            className="w-full bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_4px_14px_0_rgba(30,154,88,0.39)] disabled:opacity-50 disabled:cursor-not-allowed"
+            type="submit"
+          >
+            {loading ? "Processing..." : "Change Password"} <IconArrowRight className="w-5 h-5" />
+          </button>
+        </form>
+      </div>
+    </AuthLayout>
   );
 }
 
@@ -144,15 +154,4 @@ export default function ChangePassword() {
   );
 }
 
-const BottomGradient = () => (
-  <>
-    <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
-  </>
-);
 
-const LabelInputContainer = ({ children, className }) => (
-  <div className={cn("flex w-full flex-col space-y-2", className)}>
-    {children}
-  </div>
-);

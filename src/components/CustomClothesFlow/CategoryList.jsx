@@ -30,7 +30,7 @@ function CategoryMenuItem({ category, activeCategoryId, onSelect, depth = 0 }) {
           "w-full flex items-center justify-between transition-colors duration-200 font-medium",
           isTopLevel ? "px-3 py-2.5 rounded-xl text-sm" : "px-3 py-2 rounded-lg text-sm",
           isActive
-            ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-indigo-900/30"
+            ? "bg-[#1e9a58] text-white shadow-md shadow-[#1e9a58]/30"
             : isHovered
             ? "bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-white"
             : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700",
@@ -42,10 +42,10 @@ function CategoryMenuItem({ category, activeCategoryId, onSelect, depth = 0 }) {
             size={16}
             className={
               isActive
-                ? "text-indigo-200"
+                ? "text-green-200"
                 : isHovered
-                ? "text-gray-600 dark:text-gray-300"
-                : "text-gray-400 dark:text-gray-500"
+                ? "text-gray-600"
+                : "text-gray-400"
             }
           />
         )}

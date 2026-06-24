@@ -202,7 +202,7 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
           onClick={() => handleSelect(null)}
           className={`text-sm font-medium transition-colors pb-2 relative whitespace-nowrap ${
             !selectedId
-              ? "text-gray-900"
+              ? "text-[#1e9a58]"
               : "text-gray-500 hover:text-gray-700"
           }`}
           suppressHydrationWarning
@@ -211,7 +211,7 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
           {!selectedId && (
             <motion.span
               layoutId="activeCategory"
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"
+              className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#1e9a58]"
               initial={false}
               transition={{
                 type: "spring",
@@ -251,7 +251,7 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
               }}
               className={`text-sm font-medium transition-colors pb-2 relative whitespace-nowrap flex items-center gap-2 ${
                 isSelected || openThisRoot || isInPath
-                  ? "text-gray-900"
+                  ? "text-[#1e9a58]"
                   : "text-gray-500 hover:text-gray-700"
               }`}
               aria-haspopup={hasChildren(rootId) ? "menu" : undefined}
@@ -266,7 +266,7 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
               {isSelected && (
                 <motion.span
                   layoutId="activeCategory"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#1e9a58]"
                   initial={false}
                   transition={{
                     type: "spring",
@@ -332,7 +332,7 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
                               }}
                               className={`w-full text-left px-2 py-1.5 rounded-md transition-colors ${
                                 isSelected
-                                  ? "bg-blue-50 dark:bg-blue-900/30 text-gray-900 dark:text-white"
+                                  ? "bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-white"
                                   : "hover:bg-gray-50 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-200"
                               }`}
                             >

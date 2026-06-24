@@ -7,6 +7,7 @@ import {
   useScroll,
   useMotionValueEvent,
 } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 import React, { useRef, useState } from "react";
 
@@ -72,32 +73,53 @@ export const NavBody = ({ children, className, visible }) => {
 
 export const NavItems = ({ items, className, onItemClick }) => {
   const [hovered, setHovered] = useState(null);
+  const pathname = usePathname();
+
+  const isActive = (link) => {
+    if (link === "/") {
+      return pathname === "/";
+    }
+    // Remove query params from link for comparison
+    const linkPath = link.split('?')[0];
+    return pathname?.startsWith(linkPath);
+  };
 
   return (
     <motion.div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center lg:mr-64 justify-center space-x-2 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 lg:flex lg:space-x-2",
+        "absolute inset-0 hidden flex-1 flex-row items-center lg:mr-64 justify-center space-x-2 text-sm font-medium text-zinc-600 transition duration-200 lg:flex lg:space-x-2",
         className
       )}
     >
-      {items.map((item, idx) => (
-        <a
-          onMouseEnter={() => setHovered(idx)}
-          onClick={onItemClick}
-          className="relative px-4 py-2 text-neutral-600 dark:text-neutral-300"
-          key={`link-${idx}`}
-          href={item.link}
-        >
-          {hovered === idx && (
-            <motion.div
-              layoutId="hovered"
-              className="absolute inset-0 h-full w-full rounded-full bg-gray-100 dark:bg-neutral-800"
-            />
-          )}
-          <span className="relative z-20">{item.name}</span>
-        </a>
-      ))}
+      {items.map((item, idx) => {
+        const active = isActive(item.link);
+        return (
+          <a
+            onMouseEnter={() => setHovered(idx)}
+            onClick={onItemClick}
+            className={cn(
+              "relative px-4 py-2 transition-colors flex flex-col items-center",
+              (hovered === idx || active) ? "text-[#1e9a58]" : "text-neutral-600 dark:text-neutral-300"
+            )}
+            key={`link-${idx}`}
+            href={item.link}
+          >
+            {/* Active/Hover Background */}
+            {(hovered === idx || active) && (
+              <motion.div
+                layoutId={hovered === idx ? "hovered" : undefined}
+                className="absolute inset-0 h-full w-full rounded-full bg-[#f4fbf7] border border-[#1e9a58] dark:bg-green-900/20 dark:border-green-500"
+              />
+            )}
+            <span className="relative z-20">{item.name}</span>
+            {/* Active Dot */}
+            {active && (
+              <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#1e9a58] z-20"></span>
+            )}
+          </a>
+        );
+      })}
     </motion.div>
   );
 };
@@ -176,16 +198,14 @@ export const MobileNavToggle = ({ isOpen, onClick }) => {
 export const NavbarLogo = () => {
   return (
     <a
-      href="#"
-      className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal text-black"
+      href="/"
+      className="relative z-20 mr-4 flex items-center px-2 py-1"
     >
       <img
-        src="https://assets.aceternity.com/logo-dark.png"
-        alt="logo"
-        width={30}
-        height={30}
+        src="/logo.png"
+        alt="FluxFit Logo"
+        className="h-10 w-auto object-contain"
       />
-      <span className="font-medium text-black dark:text-white">Startup</span>
     </a>
   );
 };
@@ -205,6 +225,7 @@ export const NavbarButton = ({
     primary:
       "shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
     secondary: "bg-transparent shadow-none dark:text-white",
+    "outline-green": "bg-transparent text-[#1e9a58] border border-[#1e9a58] shadow-sm hover:bg-[#f4fbf7] font-bold px-5",
     dark: "bg-black text-white shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
     gradient:
       "bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset]",

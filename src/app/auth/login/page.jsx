@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FaRegEyeSlash, FaRegEye } from "react-icons/fa6";
+import { IconMail, IconLock, IconEye, IconEyeOff, IconArrowRight, IconUser } from "@tabler/icons-react";
+import AuthLayout from "@/components/auth/AuthLayout";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
@@ -68,94 +69,99 @@ function Login() {
   const handleforgotPass = () => router.push("/auth/forgot-password");
 
   return (
-    <div
-      className="
-        shadow-input mx-auto mt-20 sm:mt-24 md:mt-26
-        w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[70vw] xl:w-[55vw] 2xl:w-[50vw]
-        max-w-5xl rounded-lg sm:rounded-xl md:rounded-2xl bg-white p-4 sm:p-6 md:p-8 lg:p-10 dark:bg-black
-      "
-    >
-      {/* Logo */}
-      <div className="flex flex-col items-center mb-6 sm:mb-8">
-        {!logoError ? (
-          <>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-400 dark:text-gray-400">
-              <span className="text-gray-500 dark:text-gray-400">
-                Welcome Back to{" "}
-              </span>{" "}
-              FluxFit
-            </h2>
-          </>
-        ) : (
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 dark:text-neutral-200">
-            FluxFit
-          </h2>
-        )}
-      </div>
-      <form className="mt-8" onSubmit={handleSubmit}>
-        <LabelInputContainer>
-          <Label htmlFor="email">Email Address</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </LabelInputContainer>
+    <AuthLayout>
+      <form onSubmit={handleSubmit} className="space-y-6 w-full">
+        
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-[#f4fbf7] flex items-center justify-center shrink-0">
+              <IconUser className="w-5 h-5 text-[#1e9a58]" />
+            </div>
+            <h2 className="text-xl font-bold text-[#111827]">Welcome Back</h2>
+            <div className="flex-1 h-px bg-gray-100 ml-4"></div>
+          </div>
+          
+          <LabelInputContainer className="mb-5">
+            <Label htmlFor="email" className="text-sm font-bold text-gray-700 mb-1">Email Address</Label>
+            <div className="relative">
+              <IconMail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+              />
+            </div>
+          </LabelInputContainer>
 
-        <LabelInputContainer className="mt-4 relative">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type={showPass ? "text" : "password"}
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <LabelInputContainer className="mb-2">
+            <Label htmlFor="password" className="text-sm font-bold text-gray-700 mb-1">Password</Label>
+            <div className="relative">
+              <IconLock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+              <Input
+                id="password"
+                type={showPass ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="pl-11 pr-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base font-mono tracking-widest"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showPass ? <IconEye className="w-5 h-5" /> : <IconEyeOff className="w-5 h-5" />}
+              </button>
+            </div>
+          </LabelInputContainer>
 
-          <button
-            type="button"
-            onClick={() => setShowPass(!showPass)}
-            className="absolute top-1/2 right-4 cursor-pointer"
-          >
-            {showPass ? <FaRegEye /> : <FaRegEyeSlash />}
-          </button>
-        </LabelInputContainer>
+          <div className="flex justify-end mb-8">
+            <button
+              type="button"
+              className="text-sm font-bold text-[#1e9a58] hover:underline"
+              onClick={handleforgotPass}
+            >
+              Forgot Password?
+            </button>
+          </div>
+        </div>
 
-        <p
-          className="text-right text-sm text-blue-600 cursor-pointer mt-2"
-          onClick={handleforgotPass}
-        >
-          Forgot Password?
-        </p>
-
+        {/* Submit Button */}
         <button
-          className="group/btn mt-6 relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-700 font-medium text-white"
-          type="submit"
           disabled={loading}
+          className="w-full bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_4px_14px_0_rgba(30,154,88,0.39)] disabled:opacity-50 disabled:cursor-not-allowed"
+          type="submit"
         >
-          {loading ? "Logging in..." : "Log in →"}
-          <BottomGradient />
+          {loading ? "Logging in..." : "Log in"} <IconArrowRight className="w-5 h-5" />
         </button>
 
-        <div className="my-8 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
-
-        <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mt-6">
-          Don&apos;t have an account?{" "}
-          <span
-            className="underline cursor-pointer text-blue-600"
+        <div className="w-full h-px bg-gray-100 my-6"></div>
+        
+        <p className="text-center text-sm font-medium text-gray-500">
+          Don't have an account?{" "}
+          <button
+            type="button"
+            className="font-bold text-[#1e9a58] hover:underline ml-1"
             onClick={handleSignup}
           >
             Sign up
-          </span>
+          </button>
         </p>
       </form>
-    </div>
+    </AuthLayout>
   );
 }
+
+const LabelInputContainer = ({ children, className }) => (
+  <div className={cn("flex w-full flex-col space-y-1.5", className)}>
+    {children}
+  </div>
+);
 
 export default function LoginPage() {
   return (
@@ -165,15 +171,4 @@ export default function LoginPage() {
   );
 }
 
-const BottomGradient = () => (
-  <>
-    <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
-  </>
-);
 
-const LabelInputContainer = ({ children, className }) => (
-  <div className={cn("flex w-full flex-col space-y-2", className)}>
-    {children}
-  </div>
-);

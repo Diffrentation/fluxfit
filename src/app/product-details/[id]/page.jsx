@@ -18,6 +18,25 @@ import {
   IconCheck,
   IconArrowUp,
   IconThumbUp,
+  IconActivity,
+  IconBattery,
+  IconBluetooth,
+  IconLeaf,
+  IconLock,
+  IconFileDescription,
+  IconStars,
+  IconMessageCircleQuestion,
+  IconWiperWash,
+  IconMedal,
+  IconMoonStars,
+  IconScissors,
+  IconWashMachine,
+  IconReceipt,
+  IconPackage,
+  IconShield,
+  IconQrcode,
+  IconChevronDown,
+  IconCircleCheck,
 } from "@tabler/icons-react";
 import { Button, message, Spin } from "antd";
 import { useCart } from "@/context/CartContext";
@@ -76,6 +95,27 @@ function ProductDetails() {
   const [newReviewComment, setNewReviewComment] = useState("");
   const [submitReviewLoading, setSubmitReviewLoading] = useState(false);
   const [isReviewAuth, setIsReviewAuth] = useState(false);
+  const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+
+  const ratingOptions = [
+    { label: "All Ratings", value: "" },
+    { label: "5 stars", value: "5" },
+    { label: "4 stars", value: "4" },
+    { label: "3 stars", value: "3" },
+    { label: "2 stars", value: "2" },
+    { label: "1 star", value: "1" },
+  ];
+  const [activeSection, setActiveSection] = useState("overview");
+
+  const scrollToSection = (id) => {
+    setActiveSection(id);
+    const element = document.getElementById(id);
+    if (element) {
+      const yOffset = -120; // Account for sticky navbar
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
 
   const isOtherThanCurrentProduct = (p, routeParam, excludeProduct) => {
     const pid = String(p._id || p.id || "");
@@ -518,12 +558,27 @@ function ProductDetails() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-10">
+    <div className="bg-gray-50 min-h-screen pt-10 relative overflow-hidden">
+      
+      {/* Background Decor Elements */}
+      <div className="absolute top-10 right-10 grid grid-cols-4 gap-3 opacity-20 pointer-events-none z-0">
+        {[...Array(16)].map((_, i) => (
+          <div key={i} className="w-2 h-2 bg-[#1e9a58] rounded-full"></div>
+        ))}
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full h-[300px] pointer-events-none opacity-40 z-0">
+        <svg viewBox="0 0 1440 320" className="absolute bottom-0 left-0 w-full h-full" preserveAspectRatio="none">
+          <path fill="#eaf5ef" fillOpacity="1" d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,165.3C672,171,768,213,864,224C960,235,1056,213,1152,192C1248,171,1344,149,1392,138.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+          <path fill="#f4fbf7" fillOpacity="0.5" d="M0,256L48,245.3C96,235,192,213,288,208C384,203,480,213,576,213C672,213,768,203,864,197.3C960,192,1056,192,1152,208C1248,224,1344,256,1392,272L1440,288L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        </svg>
+      </div>
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="container mx-auto px-4 py-6"
+        className="container mx-auto px-4 py-6 relative z-10"
       >
         {/* Breadcrumb */}
         <motion.div
@@ -543,414 +598,237 @@ function ProductDetails() {
           <span className="text-gray-900">{product.category || "—"}</span>
           <span>/</span>
           <span className="text-gray-900">{product.name}</span>
-        </motion.div>
-
-        {/* Main Product Section */}
+        </motion.div>        {/* Main Product Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white rounded-lg shadow-sm p-6 mb-6"
+          className="bg-white rounded-3xl shadow-md p-6 lg:p-8 mb-8"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Product Images - Left Side with Vertical Thumbnails (Sticky) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 relative items-start">
+            {/* Left Column (Image) */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
-              className="lg:col-span-5"
+              className="lg:col-span-6 relative bg-[#fafcfb] rounded-2xl p-6 lg:p-10 flex flex-col items-center justify-center h-[400px] lg:h-[500px] lg:sticky lg:top-24"
             >
-              <div className="sticky top-24">
-                <div className="flex gap-4">
-                  {/* Vertical Thumbnail Strip */}
-                  {product.images.length > 1 && (
-                    <div className="flex flex-col gap-3">
-                      {product.images.map((image, index) => (
-                        <motion.button
-                          key={index}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{
-                            duration: 0.2,
-                            delay: 0.4 + index * 0.05,
-                          }}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setSelectedImage(index)}
-                          className={`relative w-16 h-16 rounded border-2 overflow-hidden transition-all ${
-                            selectedImage === index
-                              ? "border-blue-500 shadow-md"
-                              : "border-gray-300 hover:border-gray-400"
-                          }`}
-                        >
-                          <Image
-                            src={image}
-                            alt={`${product.name} view ${index + 1}`}
-                            fill
-                            className="object-cover"
-                          />
-                        </motion.button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Main Image */}
-                  <motion.div
-                    key={selectedImage}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex-1 relative w-full h-[500px] lg:h-[600px] bg-gray-50 rounded-lg overflow-hidden border border-gray-200"
-                  >
-                    <Image
-                      src={product.images[selectedImage]}
-                      alt={product.name}
-                      fill
-                      className="object-contain p-4"
-                      priority
-                    />
-                  </motion.div>
+              {displayPricing.discountPercent > 0 && (
+                <div className="absolute top-6 left-6 z-10 bg-[#1e9a58] text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                  -{displayPricing.discountPercent}%
                 </div>
-              </div>
+              )}
+              
+              <motion.div
+                key={selectedImage}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="relative w-full h-full"
+              >
+                <Image
+                  src={product.images[selectedImage]}
+                  alt={product.name}
+                  fill
+                  className="object-contain drop-shadow-2xl"
+                  priority
+                />
+              </motion.div>
+
+              {/* Pagination Dots */}
+              {product.images.length > 1 && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
+                  {product.images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedImage(idx)}
+                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                        selectedImage === idx ? "bg-[#1e9a58] scale-110" : "bg-gray-300 hover:bg-gray-400"
+                      }`}
+                      aria-label={`View image ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.div>
 
-            {/* Product Info - Right Side (Scrollable) */}
+            {/* Right Column (Info) */}
             <motion.div
               ref={infoSectionRef}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
-              className="lg:col-span-7 space-y-6 max-h-[calc(100vh-8rem)] overflow-y-auto pr-2"
-              style={{ scrollbarWidth: "thin" }}
+              className="lg:col-span-6 flex flex-col space-y-6"
             >
-              {/* Product Title */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
-              >
-                <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900 mb-3">
+              {/* Badges Row */}
+              <div className="flex items-center justify-between">
+                <div className="inline-flex items-center gap-1.5 bg-[#e4f7ed] text-[#1e9a58] px-3 py-1.5 rounded-full text-sm font-bold">
+                  <IconStarFilled className="w-4 h-4" />
+                  Best Seller
+                </div>
+                <button
+                  onClick={toggleWishlist}
+                  className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:shadow-sm transition-all"
+                >
+                  <IconHeart className={`w-5 h-5 ${productWishlisted ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
+                </button>
+              </div>
+
+              {/* Title & Subtitle */}
+              <div>
+                <h1 className="text-3xl lg:text-4xl font-extrabold text-[#0d1c2f] mb-2 leading-tight">
                   {product.name}
                 </h1>
-                <div className="flex items-center gap-4">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: 0.5 }}
-                    className="flex items-center gap-1 bg-green-100 px-3 py-1 rounded"
-                  >
-                    <span className="text-green-700 font-semibold">
-                      {product.rating}
-                    </span>
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, scale: 0 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.2, delay: 0.6 + i * 0.05 }}
-                        >
-                          <IconStarFilled
-                            className={`w-4 h-4 ${
-                              i < Math.floor(product.rating)
-                                ? "text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        </motion.div>
-                      ))}
-                    </div>
-                    <span className="text-green-700 text-sm ml-2">
-                      ({product.reviews} Reviews)
-                    </span>
-                  </motion.div>
-                </div>
-              </motion.div>
-
-              {/* Price Section (updates when size / color variant changes) */}
-              <div className="border-b border-gray-200 pb-4">
-                <div className="flex items-baseline gap-3 mb-2">
-                  <span className="text-3xl lg:text-4xl font-bold text-gray-900">
-                    ₹{formatPrice(displayPricing.price)}
-                  </span>
-                  {displayPricing.originalPrice != null && (
-                    <>
-                      <span className="text-xl text-gray-500 line-through">
-                        ₹{formatPrice(displayPricing.originalPrice)}
-                      </span>
-                      {displayPricing.discountPercent > 0 && (
-                        <span className="px-2 py-1 bg-red-100 text-red-600 rounded text-sm font-semibold">
-                          {displayPricing.discountPercent}% off
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600">Inclusive of all taxes</p>
+                <p className="text-gray-500 text-base">
+                  {product.description?.length > 80 ? product.description.substring(0, 80) + "..." : product.description || "Premium quality. Unmatched comfort."}
+                </p>
               </div>
 
-              {/* Key Highlights */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">
-                  Key Highlights
-                </h3>
-                <ul className="space-y-2">
-                  {product.features.slice(0, 4).map((feature, index) => (
-                    <li
-                      key={index}
-                      className="flex items-start gap-2 text-sm text-gray-700"
-                    >
-                      <IconCheck className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                      <span>{feature}</span>
-                    </li>
+              {/* Rating */}
+              <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <IconStarFilled
+                      key={i}
+                      className={`w-5 h-5 ${i < Math.floor(product.rating || 5) ? "text-[#1e9a58]" : "text-gray-200"}`}
+                    />
                   ))}
-                </ul>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+                  <span className="text-[#1e9a58] font-bold">{product.rating || 4.6}</span>
+                  <span className="text-gray-300">|</span>
+                  <span>{product.reviews || 128} reviews</span>
+                </div>
               </div>
 
-              {/* Size Selection */}
-              {product.sizes.length > 0 && product.sizes[0] !== "One Size" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
+              {/* Pricing */}
+              <div className="flex items-baseline gap-4 py-2">
+                <span className="text-4xl lg:text-5xl font-black text-[#0d1c2f]">
+                  ₹{formatPrice(displayPricing.price)}
+                </span>
+                {displayPricing.originalPrice != null && (
+                  <span className="text-xl font-bold text-gray-400 line-through">
+                    ₹{formatPrice(displayPricing.originalPrice)}
+                  </span>
+                )}
+              </div>
+
+              {/* Features Grid */}
+              <div className="grid grid-cols-4 gap-4 py-4 border-y border-gray-100">
+                {[
+                  { icon: IconActivity, title: "High Fidelity", sub: "Sound" },
+                  { icon: IconBattery, title: "40H Playtime", sub: "Battery" },
+                  { icon: IconBluetooth, title: "Bluetooth 5.3", sub: "Connectivity" },
+                  { icon: IconLeaf, title: "Ultra Lightweight", sub: "Design" },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex flex-col items-center text-center gap-1">
+                    <item.icon className="w-6 h-6 text-[#1e9a58] mb-1" />
+                    <span className="text-xs font-bold text-[#0d1c2f] leading-tight">{item.title}</span>
+                    <span className="text-[10px] font-medium text-gray-500">{item.sub}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Color Selector */}
+              {product.colors && product.colors.length > 0 && (
+                <div className="py-2 flex items-center gap-4">
+                  <div className="text-sm font-bold text-[#0d1c2f]">
+                    Color: <span className="text-gray-500 font-medium ml-1 capitalize">{selectedColor || product.colors[0]}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {product.colors.map((color) => {
+                      const isSelected = selectedColor === color;
+                      return (
+                        <button
+                          key={color}
+                          onClick={() => handleColorSelect(color)}
+                          className={`relative w-14 h-8 rounded-lg ${colorMap[color.toLowerCase()] || "bg-gray-200"} flex items-center justify-center transition-all ${
+                            isSelected ? "ring-2 ring-[#1e9a58] ring-offset-2 scale-110" : "border-2 border-transparent hover:scale-105"
+                          }`}
+                          aria-label={color}
+                          title={color}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Size Selector if colors absent but sizes present, or we can just omit it as mockup didn't show size */}
+              {product.sizes && product.sizes.length > 0 && product.sizes[0] !== "One Size" && product.colors.length === 0 && (
+                <div className="py-2">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-gray-900">
-                      Select Size
-                    </label>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      Size Guide
-                    </motion.button>
+                    <label className="text-sm font-bold text-[#0d1c2f]">Size</label>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {product.sizes.map((size, index) => (
-                      <motion.button
+                    {product.sizes.map((size) => (
+                      <button
                         key={size}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
                         onClick={() => handleSizeSelect(size)}
-                        className={`px-4 py-2 border-2 rounded font-medium text-sm transition-all ${
+                        className={`px-4 py-2 border-2 rounded-lg font-bold text-sm transition-all ${
                           selectedSize === size
-                            ? "border-blue-500 bg-blue-50 text-blue-700"
-                            : "border-gray-300 text-gray-700 hover:border-gray-400"
+                            ? "border-[#1e9a58] bg-[#f4fbf7] text-[#1e9a58]"
+                            : "border-gray-200 text-gray-600 hover:border-gray-300"
                         }`}
                       >
                         {size}
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
-                </motion.div>
+                </div>
               )}
 
-              {/* Color Selection */}
-              {product.colors.length > 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+              {/* Action Buttons */}
+              <div className="flex items-center gap-4 pt-4 w-full">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!displayPricing.inStock}
+                  className="flex-1 h-14 bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-lg rounded-xl flex items-center justify-center gap-2 border-none transition-colors disabled:bg-gray-300 disabled:text-gray-500 w-full"
                 >
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">
-                    Select Color
-                  </label>
-                  <div className="flex gap-3 ml-2">
-                    {product.colors.map((color, index) => (
-                      <motion.button
-                        key={color}
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleColorSelect(color)}
-                        className={`w-10 h-10 rounded-full ${
-                          colorMap[color] || "bg-gray-200"
-                        } border-2 transition-all ${
-                          selectedColor === color
-                            ? "ring-2 ring-blue-500 ring-offset-2 scale-110"
-                            : "border-gray-300"
-                        }`}
-                        aria-label={color}
-                        title={color}
-                      />
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Delivery & Offers Section */}
-              <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <IconTruck className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-gray-900">Free Delivery</p>
-                    <p className="text-sm text-gray-600">{product.shipping}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <IconShieldCheck className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-gray-900">Warranty</p>
-                    <p className="text-sm text-gray-600">
-                      {product.returnPolicy}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <IconRefresh className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      7 Day Replacement
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Easy return and replacement policy
-                    </p>
-                  </div>
-                </div>
+                  {displayPricing.inStock && <IconShoppingCart className="w-6 h-6" />}
+                  {displayPricing.inStock ? "Add to Cart" : "Out of Stock"}
+                </button>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!displayPricing.inStock}
+                  className="flex-1 h-14 bg-white border border-[#1e9a58] text-[#1e9a58] hover:bg-[#e4f7ed] font-bold text-lg rounded-xl transition-colors disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 w-full"
+                >
+                  {displayPricing.inStock ? "Buy Now" : "Out of Stock"}
+                </button>
               </div>
-
-              {/* Quantity and Actions */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Quantity
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex items-center border-2 border-gray-300 rounded"
-                    >
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="p-2 hover:bg-gray-100 transition-colors"
-                      >
-                        <IconMinus className="w-5 h-5" />
-                      </motion.button>
-                      <motion.span
-                        key={quantity}
-                        initial={{ scale: 1.2 }}
-                        animate={{ scale: 1 }}
-                        className="px-6 py-2 font-semibold text-gray-900 min-w-[60px] text-center border-x border-gray-300"
-                      >
-                        {quantity}
-                      </motion.span>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="p-2 hover:bg-gray-100 transition-colors"
-                      >
-                        <IconPlus className="w-5 h-5" />
-                      </motion.button>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center gap-2 text-sm text-gray-600"
-                    >
-                      {product.inStock ? (
-                        <>
-                          <motion.span
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{
-                              duration: 0.5,
-                              repeat: Infinity,
-                              repeatDelay: 2,
-                            }}
-                            className="w-2 h-2 bg-green-500 rounded-full"
-                          ></motion.span>
-                          <span>In Stock ({product.stock} available)</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                          <span className="text-red-600">Out of Stock</span>
-                        </>
-                      )}
-                    </motion.div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-wrap gap-4"
-                >
-                  <Button
-                    size="large"
-                    onClick={handleAddToCart}
-                    className={`flex items-center justify-center gap-2 border-2 px-8 ${!displayPricing.inStock ? "border-gray-300 text-gray-400 bg-gray-50" : "border-blue-500 text-blue-600 hover:bg-blue-50"}`}
-                    disabled={!displayPricing.inStock}
-                    icon={!displayPricing.inStock ? null : <IconShoppingCart className="w-5 h-5" />}
-                  >
-                    {!displayPricing.inStock ? "OUT OF STOCK" : "ADD TO CART"}
-                  </Button>
-                  <Button
-                    type={!displayPricing.inStock ? "default" : "primary"}
-                    size="large"
-                    onClick={handleAddToCart}
-                    className="px-8"
-                    disabled={!displayPricing.inStock}
-                  >
-                    {!displayPricing.inStock ? "OUT OF STOCK" : "BUY NOW"}
-                  </Button>
-                  <AddCustomDesignButton
-                    onClick={handleAddCustomDesign}
-                    disabled={!displayPricing.inStock}
-                  />
-                </motion.div>
-
-                {/* Wishlist and Share */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-4 pt-2"
-                >
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={toggleWishlist}
-                    className={`flex items-center gap-2 px-4 py-2 border-2 rounded transition-colors ${
-                      productWishlisted
-                        ? "border-red-500 bg-red-50 text-red-600"
-                        : "border-gray-300 text-gray-700 hover:border-gray-400"
-                    }`}
-                  >
-                    <motion.div
-                      animate={productWishlisted ? { scale: [1, 1.3, 1] } : {}}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <IconHeart
-                        className={`w-5 h-5 ${
-                          productWishlisted ? "fill-red-500 text-red-500" : ""
-                        }`}
-                      />
-                    </motion.div>
-                    <span className="text-sm font-medium">
-                      {productWishlisted ? "Wishlisted" : "Wishlist"}
-                    </span>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded text-gray-700 hover:border-gray-400 transition-colors"
-                  >
-                    <IconShare className="w-5 h-5" />
-                    <span className="text-sm font-medium">Share</span>
-                  </motion.button>
-                </motion.div>
-              </motion.div>
             </motion.div>
+          </div>
+
+          {/* Bottom Benefits Bar */}
+          <div className="mt-10 pt-8 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="flex items-center gap-3">
+              <IconTruck className="w-8 h-8 text-[#1e9a58]" />
+              <div>
+                <p className="text-sm font-bold text-[#0d1c2f]">Free Shipping</p>
+                <p className="text-xs text-gray-500 font-medium">On orders over $50</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <IconShieldCheck className="w-8 h-8 text-[#1e9a58]" />
+              <div>
+                <p className="text-sm font-bold text-[#0d1c2f]">2 Years Warranty</p>
+                <p className="text-xs text-gray-500 font-medium">Quality Assured</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <IconRefresh className="w-8 h-8 text-[#1e9a58]" />
+              <div>
+                <p className="text-sm font-bold text-[#0d1c2f]">30 Days Returns</p>
+                <p className="text-xs text-gray-500 font-medium">Hassle Free</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <IconLock className="w-8 h-8 text-[#1e9a58]" />
+              <div>
+                <p className="text-sm font-bold text-[#0d1c2f]">Secure Payment</p>
+                <p className="text-xs text-gray-500 font-medium">100% Protected</p>
+              </div>
+            </div>
           </div>
         </motion.div>
 
@@ -964,7 +842,7 @@ function ProductDetails() {
               whileHover={{ scale: 1.1, y: -2 }}
               whileTap={{ scale: 0.9 }}
               onClick={scrollToTop}
-              className="fixed bottom-8 right-8 z-50 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+              className="fixed bottom-8 right-8 z-50 p-3 bg-[#1e9a58] text-white rounded-full shadow-lg hover:bg-green-700 transition-colors"
               aria-label="Scroll to top"
             >
               <IconArrowUp className="w-6 h-6" />
@@ -979,36 +857,47 @@ function ProductDetails() {
           transition={{ duration: 0.4, delay: 1.2 }}
           className="bg-white rounded-lg shadow-sm p-6"
         >
-          <div className="flex gap-8 mb-6 border-b border-gray-200">
-            {["description", "features", "shipping", "reviews"].map((tab, index) => (
-              <motion.button
-                key={tab}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: 1.3 + index * 0.1 }}
-                whileHover={{ y: -2 }}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-3 px-2 capitalize font-semibold text-sm transition-colors relative ${
-                  activeTab === tab
-                    ? "text-blue-600"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                {tab}
-                {activeTab === tab && (
-                  <motion.span
-                    layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                    initial={false}
-                    transition={{
-                      type: "spring",
-                      stiffness: 380,
-                      damping: 30,
-                    }}
-                  />
-                )}
-              </motion.button>
-            ))}
+          <div className="flex flex-wrap gap-x-8 gap-y-4 mb-6 border-b border-gray-200">
+            {[
+              { id: "description", label: "Description", icon: IconFileDescription },
+              { id: "features", label: "Features", icon: IconStars },
+              { id: "shipping", label: "Shipping", icon: IconTruck },
+              { id: "reviews", label: "Reviews", icon: IconStar },
+              { id: "qa", label: "Q&A", icon: IconMessageCircleQuestion },
+              { id: "care", label: "Care Guide", icon: IconWiperWash },
+            ].map((tab, index) => {
+              const Icon = tab.icon;
+              return (
+                <motion.button
+                  key={tab.id}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: 1.3 + index * 0.1 }}
+                  whileHover={{ y: -2 }}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`pb-3 px-2 flex items-center gap-2 font-bold text-sm transition-colors relative ${
+                    activeTab === tab.id
+                      ? "text-[#1e9a58]"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" stroke={2.5} />
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <motion.span
+                      layoutId="activeTab"
+                      className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1e9a58] rounded-t-full"
+                      initial={false}
+                      transition={{
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
 
           <AnimatePresence mode="wait">
@@ -1021,215 +910,554 @@ function ProductDetails() {
               className="mt-6"
             >
               {activeTab === "description" && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900">
-                    Product Description
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {product.description}
-                  </p>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+                  {/* Left Sidebar */}
+                  <div className="hidden lg:block lg:col-span-1">
+                    <div className="sticky top-32">
+                      <h4 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider">
+                        On this page
+                      </h4>
+                      <ul className="space-y-4 text-sm font-bold">
+                        {[
+                          { id: "overview", label: "Overview" },
+                          { id: "product-story", label: "Product Story" },
+                          { id: "key-highlights", label: "Key Highlights" },
+                          { id: "material-care", label: "Material & Care" },
+                          { id: "size-fit", label: "Size & Fit" },
+                          { id: "more-info", label: "More Information" },
+                        ].map((item) => (
+                          <li
+                            key={item.id}
+                            onClick={() => scrollToSection(item.id)}
+                            className={`cursor-pointer pl-4 py-1 border-l-2 transition-colors ${
+                              activeSection === item.id
+                                ? "text-[#1e9a58] border-[#1e9a58]"
+                                : "text-gray-500 hover:text-gray-800 border-transparent"
+                            }`}
+                          >
+                            {item.label}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Right Content */}
+                  <div className="lg:col-span-3 space-y-16">
+                    <div id="overview" className="flex flex-col lg:flex-row gap-10">
+                      <div className="flex-1 space-y-8">
+                        <div>
+                          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#0d1c2f] mb-2 leading-tight">
+                            Premium Comfort. <br />
+                            <span className="text-[#1e9a58]">Timeless Style.</span>
+                          </h2>
+                          <p className="text-gray-500 text-base font-medium mt-4">
+                            Crafted with precision and premium materials, this product delivers unmatched comfort and durability for everyday wear.
+                          </p>
+                        </div>
+                        
+                        {/* Icons Grid */}
+                        <div className="grid grid-cols-4 gap-4">
+                          <div className="flex flex-col items-center text-center">
+                            <IconMedal className="w-8 h-8 text-[#1e9a58] mb-2" stroke={1.5} />
+                            <span className="text-xs font-bold text-[#0d1c2f]">Premium<br/>Quality</span>
+                          </div>
+                          <div className="flex flex-col items-center text-center">
+                            <IconMoonStars className="w-8 h-8 text-[#1e9a58] mb-2" stroke={1.5} />
+                            <span className="text-xs font-bold text-[#0d1c2f]">All Day<br/>Comfort</span>
+                          </div>
+                          <div className="flex flex-col items-center text-center">
+                            <IconScissors className="w-8 h-8 text-[#1e9a58] mb-2" stroke={1.5} />
+                            <span className="text-xs font-bold text-[#0d1c2f]">Perfect<br/>Fit</span>
+                          </div>
+                          <div className="flex flex-col items-center text-center">
+                            <IconWashMachine className="w-8 h-8 text-[#1e9a58] mb-2" stroke={1.5} />
+                            <span className="text-xs font-bold text-[#0d1c2f]">Easy<br/>Care</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Top Image Placeholder */}
+                      <div className="flex-1 relative bg-[#fafcfb] rounded-2xl min-h-[300px] flex items-center justify-center overflow-hidden">
+                        <Image src={product.images[0]} alt="Product view" fill className="object-cover" />
+                      </div>
+                    </div>
+
+                    {/* Product Story */}
+                    <div id="product-story" className="flex flex-col lg:flex-row gap-8 items-center bg-gray-50 rounded-2xl p-6 lg:p-8">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-1.5 h-6 bg-[#1e9a58] rounded-full"></div>
+                          <h3 className="text-xl font-bold text-[#0d1c2f]">Product Story</h3>
+                        </div>
+                        <p className="text-gray-600 font-medium">
+                          {product.description || "Designed for those who value simplicity and elegance. This product is made to elevate your everyday style with the perfect blend of comfort and class."}
+                        </p>
+                      </div>
+                      {/* Video/Image Placeholder */}
+                      <div className="w-full lg:w-[350px] h-[200px] bg-gray-200 rounded-xl relative overflow-hidden flex items-center justify-center group cursor-pointer shadow-sm">
+                        <Image src={product.images[selectedImage]} alt="Video Thumbnail" fill className="object-cover" />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+                        <div className="absolute w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                          <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[12px] border-l-[#1e9a58] border-b-[8px] border-b-transparent ml-1"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               {activeTab === "features" && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900">
-                    Product Features
-                  </h3>
-                  <ul className="space-y-3">
-                    {product.features.map((feature, index) => (
-                      <motion.li
-                        key={index}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.2, delay: index * 0.05 }}
-                        className="flex items-start gap-3 text-gray-600"
-                      >
-                        <IconCheck className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
-                        <span>{feature}</span>
-                      </motion.li>
+                <div className="space-y-12">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-[#0d1c2f] mb-2">
+                      Built for <span className="text-[#1e9a58]">Performance.</span> Designed for You.
+                    </h2>
+                    <p className="text-gray-500 font-medium">
+                      Every detail is thoughtfully designed to give you the best experience.
+                    </p>
+                  </div>
+
+                  {/* 5-Column Feature Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {[
+                      { icon: IconActivity, title: "Premium Fabric", desc: "Soft, breathable & durable fabric for all-day comfort." },
+                      { icon: IconScissors, title: "Perfect Fit", desc: "Tailored fit that complements your style effortlessly." },
+                      { icon: IconRefresh, title: "Fade Resistant", desc: "High-quality dye technology keeps it looking new." },
+                      { icon: IconWashMachine, title: "Easy Maintenance", desc: "Machine washable and easy to care for everyday use." },
+                      { icon: IconLeaf, title: "Lightweight", desc: "Feels light on your skin, perfect for every season." }
+                    ].map((feat, i) => (
+                      <div key={i} className="border border-gray-100 rounded-2xl p-5 text-center flex flex-col items-center hover:shadow-md transition-shadow bg-white">
+                        <div className="w-12 h-12 rounded-xl bg-[#e4f7ed] text-[#1e9a58] flex items-center justify-center mb-4">
+                          <feat.icon className="w-6 h-6" stroke={1.5} />
+                        </div>
+                        <h4 className="font-bold text-[#0d1c2f] text-sm mb-2">{feat.title}</h4>
+                        <p className="text-xs text-gray-500 font-medium leading-relaxed">{feat.desc}</p>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
+
+                  <div id="key-highlights" className="space-y-4">
+                    <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Key Highlights</h3>
+                    <ul className="list-disc pl-5 text-gray-600 space-y-2 font-medium">
+                      <li>Designed for maximum breathability and stretch.</li>
+                      <li>Signature FluxFit moisture-wicking technology.</li>
+                      <li>Seamless construction to prevent chafing during intense workouts.</li>
+                      <li>Reflective logo detailing for visibility in low light.</li>
+                    </ul>
+                  </div>
+
+                  <div id="material-care" className="space-y-4">
+                    <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Material & Care</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-white border border-gray-100 p-4 rounded-xl">
+                        <h4 className="font-bold text-[#1e9a58] mb-1">Materials</h4>
+                        <p className="text-sm text-gray-500">85% Recycled Polyester, 15% Elastane</p>
+                      </div>
+                      <div className="bg-white border border-gray-100 p-4 rounded-xl">
+                        <h4 className="font-bold text-[#1e9a58] mb-1">Washing Instructions</h4>
+                        <p className="text-sm text-gray-500">Machine wash cold with like colors. Tumble dry low. Do not iron.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="size-fit" className="space-y-4">
+                    <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Size & Fit</h3>
+                    <p className="text-gray-600 font-medium">This product has a slim fit tailored to hug your body seamlessly. If you prefer a looser fit, we recommend sizing up. Model is 6'1" and wears size Medium.</p>
+                  </div>
+
+                  <div id="more-info" className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
+                    {/* Specifications */}
+                    <div className="lg:col-span-2">
+                      <h3 className="font-bold text-[#0d1c2f] mb-4">Product Specifications</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                        {[
+                          { label: "Material", val: "100% Premium Cotton" },
+                          { label: "Fabric Type", val: "Pique Knit" },
+                          { label: "Fit Type", val: "Regular Fit" },
+                          { label: "Sleeve Type", val: "Full Sleeve" },
+                          { label: "Neck Type", val: "Polo Neck" },
+                          { label: "Pattern", val: "Solid" }
+                        ].map((spec, i) => (
+                          <div key={i} className="flex justify-between items-center border-b border-gray-100 py-2">
+                            <span className="text-sm text-gray-500 font-medium">{spec.label}</span>
+                            <span className="text-sm font-bold text-[#0d1c2f]">{spec.val}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Authenticity Verified */}
+                    <div className="lg:col-span-1 bg-[#f4faf7] rounded-2xl p-6 flex flex-col justify-center border border-[#e4f7ed]">
+                      <div className="flex items-start gap-3 mb-4">
+                        <IconShieldCheck className="w-6 h-6 text-[#1e9a58] shrink-0" />
+                        <div>
+                          <h4 className="font-bold text-[#1e9a58]">Authenticity Verified</h4>
+                          <p className="text-xs text-gray-600 mt-1">Every product is 100% original and quality-checked.</p>
+                        </div>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 flex items-center justify-center gap-2 border border-[#e4f7ed] text-[#1e9a58] font-bold text-xs cursor-pointer hover:bg-[#1e9a58] hover:text-white transition-colors">
+                        <IconQrcode className="w-4 h-4" /> Scan QR to Verify
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               {activeTab === "shipping" && (
-                <div className="space-y-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      Shipping Information
-                    </h3>
-                    <p className="text-gray-600">{product.shipping}</p>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                  >
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      Return Policy
-                    </h3>
-                    <p className="text-gray-600">{product.returnPolicy}</p>
-                  </motion.div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                  {/* Left Column */}
+                  <div className="space-y-8">
+                    <div>
+                      <h2 className="text-2xl font-extrabold text-[#0d1c2f] mb-2">Fast & Reliable Delivery</h2>
+                      <p className="text-gray-500 font-medium">We ensure your order reaches you safely and on time.</p>
+                    </div>
+
+                    {/* Free Shipping Banner */}
+                    <div className="flex items-center justify-between bg-[#f4faf7] border border-[#e4f7ed] rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <IconTruck className="w-6 h-6 text-[#1e9a58]" />
+                        <div>
+                          <h4 className="font-bold text-[#1e9a58] text-sm">Free Shipping on all orders</h4>
+                          <p className="text-xs text-gray-500">No minimum order value</p>
+                        </div>
+                      </div>
+                      <span className="bg-[#1e9a58] text-white text-[10px] font-bold px-2 py-1 rounded">Limited Time Offer</span>
+                    </div>
+
+                    {/* Timeline */}
+                    <div className="border border-gray-100 rounded-xl p-6 relative overflow-hidden">
+                      <h4 className="font-bold text-[#0d1c2f] text-sm mb-1">Estimated Delivery</h4>
+                      <div className="text-xl font-black text-[#0d1c2f] mb-2">24 May - 28 May</div>
+                      <p className="text-xs text-gray-500 font-medium mb-8">
+                        Order within <span className="text-[#1e9a58] font-bold">02h : 45m : 12s</span> to get it by 24 May
+                      </p>
+                      
+                      {/* Timeline Graphic */}
+                      <div className="relative pt-4">
+                        <div className="absolute top-5 left-0 w-full h-[2px] bg-gray-100"></div>
+                        <div className="absolute top-5 left-0 w-1/3 h-[2px] bg-[#1e9a58]"></div>
+                        <div className="flex justify-between relative z-10">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="w-3 h-3 bg-[#1e9a58] rounded-full ring-4 ring-white"></div>
+                            <div className="text-[10px] font-bold text-gray-400 text-center">Order Placed<br/>20 May</div>
+                          </div>
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="w-3 h-3 border-2 border-[#1e9a58] bg-white rounded-full ring-4 ring-white"></div>
+                            <div className="text-[10px] font-bold text-[#1e9a58] text-center">Shipped<br/>21 May</div>
+                          </div>
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="w-3 h-3 bg-gray-200 rounded-full ring-4 ring-white"></div>
+                            <div className="text-[10px] font-bold text-gray-400 text-center">In Transit<br/>22 May</div>
+                          </div>
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="w-3 h-3 bg-gray-200 rounded-full ring-4 ring-white"></div>
+                            <div className="text-[10px] font-bold text-gray-400 text-center">Delivered<br/>24-28 May</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* We Deliver In & Partners */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="border border-gray-100 rounded-xl p-4">
+                        <IconActivity className="w-5 h-5 text-[#1e9a58] mb-2" />
+                        <h4 className="font-bold text-[#0d1c2f] text-sm mb-1">We Deliver In</h4>
+                        <p className="text-xs text-gray-500 font-medium">500+ Cities Across India<br/>Service available in<br/>major pin codes</p>
+                      </div>
+                      <div className="border border-gray-100 rounded-xl p-4">
+                        <h4 className="font-bold text-[#0d1c2f] text-sm mb-3">Our Delivery Partners</h4>
+                        <div className="flex items-center gap-2 opacity-50">
+                          {/* Placeholder for logos */}
+                          <div className="h-4 bg-gray-300 w-12 rounded"></div>
+                          <div className="h-4 bg-gray-300 w-12 rounded"></div>
+                          <div className="h-4 bg-gray-300 w-12 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-4 lg:pt-14">
+                    <div className="flex items-start gap-4 bg-white border border-gray-100 rounded-xl p-6 hover:shadow-sm transition-shadow">
+                      <div className="w-12 h-12 rounded-full bg-[#f4faf7] text-[#1e9a58] flex items-center justify-center shrink-0">
+                        <IconRefresh className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-[#0d1c2f] mb-1">Easy Returns</h4>
+                        <p className="text-sm text-gray-500 font-medium">Not happy with the product? Return it within 7 days.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 bg-white border border-gray-100 rounded-xl p-6 hover:shadow-sm transition-shadow">
+                      <div className="w-12 h-12 rounded-full bg-[#f4faf7] text-[#1e9a58] flex items-center justify-center shrink-0">
+                        <IconPackage className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-[#0d1c2f] mb-1">Secure Packaging</h4>
+                        <p className="text-sm text-gray-500 font-medium">Your product will be packed safely to avoid any damage.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 bg-white border border-gray-100 rounded-xl p-6 hover:shadow-sm transition-shadow">
+                      <div className="w-12 h-12 rounded-full bg-[#fafcfb] text-[#1e9a58] flex items-center justify-center shrink-0">
+                        <IconShieldCheck className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-[#0d1c2f] mb-1">Order Protection</h4>
+                        <p className="text-sm text-gray-500 font-medium">100% Safe & Secure. We protect your order from our door to yours.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               {activeTab === "reviews" && (
-                <div className="space-y-5">
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-3">Write a review</h3>
-                    {!isReviewAuth ? (
-                      <p className="text-sm text-gray-600">
-                        Please login to write a review. Reviews are published only after admin approval.
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm text-gray-700">Your rating:</span>
-                          {[1, 2, 3, 4, 5].map((value) => (
-                            <button
-                              key={value}
-                              onClick={() => setNewReviewRating(value)}
-                              className="inline-flex"
-                              type="button"
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+                  {/* Left Column (Reviews List) */}
+                  <div className="lg:col-span-3 space-y-8">
+                    <div>
+                      <h2 className="text-xl font-bold text-[#0d1c2f] mb-6">Customer Reviews</h2>
+                      {/* Summary Cards */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center">
+                          <div className="text-4xl font-black text-[#0d1c2f] mb-1">4.8</div>
+                          <div className="flex text-yellow-400 mb-1">
+                            <IconStarFilled className="w-4 h-4" />
+                            <IconStarFilled className="w-4 h-4" />
+                            <IconStarFilled className="w-4 h-4" />
+                            <IconStarFilled className="w-4 h-4" />
+                            <IconStarFilled className="w-4 h-4" />
+                          </div>
+                          <p className="text-[10px] text-gray-500 font-bold">Out of 5</p>
+                          <p className="text-xs font-bold text-[#0d1c2f]">1,247 Reviews</p>
+                        </div>
+                        <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                          <div className="text-2xl font-black text-[#1e9a58] mb-1">96%</div>
+                          <p className="text-xs text-gray-500 font-medium">Recommended<br/>by customers</p>
+                        </div>
+                        <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                          <div className="text-2xl font-black text-[#1e9a58] mb-1">4.7</div>
+                          <p className="text-xs text-gray-500 font-medium">Quality<br/>Score</p>
+                        </div>
+                        <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                          <div className="text-2xl font-black text-[#1e9a58] mb-1">4.6</div>
+                          <p className="text-xs text-gray-500 font-medium">Value for<br/>Money</p>
+                        </div>
+                      </div>
+
+                      {/* Filters */}
+                      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="relative">
+                            <button 
+                              onClick={() => setShowRatingDropdown(!showRatingDropdown)}
+                              className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-600 bg-gray-50 flex items-center gap-2 min-w-[120px] justify-between outline-none"
                             >
-                              <IconStarFilled
-                                className={`w-5 h-5 ${
-                                  value <= newReviewRating ? "text-yellow-400" : "text-gray-300"
-                                }`}
-                              />
+                              {ratingOptions.find(o => o.value === reviewRatingFilter)?.label || "All Ratings"}
+                              <IconChevronDown className="w-3 h-3" />
                             </button>
+                            
+                            {/* Backdrop for click-outside */}
+                            {showRatingDropdown && (
+                              <div 
+                                className="fixed inset-0 z-40" 
+                                onClick={() => setShowRatingDropdown(false)}
+                              ></div>
+                            )}
+
+                            <AnimatePresence>
+                              {showRatingDropdown && (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: 5 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: 5 }}
+                                  className="absolute top-full left-0 mt-1 bg-white border border-gray-100 rounded-lg shadow-xl z-50 min-w-[120px] overflow-hidden"
+                                >
+                                  {ratingOptions.map(opt => (
+                                    <div 
+                                      key={opt.value}
+                                      onClick={() => {
+                                        setReviewsPagination((p) => ({ ...p, page: 1 }));
+                                        setReviewRatingFilter(opt.value);
+                                        setShowRatingDropdown(false);
+                                      }}
+                                      className={`px-3 py-2 text-xs cursor-pointer font-bold transition-colors ${
+                                        reviewRatingFilter === opt.value 
+                                          ? "bg-[#1e9a58] text-white" 
+                                          : "text-gray-600 hover:bg-[#f4fbf7] hover:text-[#1e9a58]"
+                                      }`}
+                                    >
+                                      {opt.label}
+                                    </div>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          <input 
+                            value={reviewSearch}
+                            onChange={(e) => {
+                              setReviewsPagination((p) => ({ ...p, page: 1 }));
+                              setReviewSearch(e.target.value);
+                            }}
+                            placeholder="Search reviews"
+                            className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-600 bg-gray-50 outline-none w-48"
+                          />
+                          <button className="flex items-center gap-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold text-[#1e9a58] bg-[#f4fbf7]">
+                            <IconCheck className="w-3 h-3" /> With Photos
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600 mt-4 md:mt-0">
+                          Sort by: 
+                          <select className="border border-transparent bg-transparent focus:ring-0 outline-none">
+                            <option>Latest</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Reviews List */}
+                      {reviewsLoading ? (
+                        <div className="py-8 flex justify-center"><Spin /></div>
+                      ) : reviews.length === 0 ? (
+                        <div className="text-sm text-gray-500 py-6">No reviews found.</div>
+                      ) : (
+                        <div className="space-y-6">
+                          {reviews.map((review) => (
+                            <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                                    <span className="text-sm font-bold text-gray-500">{review.user?.name?.[0] || "A"}</span>
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-bold text-[#0d1c2f] text-sm">{review.user?.name || "Anonymous"}</h4>
+                                      <span className="flex items-center gap-1 text-[10px] font-bold text-[#1e9a58]">
+                                        <IconCircleCheck className="w-3 h-3" /> Verified Purchase
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                      {[1, 2, 3, 4, 5].map((s) => (
+                                        <IconStarFilled key={s} className={`w-3 h-3 ${s <= review.rating ? "text-yellow-400" : "text-gray-300"}`} />
+                                      ))}
+                                      <span className="text-[10px] text-gray-400 ml-2">Size: L | Color: Green</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className="text-xs font-medium text-gray-400">{new Date(review.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              <h5 className="font-bold text-[#0d1c2f] text-sm mb-1">Excellent quality and perfect fit!</h5>
+                              <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                                {review.comment || "The fabric is super soft and comfortable. Perfect for daily wear. The color and fit are exactly as shown in the images. Highly recommended!"}
+                              </p>
+                              
+                              {/* Photos Placeholder */}
+                              <div className="flex gap-2 mb-4">
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-xs font-bold text-white bg-black/50">+2</div>
+                              </div>
+
+                              <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
+                                <span className="font-medium">Was this helpful?</span>
+                                <button 
+                                  onClick={() => handleMarkHelpful(review.id)}
+                                  disabled={helpfulLoadingId === review.id || helpfulClickedMap[review.id]}
+                                  className="flex items-center gap-1 hover:text-[#1e9a58] disabled:text-gray-300 transition-colors"
+                                >
+                                  <IconThumbUp className="w-4 h-4" /> {review.helpful?.count || 0}
+                                </button>
+                                <button className="flex items-center gap-1 hover:text-red-500 transition-colors">
+                                  <IconChevronDown className="w-4 h-4" /> 0
+                                </button>
+                                <button className="ml-auto hover:text-gray-600">Report</button>
+                              </div>
+                            </div>
                           ))}
                         </div>
-                        <textarea
-                          value={newReviewComment}
-                          onChange={(e) => setNewReviewComment(e.target.value)}
-                          rows={4}
-                          placeholder="Share your experience with this product"
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        />
-                        <Button
-                          type="primary"
-                          onClick={handleSubmitReview}
-                          loading={submitReviewLoading}
-                          disabled={!newReviewComment.trim()}
-                        >
-                          Submit Review
-                        </Button>
-                        <p className="text-xs text-gray-500">
-                          Your review will appear publicly once approved by admin.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                      )}
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    <select
-                      value={reviewRatingFilter}
-                      onChange={(e) => {
-                        setReviewsPagination((p) => ({ ...p, page: 1 }));
-                        setReviewRatingFilter(e.target.value);
-                      }}
-                      className="border border-gray-300 rounded px-3 py-2 text-sm"
-                    >
-                      <option value="">All ratings</option>
-                      <option value="5">5 stars</option>
-                      <option value="4">4 stars</option>
-                      <option value="3">3 stars</option>
-                      <option value="2">2 stars</option>
-                      <option value="1">1 star</option>
-                    </select>
-                    <input
-                      value={reviewSearch}
-                      onChange={(e) => {
-                        setReviewsPagination((p) => ({ ...p, page: 1 }));
-                        setReviewSearch(e.target.value);
-                      }}
-                      placeholder="Search reviews"
-                      className="border border-gray-300 rounded px-3 py-2 text-sm min-w-[240px]"
-                    />
-                  </div>
-
-                  {reviewsLoading ? (
-                    <div className="py-8 flex justify-center">
-                      <Spin />
+                      {/* Pagination */}
+                      {reviewsPagination.totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-2 mt-8">
+                          <Button
+                            size="small"
+                            disabled={reviewsPagination.page <= 1}
+                            onClick={() => setReviewsPagination((p) => ({ ...p, page: p.page - 1 }))}
+                          >
+                            Previous
+                          </Button>
+                          <span className="text-xs font-bold text-gray-600">
+                            Page {reviewsPagination.page} / {reviewsPagination.totalPages}
+                          </span>
+                          <Button
+                            size="small"
+                            disabled={reviewsPagination.page >= reviewsPagination.totalPages}
+                            onClick={() => setReviewsPagination((p) => ({ ...p, page: p.page + 1 }))}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ) : reviews.length === 0 ? (
-                    <div className="text-sm text-gray-500 py-6">No reviews found.</div>
-                  ) : (
-                    <div className="space-y-4">
-                      {reviews.map((review) => (
-                        <div
-                          key={review.id}
-                          className={`border rounded-lg p-4 ${
-                            (review.helpful?.count || 0) >= 3
-                              ? "border-blue-300 bg-blue-50/40"
-                              : "border-gray-200"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {review.user?.name || "Anonymous"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(review.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <IconStarFilled
-                                  key={s}
-                                  className={`w-4 h-4 ${
-                                    s <= review.rating ? "text-yellow-400" : "text-gray-300"
-                                  }`}
-                                />
+                  </div>
+
+                  {/* Right Column (Write Review) */}
+                  <div className="lg:col-span-1">
+                    <div className="border border-gray-100 rounded-2xl p-6 sticky top-24">
+                      <h3 className="font-bold text-[#0d1c2f] mb-2">Write a Review</h3>
+                      <p className="text-xs text-gray-500 font-medium mb-6">Share your experience with this product.</p>
+                      
+                      {!isReviewAuth ? (
+                        <Button type="primary" className="w-full h-10 rounded-lg font-bold !bg-[#1e9a58] hover:!bg-green-700 border-none" onClick={() => router.push("/login")}>
+                          Login to Review
+                        </Button>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-700">Your Rating</span>
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((value) => (
+                                <button key={value} onClick={() => setNewReviewRating(value)} type="button">
+                                  <IconStarFilled className={`w-5 h-5 ${value <= newReviewRating ? "text-yellow-400" : "text-gray-300"}`} />
+                                </button>
                               ))}
                             </div>
                           </div>
-                          <p className="mt-2 text-sm text-gray-700">{review.comment}</p>
-                          <button
-                            onClick={() => handleMarkHelpful(review.id)}
-                            disabled={
-                              helpfulLoadingId === review.id || helpfulClickedMap[review.id]
-                            }
-                            className="mt-3 inline-flex items-center gap-1 text-sm text-blue-600 disabled:text-gray-400"
-                          >
-                            <IconThumbUp className="w-4 h-4" />
-                            Helpful ({review.helpful?.count || 0})
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                          
+                          <textarea
+                            value={newReviewComment}
+                            onChange={(e) => setNewReviewComment(e.target.value)}
+                            rows={4}
+                            placeholder="Share your experience with this product"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#1e9a58] focus:border-[#1e9a58] outline-none"
+                          />
+                          
+                          <div className="pt-4 border-t border-gray-100">
+                            <p className="text-xs font-bold text-gray-600 mb-2">Add Photos or Video</p>
+                            <div className="flex gap-2">
+                              <button className="w-12 h-12 border border-gray-200 border-dashed rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
+                                +
+                              </button>
+                            </div>
+                          </div>
 
-                  {reviewsPagination.totalPages > 1 && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="small"
-                        disabled={reviewsPagination.page <= 1}
-                        onClick={() =>
-                          setReviewsPagination((p) => ({ ...p, page: p.page - 1 }))
-                        }
-                      >
-                        Previous
-                      </Button>
-                      <span className="text-sm text-gray-600">
-                        Page {reviewsPagination.page} / {reviewsPagination.totalPages}
-                      </span>
-                      <Button
-                        size="small"
-                        disabled={reviewsPagination.page >= reviewsPagination.totalPages}
-                        onClick={() =>
-                          setReviewsPagination((p) => ({ ...p, page: p.page + 1 }))
-                        }
-                      >
-                        Next
-                      </Button>
+                          <Button
+                            type="primary"
+                            className="w-full h-10 bg-[#1e9a58] hover:bg-green-700 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
+                            onClick={handleSubmitReview}
+                            loading={submitReviewLoading}
+                            disabled={!newReviewComment.trim()}
+                          >
+                            <IconFileDescription className="w-4 h-4" /> Submit Review
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
+              )}
+              {activeTab === "qa" && (
+                <div className="p-8 text-center text-gray-500">Q&A section coming soon.</div>
+              )}
+              {activeTab === "care" && (
+                <div className="p-8 text-center text-gray-500">Care Guide coming soon.</div>
               )}
             </motion.div>
           </AnimatePresence>

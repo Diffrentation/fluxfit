@@ -101,23 +101,22 @@ const About = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-[#fafcfb]">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 text-white py-16 sm:py-20 md:py-24 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIzMCIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+      <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 overflow-hidden">
+        <div className="absolute inset-0 opacity-40">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiMxZTlhNTgiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')]"></div>
         </div>
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 relative z-10">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="w-full text-center"
           >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
-              About FluxFit
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-[#111827] mb-6 tracking-tight">
+              About <span className="text-[#1e9a58]">FluxFit</span>
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 leading-relaxed">
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-500 max-w-3xl mx-auto leading-relaxed">
               Your Premier Destination for Custom Clothing & Printing
             </p>
           </motion.div>
@@ -125,20 +124,21 @@ const About = () => {
       </section>
 
       {/* Our Story Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-white dark:bg-gray-900 transition-colors duration-300">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
+              <h2 className="text-3xl sm:text-4xl font-bold text-[#111827] mb-6">
                 Our Story
               </h2>
-              <div className="space-y-3 sm:space-y-4 text-gray-700 dark:text-gray-300 leading-relaxed">
-                <p className="text-base sm:text-lg">
+              <div className="w-12 h-1 bg-[#1e9a58] mb-8 rounded-full"></div>
+              <div className="space-y-6 text-gray-600 leading-relaxed text-lg">
+                <p>
                   Welcome to <strong>FluxFit</strong>, where fashion meets
                   creativity! We are a leading provider of custom clothing and
                   printing services, dedicated to helping you express your
@@ -152,7 +152,7 @@ const About = () => {
                   full-color graphics.
                 </p>
                 <p>
-                  Whether you&apos;re looking for personalized t-shirts, stylish
+                  Whether you're looking for personalized t-shirts, stylish
                   jackets, comfortable hoodies, or any other apparel, we have
                   the expertise and technology to bring your vision to life.
                 </p>
@@ -163,7 +163,7 @@ const About = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="relative h-[300px] sm:h-[350px] md:h-[400px] lg:h-[500px] rounded-lg overflow-hidden shadow-2xl"
+              className="relative h-[400px] lg:h-[550px] rounded-3xl overflow-hidden shadow-2xl shadow-gray-200/50 border-8 border-white"
             >
               <Image
                 src="https://images.unsplash.com/photo-1562157873-818bc0726f68?w=800&h=1000&fit=crop&q=80"
@@ -171,27 +171,29 @@ const About = () => {
                 fill
                 className="object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* What We Offer Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+      <section className="py-16 sm:py-24 bg-[#fafcfb]">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-8 sm:mb-12"
+            className="text-center mb-16"
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#111827] mb-4">
               What We Offer
             </h2>
-            <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-300 w-full">
+            <div className="w-12 h-1 bg-[#1e9a58] mx-auto mb-6 rounded-full"></div>
+            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
               From custom printing to ready-made apparel, we have everything you
-              need
+              need.
             </p>
           </motion.div>
 
@@ -200,7 +202,7 @@ const About = () => {
             initial="initial"
             whileInView="animate"
             viewport={{ once: true }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           >
             {products.map((product, index) => {
               const Icon = product.icon;
@@ -208,15 +210,15 @@ const About = () => {
                 <motion.div
                   key={index}
                   variants={fadeInUp}
-                  className="bg-white dark:bg-gray-700 p-4 sm:p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 text-center border border-gray-200 dark:border-gray-600"
+                  className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 hover:shadow-md transition-all duration-300"
                 >
-                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-3 sm:mb-4">
-                    <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-[#f4fbf7] rounded-2xl mb-6 text-[#1e9a58]">
+                    <Icon className="w-8 h-8" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-xl font-bold text-[#111827] mb-3">
                     {product.title}
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                  <p className="text-gray-500 leading-relaxed">
                     {product.description}
                   </p>
                 </motion.div>
@@ -227,25 +229,26 @@ const About = () => {
       </section>
 
       {/* Services Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-white dark:bg-gray-900 transition-colors duration-300">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+      <section className="py-16 sm:py-24 bg-white border-y border-gray-50">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-8 sm:mb-12"
+            className="text-center mb-16"
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#111827] mb-4">
               Our Services
             </h2>
-            <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-300 w-full">
+            <div className="w-12 h-1 bg-[#1e9a58] mx-auto mb-6 rounded-full"></div>
+            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
               Comprehensive printing and customization solutions for all your
-              needs
+              needs.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {services.map((service, index) => {
               const Icon = service.icon;
               return (
@@ -255,19 +258,19 @@ const About = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 p-6 sm:p-8 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 transition-all duration-300 hover:shadow-lg"
+                  className="bg-white p-8 rounded-3xl border border-gray-100 hover:border-[#eaf5ef] transition-all duration-300 hover:shadow-lg shadow-sm"
                 >
-                  <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="flex flex-col sm:flex-row items-start gap-6">
                     <div className="flex-shrink-0">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 dark:bg-blue-600 rounded-lg flex items-center justify-center">
-                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      <div className="w-14 h-14 bg-[#1e9a58] rounded-2xl flex items-center justify-center shadow-md shadow-green-100">
+                        <Icon className="w-7 h-7 text-white" />
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-xl font-bold text-[#111827] mb-3">
                         {service.title}
                       </h3>
-                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
+                      <p className="text-gray-500 leading-relaxed">
                         {service.description}
                       </p>
                     </div>
@@ -280,14 +283,14 @@ const About = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+      <section className="py-16 bg-[#f4fbf7]">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <motion.div
             variants={staggerContainer}
             initial="initial"
             whileInView="animate"
             viewport={{ once: true }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-8"
           >
             {stats.map((stat, index) => {
               const Icon = stat.icon;
@@ -295,15 +298,15 @@ const About = () => {
                 <motion.div
                   key={index}
                   variants={fadeInUp}
-                  className="text-center"
+                  className="text-center bg-white py-8 px-4 rounded-3xl border border-[#eaf5ef] shadow-sm"
                 >
-                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-full mb-3 sm:mb-4">
-                    <Icon className="w-6 h-6 sm:w-8 sm:h-8" />
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-[#f4fbf7] text-[#1e9a58] rounded-full mb-4">
+                    <Icon className="w-8 h-8" stroke={1.5} />
                   </div>
-                  <div className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
+                  <div className="text-4xl md:text-5xl font-bold text-[#111827] mb-2 tracking-tight">
                     {stat.number}
                   </div>
-                  <div className="text-xs sm:text-sm md:text-base text-blue-100">
+                  <div className="text-sm md:text-base font-semibold text-gray-500 uppercase tracking-wider">
                     {stat.label}
                   </div>
                 </motion.div>
@@ -314,15 +317,15 @@ const About = () => {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="relative h-[300px] sm:h-[350px] md:h-[400px] lg:h-[500px] rounded-lg overflow-hidden shadow-2xl"
+              className="relative h-[400px] lg:h-[600px] rounded-3xl overflow-hidden shadow-2xl shadow-gray-200/50 order-2 lg:order-1"
             >
               <Image
                 src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=1000&fit=crop&q=80"
@@ -336,11 +339,20 @@ const About = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
+              className="order-1 lg:order-2"
             >
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
-                Why Choose FluxFit?
+              <h2 className="text-3xl sm:text-4xl font-bold text-[#111827] mb-6">
+                Why Choose <span className="text-[#1e9a58]">FluxFit?</span>
               </h2>
-              <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+              <div className="w-12 h-1 bg-[#1e9a58] mb-8 rounded-full"></div>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                At FluxFit, we combine premium materials with cutting-edge
+                printing technology to deliver products that exceed
+                expectations. Our commitment to quality, customer service, and
+                innovation sets us apart.
+              </p>
+              
+              <div className="space-y-4 mb-10">
                 {features.map((feature, index) => (
                   <motion.div
                     key={index}
@@ -348,26 +360,20 @@ const About = () => {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: index * 0.1 }}
-                    className="flex items-center gap-3"
+                    className="flex items-center gap-4 bg-[#fafcfb] p-3 rounded-xl border border-gray-100"
                   >
-                    <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center">
-                      <IconCheck className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    <div className="flex-shrink-0 w-8 h-8 bg-[#f4fbf7] rounded-full flex items-center justify-center text-[#1e9a58]">
+                      <IconCheck className="w-5 h-5" stroke={3} />
                     </div>
-                    <span className="text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-300">
+                    <span className="text-base font-semibold text-[#111827]">
                       {feature}
                     </span>
                   </motion.div>
                 ))}
               </div>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed mb-4 sm:mb-6">
-                At FluxFit, we combine premium materials with cutting-edge
-                printing technology to deliver products that exceed
-                expectations. Our commitment to quality, customer service, and
-                innovation sets us apart in the industry.
-              </p>
               <Link
                 href="/product-list"
-                className="inline-block px-6 sm:px-8 py-2 sm:py-3 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-md text-sm sm:text-base font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl"
+                className="inline-flex items-center justify-center px-8 py-4 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-green-200"
               >
                 Shop Now
               </Link>
@@ -377,113 +383,116 @@ const About = () => {
       </section>
 
       {/* Mission & Vision Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-white dark:bg-gray-900 transition-colors duration-300">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+      <section className="py-16 sm:py-24 bg-[#fafcfb]">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 sm:p-8 rounded-lg border border-blue-200 dark:border-blue-800"
+              className="bg-white p-10 lg:p-12 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden"
             >
-              <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-                <IconHeartHandshake className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 dark:text-blue-400" />
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  Our Mission
-                </h3>
+              <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#f4fbf7] rounded-full blur-3xl"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-[#1e9a58] text-white rounded-2xl flex items-center justify-center">
+                    <IconHeartHandshake className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-[#111827]">
+                    Our Mission
+                  </h3>
+                </div>
+                <p className="text-lg text-gray-500 leading-relaxed">
+                  To empower individuals and businesses to express their unique
+                  identity through high-quality custom apparel and printing
+                  services. We strive to deliver exceptional products that combine
+                  style, comfort, and durability while maintaining the highest
+                  standards of customer satisfaction.
+                </p>
               </div>
-              <p className="text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
-                To empower individuals and businesses to express their unique
-                identity through high-quality custom apparel and printing
-                services. We strive to deliver exceptional products that combine
-                style, comfort, and durability while maintaining the highest
-                standards of customer satisfaction.
-              </p>
             </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-6 sm:p-8 rounded-lg border border-gray-200 dark:border-gray-600"
+              className="bg-[#1e9a58] text-white p-10 lg:p-12 rounded-3xl shadow-lg relative overflow-hidden"
             >
-              <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-                <IconTrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-gray-700 dark:text-gray-300" />
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  Our Vision
-                </h3>
+              <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-white text-[#1e9a58] rounded-2xl flex items-center justify-center">
+                    <IconTrendingUp className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white">
+                    Our Vision
+                  </h3>
+                </div>
+                <p className="text-lg text-green-50 leading-relaxed">
+                  To become the leading destination for custom clothing and
+                  printing services globally. We envision a future where everyone
+                  can easily access premium quality apparel with personalized
+                  designs, fostering creativity and self-expression in fashion.
+                </p>
               </div>
-              <p className="text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
-                To become the leading destination for custom clothing and
-                printing services globally. We envision a future where everyone
-                can easily access premium quality apparel with personalized
-                designs, fostering creativity and self-expression in fashion.
-              </p>
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* Meet the Founders Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-8 sm:mb-12"
+            className="text-center mb-16"
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#111827] mb-4">
               Meet the Founders
             </h2>
-            <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-300 w-full">
+            <div className="w-12 h-1 bg-[#1e9a58] mx-auto mb-6 rounded-full"></div>
+            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
               The visionary leaders behind FluxFit, driving innovation and
               excellence in custom clothing and printing services worldwide.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Subhash - Founder & CEO */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="bg-white dark:bg-gray-700 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-200 dark:border-gray-600"
+              className="bg-[#fafcfb] rounded-3xl overflow-hidden border border-gray-100 group hover:-translate-y-2 transition-transform duration-300"
             >
-              <div className="relative h-48 sm:h-56 md:h-64 bg-gradient-to-br from-blue-500 to-blue-600">
+              <div className="relative h-72">
                 <Image
                   src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80"
                   alt="Subhash - Founder & CEO"
                   fill
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">
-                    Subhash
-                  </h3>
-                  <p className="text-sm sm:text-base text-blue-200 font-semibold">
-                    Founder & CEO
-                  </p>
-                </div>
               </div>
-              <div className="p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                  <IconAward className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                  <span className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
-                    Visionary Leader
-                  </span>
+              <div className="p-8 relative">
+                <div className="absolute -top-6 right-8 w-12 h-12 bg-[#1e9a58] rounded-full flex items-center justify-center text-white border-4 border-[#fafcfb]">
+                  <IconAward className="w-5 h-5" />
                 </div>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
+                <h3 className="text-2xl font-bold text-[#111827] mb-1">
+                  Subhash
+                </h3>
+                <p className="text-sm font-bold text-[#1e9a58] uppercase tracking-wider mb-4">
+                  Founder & CEO
+                </p>
+                <p className="text-gray-500 leading-relaxed">
                   As the Founder and CEO, Subhash envisions FluxFit becoming a
                   global powerhouse in custom apparel and printing. His vision
-                  is to expand our footprint across continents, bringing
-                  high-quality, personalized fashion solutions to customers
-                  worldwide while maintaining our commitment to innovation and
-                  customer satisfaction.
+                  is to expand our footprint across continents.
                 </p>
               </div>
             </motion.div>
@@ -494,39 +503,30 @@ const About = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-white dark:bg-gray-700 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-200 dark:border-gray-600"
+              className="bg-[#fafcfb] rounded-3xl overflow-hidden border border-gray-100 group hover:-translate-y-2 transition-transform duration-300"
             >
-              <div className="relative h-48 sm:h-56 md:h-64 bg-gradient-to-br from-green-500 to-green-600">
+              <div className="relative h-72">
                 <Image
                   src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=500&fit=crop&q=80"
                   alt="Mohan - Co-Founder"
                   fill
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">
-                    Mohan
-                  </h3>
-                  <p className="text-sm sm:text-base text-green-200 font-semibold">
-                    Co-Founder
-                  </p>
-                </div>
               </div>
-              <div className="p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                  <IconTrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                  <span className="text-xs sm:text-sm font-semibold text-green-600 dark:text-green-400">
-                    Strategic Partner
-                  </span>
+              <div className="p-8 relative">
+                <div className="absolute -top-6 right-8 w-12 h-12 bg-white text-[#1e9a58] rounded-full flex items-center justify-center border-4 border-[#fafcfb] shadow-sm">
+                  <IconTrendingUp className="w-5 h-5" />
                 </div>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Mohan, as a Co-Founder, is passionate about scaling FluxFit to
+                <h3 className="text-2xl font-bold text-[#111827] mb-1">
+                  Mohan
+                </h3>
+                <p className="text-sm font-bold text-[#1e9a58] uppercase tracking-wider mb-4">
+                  Co-Founder
+                </p>
+                <p className="text-gray-500 leading-relaxed">
+                  Mohan is passionate about scaling FluxFit to
                   global markets. His vision focuses on building strategic
-                  partnerships worldwide, establishing a strong international
-                  presence, and ensuring our brand becomes synonymous with
-                  quality and innovation in the custom printing industry across
-                  different cultures and markets.
+                  partnerships worldwide and establishing a strong brand presence.
                 </p>
               </div>
             </motion.div>
@@ -537,39 +537,30 @@ const About = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="bg-white dark:bg-gray-700 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-200 dark:border-gray-600"
+              className="bg-[#fafcfb] rounded-3xl overflow-hidden border border-gray-100 group hover:-translate-y-2 transition-transform duration-300"
             >
-              <div className="relative h-48 sm:h-56 md:h-64 bg-gradient-to-br from-purple-500 to-purple-600">
+              <div className="relative h-72">
                 <Image
                   src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80"
                   alt="Pankaj - Co-Founder"
                   fill
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">
-                    Pankaj
-                  </h3>
-                  <p className="text-sm sm:text-base text-purple-200 font-semibold">
-                    Co-Founder
-                  </p>
-                </div>
               </div>
-              <div className="p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                  <IconStar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                  <span className="text-xs sm:text-sm font-semibold text-purple-600 dark:text-purple-400">
-                    Innovation Partner
-                  </span>
+              <div className="p-8 relative">
+                <div className="absolute -top-6 right-8 w-12 h-12 bg-[#111827] text-white rounded-full flex items-center justify-center border-4 border-[#fafcfb]">
+                  <IconStar className="w-5 h-5" />
                 </div>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Pankaj, Co-Founder of FluxFit, drives the vision of worldwide
-                  expansion through technological innovation and operational
-                  excellence. He envisions a future where FluxFit sets new
-                  industry standards globally, leveraging cutting-edge printing
-                  technologies and sustainable practices to serve customers
-                  across borders with unmatched quality and service.
+                <h3 className="text-2xl font-bold text-[#111827] mb-1">
+                  Pankaj
+                </h3>
+                <p className="text-sm font-bold text-[#1e9a58] uppercase tracking-wider mb-4">
+                  Co-Founder
+                </p>
+                <p className="text-gray-500 leading-relaxed">
+                  Pankaj drives the vision of worldwide
+                  expansion through technological innovation. He leverages cutting-edge printing
+                  technologies and sustainable practices.
                 </p>
               </div>
             </motion.div>
@@ -578,31 +569,30 @@ const About = () => {
       </section>
 
       {/* Call to Action Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 text-white">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+      <section className="py-16 sm:py-24 bg-[#1e9a58]">
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="w-full text-center"
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
+            <h2 className="text-3xl sm:text-5xl font-bold text-white mb-6">
               Ready to Get Started?
             </h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-6 sm:mb-8">
+            <p className="text-lg sm:text-xl text-green-50 mb-10 opacity-90">
               Browse our collection or contact us for custom printing services
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/product-list"
-                className="px-6 sm:px-8 py-2 sm:py-3 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-md text-sm sm:text-base font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl"
+                className="px-8 py-4 bg-white text-[#1e9a58] rounded-xl text-lg font-bold shadow-lg hover:-translate-y-1 transition-all"
               >
                 Shop Products
               </Link>
               <Link
                 href="/contact"
-                className="px-6 sm:px-8 py-2 sm:py-3 bg-transparent border-2 border-white hover:bg-white hover:text-gray-900 dark:hover:text-gray-900 text-white rounded-md text-sm sm:text-base font-semibold transition-colors duration-200"
+                className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-xl text-lg font-bold hover:bg-green-700 transition-all"
               >
                 Contact Us
               </Link>
@@ -611,8 +601,10 @@ const About = () => {
         </div>
       </section>
 
-      {/* Get In Touch Section */}
-      <GetInTouch />
+      {/* Get In Touch Section (If applicable, leaving intact but checking if it's the old blue one) */}
+      <div className="bg-white">
+        <GetInTouch />
+      </div>
     </div>
   );
 };

@@ -4,7 +4,25 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { FaRegEyeSlash, FaRegEye, FaCamera, FaUser } from "react-icons/fa";
+import {
+  IconUser,
+  IconMail,
+  IconLock,
+  IconEye,
+  IconEyeOff,
+  IconPhone,
+  IconMapPin,
+  IconBuilding,
+  IconMap,
+  IconWorld,
+  IconPin,
+  IconShieldCheck,
+  IconRosetteDiscountCheck,
+  IconHeadset,
+  IconArrowRight,
+  IconChevronDown,
+} from "@tabler/icons-react";
+import AuthLayout from "@/components/auth/AuthLayout";
 import toast from "react-hot-toast";
 import { useEffect } from "react";
 import axios from "axios";
@@ -174,228 +192,260 @@ function Signup() {
   const handleLogin = () => router.push("/auth/login");
 
   return (
-    <div className="shadow-input mx-auto mt-20 sm:mt-24 md:mt-26 w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[70vw] xl:w-[55vw] 2xl:w-[50vw] max-w-5xl rounded-lg sm:rounded-xl md:rounded-2xl bg-white p-4 sm:p-6 md:p-8 lg:p-10 dark:bg-black">
-      {/* Logo */}
-      <div className="flex flex-col items-center mb-6 sm:mb-8">
-        {!logoError ? (
-          <>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-400 dark:text-gray-400">
-              <span className="text-gray-500 dark:text-gray-400">
-                Welcome to{" "}
-              </span>{" "}
-              FluxFit
-            </h2>
-          </>
-        ) : (
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 dark:text-neutral-200">
-            FluxFit
-          </h2>
-        )}
-      </div>
-
-      <form className="mt-8" onSubmit={handleSubmit}>
-        {/* Profile Image Upload */}
-        <div className="flex justify-center mb-4 sm:mb-6">
-          <div className="relative">
-            <div
-              className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors bg-gray-50 dark:bg-gray-800 dark:border-gray-600"
-              onClick={handleImageClick}
-            >
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Profile preview"
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <div className="text-center">
-                  <FaUser className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mx-auto" />
-                  <span className="text-[10px] sm:text-xs text-gray-500 mt-1 block">
-                    Add Photo
-                  </span>
-                </div>
-              )}
-
-              <div className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1.5 sm:p-2 cursor-pointer hover:bg-blue-600 transition-colors">
-                <FaCamera className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-              </div>
+    <AuthLayout>
+      <form onSubmit={handleSubmit} className="space-y-8 w-full">
+        
+        {/* Section: Personal Information */}
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-[#f4fbf7] flex items-center justify-center shrink-0">
+              <IconUser className="w-5 h-5 text-[#1e9a58]" />
             </div>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageChange}
-              accept="image/*"
-              className="hidden"
-            />
+            <h2 className="text-xl font-bold text-[#111827]">Personal Information</h2>
+            <div className="flex-1 h-px bg-gray-100 ml-4"></div>
           </div>
-        </div>
 
-        {/* Rest of the form remains exactly the same */}
-        {/* Personal Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-6">
-          <LabelInputContainer>
-            <Label htmlFor="firstname">First Name</Label>
-            <Input
-              id="firstname"
-              value={formData.firstname}
-              onChange={handleChange}
-              placeholder="John"
-              type="text"
-              required
-            />
-          </LabelInputContainer>
-
-          <LabelInputContainer>
-            <Label htmlFor="lastname">Last Name</Label>
-            <Input
-              id="lastname"
-              value={formData.lastname}
-              onChange={handleChange}
-              placeholder="Doe"
-              type="text"
-              required
-            />
-          </LabelInputContainer>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-6 mt-4">
-          <LabelInputContainer>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              value={formData.email}
-              onChange={handleChange}
-              type="email"
-              placeholder="you@example.com"
-              required
-            />
-          </LabelInputContainer>
-
-          <LabelInputContainer className="relative">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              value={formData.password}
-              onChange={handleChange}
-              type={showPass ? "text" : "password"}
-              placeholder="••••••••"
-              required
-            />
-            <button
-              type="button"
-              className="absolute top-1/2 right-4 cursor-pointer"
-              onClick={() => setShowPass(!showPass)}
-            >
-              {showPass ? <FaRegEye /> : <FaRegEyeSlash />}
-            </button>
-          </LabelInputContainer>
-        </div>
-
-        <LabelInputContainer className="mt-4">
-          <Label htmlFor="phone">Phone Number</Label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            type="text"
-            placeholder="Enter your phone number"
-            required
-          />
-        </LabelInputContainer>
-
-        {/* Address Information */}
-        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h3 className="text-base sm:text-lg md:text-xl font-semibold text-neutral-800 dark:text-neutral-200 mb-3 sm:mb-4">
-            Address Information
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
             <LabelInputContainer>
-              <Label htmlFor="address.city">City</Label>
-              <Input
-                id="address.city"
-                value={formData.address.city}
-                onChange={handleChange}
-                placeholder="Mumbai"
-                type="text"
-                required
-              />
+              <Label htmlFor="firstname" className="text-sm font-bold text-gray-700 mb-1">First Name</Label>
+              <div className="relative">
+                <IconUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="firstname"
+                  value={formData.firstname}
+                  onChange={handleChange}
+                  placeholder="John"
+                  type="text"
+                  required
+                  className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+              </div>
             </LabelInputContainer>
 
             <LabelInputContainer>
-              <Label htmlFor="address.state">State</Label>
-              <Input
-                id="address.state"
-                value={formData.address.state}
-                onChange={handleChange}
-                placeholder="Maharashtra"
-                type="text"
-                required
-              />
+              <Label htmlFor="lastname" className="text-sm font-bold text-gray-700 mb-1">Last Name</Label>
+              <div className="relative">
+                <IconUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="lastname"
+                  value={formData.lastname}
+                  onChange={handleChange}
+                  placeholder="Doe"
+                  type="text"
+                  required
+                  className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+              </div>
             </LabelInputContainer>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 md:gap-6 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
             <LabelInputContainer>
-              <Label htmlFor="address.country">Country</Label>
-              <Input
-                id="address.country"
-                value={formData.address.country}
-                onChange={handleChange}
-                placeholder="India"
-                type="text"
-                required
-              />
+              <Label htmlFor="email" className="text-sm font-bold text-gray-700 mb-1">Email</Label>
+              <div className="relative">
+                <IconMail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  type="email"
+                  placeholder="you@example.com"
+                  required
+                  className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+              </div>
             </LabelInputContainer>
 
             <LabelInputContainer>
-              <Label htmlFor="address.pincode">Pincode</Label>
-              <Input
-                id="address.pincode"
-                value={formData.address.pincode}
-                onChange={handleChange}
-                placeholder="400001"
-                type="text"
-                maxLength={6}
-                required
-              />
+              <Label htmlFor="password" className="text-sm font-bold text-gray-700 mb-1">Password</Label>
+              <div className="relative">
+                <IconLock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  type={showPass ? "text" : "password"}
+                  placeholder="••••••••"
+                  required
+                  className="pl-11 pr-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base font-mono tracking-widest"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={() => setShowPass(!showPass)}
+                >
+                  {showPass ? <IconEye className="w-5 h-5" /> : <IconEyeOff className="w-5 h-5" />}
+                </button>
+              </div>
+            </LabelInputContainer>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5">
+            <LabelInputContainer>
+              <Label htmlFor="phone" className="text-sm font-bold text-gray-700 mb-1">Phone Number</Label>
+              <div className="relative">
+                <IconPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  type="text"
+                  placeholder="Enter your phone number"
+                  required
+                  className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+              </div>
             </LabelInputContainer>
           </div>
         </div>
 
+        <div className="w-full h-px bg-gray-100 my-8"></div>
+
+        {/* Section: Address Information */}
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-[#f4fbf7] flex items-center justify-center shrink-0">
+              <IconMapPin className="w-5 h-5 text-[#1e9a58]" />
+            </div>
+            <h2 className="text-xl font-bold text-[#111827]">Address Information</h2>
+            <div className="flex-1 h-px bg-gray-100 ml-4"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            <LabelInputContainer>
+              <Label htmlFor="address.city" className="text-sm font-bold text-gray-700 mb-1">City</Label>
+              <div className="relative">
+                <IconBuilding className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="address.city"
+                  value={formData.address.city}
+                  onChange={handleChange}
+                  placeholder="Mumbai"
+                  type="text"
+                  required
+                  className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+              </div>
+            </LabelInputContainer>
+
+            <LabelInputContainer>
+              <Label htmlFor="address.state" className="text-sm font-bold text-gray-700 mb-1">State</Label>
+              <div className="relative">
+                <IconMap className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="address.state"
+                  value={formData.address.state}
+                  onChange={handleChange}
+                  placeholder="Maharashtra"
+                  type="text"
+                  required
+                  className="pl-11 pr-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+                <IconChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              </div>
+            </LabelInputContainer>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <LabelInputContainer>
+              <Label htmlFor="address.country" className="text-sm font-bold text-gray-700 mb-1">Country</Label>
+              <div className="relative">
+                <IconWorld className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="address.country"
+                  value={formData.address.country}
+                  onChange={handleChange}
+                  placeholder="India"
+                  type="text"
+                  required
+                  className="pl-11 pr-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+                <IconChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              </div>
+            </LabelInputContainer>
+
+            <LabelInputContainer>
+              <Label htmlFor="address.pincode" className="text-sm font-bold text-gray-700 mb-1">Pincode</Label>
+              <div className="relative">
+                <IconPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="address.pincode"
+                  value={formData.address.pincode}
+                  onChange={handleChange}
+                  placeholder="400001"
+                  type="text"
+                  maxLength={6}
+                  required
+                  className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+              </div>
+            </LabelInputContainer>
+          </div>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="bg-[#f4fbf7] rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-3 gap-6 my-8">
+          <div className="flex flex-col items-center sm:items-start sm:flex-row gap-4">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 border border-green-100 shadow-sm">
+              <IconShieldCheck className="w-5 h-5 text-[#1e9a58]" />
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="font-bold text-[#1e9a58] text-xs mb-0.5">Secure & Safe</p>
+              <p className="text-gray-500 text-[10px] leading-tight">Your data is protected and secure</p>
+            </div>
+          </div>
+          <div className="flex flex-col items-center sm:items-start sm:flex-row gap-4 sm:border-l border-green-200/50 sm:pl-4">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 border border-green-100 shadow-sm">
+              <IconRosetteDiscountCheck className="w-5 h-5 text-[#1e9a58]" />
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="font-bold text-[#1e9a58] text-xs mb-0.5">Premium Quality</p>
+              <p className="text-gray-500 text-[10px] leading-tight">We ensure top quality products</p>
+            </div>
+          </div>
+          <div className="flex flex-col items-center sm:items-start sm:flex-row gap-4 sm:border-l border-green-200/50 sm:pl-4">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 border border-green-100 shadow-sm">
+              <IconHeadset className="w-5 h-5 text-[#1e9a58]" />
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="font-bold text-[#1e9a58] text-xs mb-0.5">24/7 Support</p>
+              <p className="text-gray-500 text-[10px] leading-tight">We're always here to help you</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Button */}
         <button
           disabled={loading}
-          className="group/btn mt-8 relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-700 font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_4px_14px_0_rgba(30,154,88,0.39)] disabled:opacity-50 disabled:cursor-not-allowed"
           type="submit"
         >
-          {loading ? "Creating Account..." : "Create Account →"}
-          <BottomGradient />
+          {loading ? "Creating Account..." : "Create Account"} <IconArrowRight className="w-5 h-5" />
         </button>
-
-        <p className="text-center mt-6 text-sm text-neutral-600 dark:text-neutral-400">
-          Already have an account?
-          <span
-            className="underline cursor-pointer text-blue-600 ml-1"
+        
+        <p className="text-center text-xs text-gray-500 mt-4">
+          By creating an account, you agree to our <a href="#" className="font-bold text-[#1e9a58] hover:underline">Terms of Service</a> and <a href="#" className="font-bold text-[#1e9a58] hover:underline">Privacy Policy</a>.
+        </p>
+        
+        <div className="w-full h-px bg-gray-100 my-6"></div>
+        
+        <p className="text-center text-sm font-medium text-gray-500">
+          Already have an account?{" "}
+          <button
+            type="button"
+            className="font-bold text-[#1e9a58] hover:underline ml-1"
             onClick={handleLogin}
           >
-            Log in
-          </span>
+            Login
+          </button>
         </p>
       </form>
-    </div>
+    </AuthLayout>
   );
 }
 
-const BottomGradient = () => (
-  <>
-    <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
-  </>
-);
-
 const LabelInputContainer = ({ children, className }) => (
-  <div className={cn("flex w-full flex-col space-y-2", className)}>
+  <div className={cn("flex w-full flex-col space-y-1.5", className)}>
     {children}
   </div>
 );

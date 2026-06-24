@@ -124,14 +124,28 @@ function CustomClothesPageContent() {
   const showCategories = activeTab === "categories";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950/20">
-      <div className="container mx-auto px-4 py-10 sm:py-14">
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Background Decor Elements */}
+      <div className="absolute top-10 right-10 grid grid-cols-4 gap-3 opacity-20 pointer-events-none z-0">
+        {[...Array(16)].map((_, i) => (
+          <div key={i} className="w-2 h-2 bg-blue-500 rounded-full"></div>
+        ))}
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full h-[300px] pointer-events-none opacity-40 z-0">
+        <svg viewBox="0 0 1440 320" className="absolute bottom-0 left-0 w-full h-full" preserveAspectRatio="none">
+          <path fill="#e0f2fe" fillOpacity="1" d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,165.3C672,171,768,213,864,224C960,235,1056,213,1152,192C1248,171,1344,149,1392,138.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+          <path fill="#bae6fd" fillOpacity="0.5" d="M0,256L48,245.3C96,235,192,213,288,208C384,203,480,213,576,213C672,213,768,203,864,197.3C960,192,1056,192,1152,208C1248,224,1344,256,1392,272L1440,288L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        </svg>
+      </div>
+
+      <div className="container mx-auto px-4 pt-20 pb-10 sm:pt-28 sm:pb-14 relative z-10">
         {/* Hero header */}
         <div className="text-center mb-10">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-full text-sm font-semibold mb-4"
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#e4f7ed] text-[#1B8A4D] rounded-full text-sm font-semibold mb-4"
           >
             ✨ Custom Clothes Studio
           </motion.div>
@@ -139,7 +153,7 @@ function CustomClothesPageContent() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight"
+            className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0d1c2f] to-[#1e3c72] tracking-tight py-2"
           >
             Design Your Perfect Outfit
           </motion.h1>
@@ -147,7 +161,7 @@ function CustomClothesPageContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.15 }}
-            className="mt-3 text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-base"
+            className="mt-3 text-gray-500 max-w-xl mx-auto text-base"
           >
             Choose your style, pick colors, upload your designs — our team
             brings it to life.
@@ -156,7 +170,7 @@ function CustomClothesPageContent() {
 
         {/* Tab switcher */}
         <div className="flex justify-center mb-8">
-          <div className="flex bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-1 shadow-sm gap-1">
+          <div className="flex bg-white border border-gray-200 rounded-2xl p-1 shadow-sm gap-1">
             {[
               { key: "new-order", label: "New Order", icon: IconPencil },
               { key: "my-orders", label: "My Orders", icon: IconPackage },
@@ -169,8 +183,8 @@ function CustomClothesPageContent() {
                 className={[
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
                   activeTab === key
-                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60",
+                    ? "bg-[#1e9a58] text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-50",
                 ].join(" ")}
               >
                 <Icon size={15} />
@@ -209,14 +223,14 @@ function CustomClothesPageContent() {
             >
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  <h2 className="text-xl font-bold text-gray-900">
                     My Custom Orders
                   </h2>
                   <button
                     type="button"
                     onClick={fetchMyOrders}
                     disabled={ordersLoading}
-                    className="flex items-center gap-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                    className="flex items-center gap-1.5 text-sm text-[#1e9a58] hover:underline"
                   >
                     <IconRefresh
                       size={14}
@@ -232,15 +246,15 @@ function CustomClothesPageContent() {
                     <span>Loading orders…</span>
                   </div>
                 ) : myOrders.length === 0 ? (
-                  <div className="text-center py-20 bg-white dark:bg-gray-800/50 rounded-3xl border border-gray-200 dark:border-gray-700">
+                  <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm">
                     <div className="text-5xl mb-4">🧵</div>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">
+                    <p className="text-gray-500 font-medium">
                       No custom orders yet.
                     </p>
                     <button
                       type="button"
                       onClick={() => setActiveTab("new-order")}
-                      className="mt-4 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors"
+                      className="mt-4 px-5 py-2.5 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-md"
                     >
                       Create your first order →
                     </button>
@@ -301,7 +315,7 @@ function CustomClothesPageContent() {
                       <button
                         type="button"
                         onClick={() => setCategoryPath([])}
-                        className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                        className="text-sm text-[#1e9a58] hover:underline"
                       >
                         (Clear selection)
                       </button>
