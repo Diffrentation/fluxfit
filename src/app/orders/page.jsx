@@ -376,13 +376,38 @@ const OrdersPageContent = () => {
                             <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                               Order #{order.orderId}
                             </h3>
-                            <Badge
-                              color={getStatusColor(order.status)}
-                              text={getStatusLabel(order.status)}
-                              className="flex items-center gap-1"
-                            >
-                              {getStatusIcon(order.status)}
-                            </Badge>
+                            <div className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1.5 border ${
+                              order.status === "delivered"
+                                ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800/30"
+                                : order.status === "cancelled"
+                                ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800/30"
+                                : order.status === "shipped"
+                                ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800/30"
+                                : order.status === "processing"
+                                ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800/30"
+                                : order.status === "confirmed"
+                                ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/30"
+                                : order.status === "pending"
+                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/30"
+                                : "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800/40 dark:text-zinc-400 dark:border-zinc-700/50"
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                order.status === "delivered"
+                                  ? "bg-green-500"
+                                  : order.status === "cancelled"
+                                  ? "bg-red-500"
+                                  : order.status === "shipped"
+                                  ? "bg-purple-500"
+                                  : order.status === "processing"
+                                  ? "bg-orange-500"
+                                  : order.status === "confirmed"
+                                  ? "bg-blue-500"
+                                  : order.status === "pending"
+                                  ? "bg-amber-500"
+                                  : "bg-zinc-500"
+                              }`} />
+                              {order.status}
+                            </div>
                           </div>
                           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                             Placed on{" "}

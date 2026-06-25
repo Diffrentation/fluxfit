@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -106,7 +107,7 @@ const UserDetails = ({
             </div>
           </div>
         }
-        className="shadow-sm dark:bg-gray-800 dark:border-gray-700"
+        className="shadow-sm !bg-zinc-950 border-zinc-800"
       >
         <div className="space-y-4">
           {/* User Info */}
@@ -283,19 +284,33 @@ const UserDetails = ({
           roleForm.resetFields();
         }}
         footer={null}
+        width={750}
       >
-        <Form form={roleForm} layout="vertical" onFinish={handleRoleUpdate} initialValues={{ role: user.role }}>
-          <Form.Item
-            name="role"
-            label="User Role"
-            rules={[{ required: true, message: "Please select role" }]}
-          >
-            <Select placeholder="Select role">
-              <Option value="user">User</Option>
-              <Option value="admin">Admin</Option>
-            </Select>
-          </Form.Item>
-          <div className="flex justify-end gap-2">
+        <Form form={roleForm} layout="vertical" onFinish={handleRoleUpdate} initialValues={{ role: user.role }} className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-5">
+              <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 text-sm h-full flex flex-col justify-center">
+                <span className="font-bold text-zinc-200 block mb-1">User Details</span>
+                <div>Name: <span className="font-semibold text-white">{user.name}</span></div>
+                <div>Email: <span className="font-semibold text-white">{user.email}</span></div>
+                <div className="mt-1">Current Role: <span className="capitalize px-2 py-0.5 text-xs bg-zinc-800 text-zinc-200 border border-zinc-700 rounded-md ml-1">{user.role}</span></div>
+              </div>
+            </div>
+            <div className="md:col-span-7">
+              <Form.Item
+                name="role"
+                label="User Role"
+                rules={[{ required: true, message: "Please select role" }]}
+                className="mb-0"
+              >
+                <Select placeholder="Select role" size="large">
+                  <Option value="user">User (Standard Customer Access)</Option>
+                  <Option value="admin">Admin (Full Dashboard Access)</Option>
+                </Select>
+              </Form.Item>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-6">
             <Button onClick={() => setIsRoleModalVisible(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit" disabled={!!isMutating}>
               Update Role
@@ -313,14 +328,24 @@ const UserDetails = ({
           passwordForm.resetFields();
         }}
         footer={null}
+        width={700}
       >
-        <Form form={passwordForm} layout="vertical" onFinish={handlePasswordReset}>
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-            <p className="text-sm text-yellow-800">
-              A password reset email will be sent to <strong>{user.email}</strong>
-            </p>
+        <Form form={passwordForm} layout="vertical" onFinish={handlePasswordReset} className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-5">
+              <div className="p-4 bg-yellow-950/20 border border-yellow-800/60 rounded-xl text-yellow-200 text-sm h-full flex flex-col justify-center">
+                <span className="font-bold block mb-1 text-yellow-300">Reset Confirmation</span>
+                You are about to trigger a password reset flow for this user.
+              </div>
+            </div>
+            <div className="md:col-span-7 flex flex-col justify-center">
+              <p className="text-sm text-zinc-300">
+                A password reset email containing secure reset instructions will be sent automatically to:
+                <strong className="block text-white text-base font-mono mt-1 bg-zinc-900 border border-zinc-800/80 p-3 rounded-lg">{user.email}</strong>
+              </p>
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-6">
             <Button onClick={() => setIsPasswordModalVisible(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit">
               Send Reset Email

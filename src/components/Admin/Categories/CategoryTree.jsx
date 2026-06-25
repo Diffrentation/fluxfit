@@ -239,7 +239,7 @@ const CategoryTree = ({
 
   /* ---------------- RENDER ---------------- */
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="!bg-zinc-950 p-4 rounded-lg shadow-sm">
       {loading ? (
         <div className="flex justify-center py-10">
           <Spin size="large" />

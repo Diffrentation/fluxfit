@@ -38,7 +38,30 @@ export default function RootLayout({ children }) {
         className="antialiased"
         suppressHydrationWarning
       >
-        <ConfigProvider theme={{ token: { colorPrimary: '#1e9a58' } }}>
+        <ConfigProvider
+          theme={{
+            token: {
+              colorPrimary: '#1e9a58',
+              borderRadius: 12,
+              controlHeight: 42,
+              fontFamily: 'inherit',
+            },
+            components: {
+              Card: {
+                colorBgContainer: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: 16,
+              },
+              Modal: {
+                contentBg: 'rgba(255, 255, 255, 0.98)',
+                headerBg: 'transparent',
+                borderRadius: 16,
+              },
+              Button: {
+                borderRadius: 8,
+              }
+            }
+          }}
+        >
           <ThemeProvider>
             <AuthProvider>
               <AppToasterShell />

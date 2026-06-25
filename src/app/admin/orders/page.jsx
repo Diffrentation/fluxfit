@@ -239,7 +239,7 @@ const OrderManagementPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-transparent transition-colors duration-300">
       <div className="flex">
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8">
@@ -259,7 +259,7 @@ const OrderManagementPage = () => {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-3 sm:mb-4">
+              <div className="!bg-zinc-950 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-zinc-800 mb-3 sm:mb-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                   <div className="sm:col-span-2 lg:col-span-1">
                     <Search
@@ -328,7 +328,7 @@ const OrderManagementPage = () => {
                           }
                         />
                       ) : (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
+                        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 p-8 text-center text-gray-500 dark:text-gray-400">
                           Select an order to view details
                         </div>
                       )}
@@ -359,7 +359,7 @@ const OrderManagementPage = () => {
         footer={null}
         width="95%"
         style={{ maxWidth: 600 }}
-        className="dark:bg-gray-800"
+        className="!bg-zinc-950"
         centered
       >
         {selectedOrder && (

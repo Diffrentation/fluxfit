@@ -97,7 +97,7 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
       transition={{ duration: 0.2 }}
     >
       <Card
-        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 w-full min-w-0"
+        className="h-full border border-zinc-800 hover:shadow-md transition-shadow !bg-zinc-950 w-full min-w-0"
         bodyStyle={{ padding: "12px" }}
       >
         <div className="space-y-3">
@@ -294,7 +294,7 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
       className="space-y-3 sm:space-y-4"
     >
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 !bg-zinc-950 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-zinc-800">
         <div className="flex-1 min-w-0">
           <Search
             placeholder="Search by transaction ID or order ID"
@@ -339,7 +339,7 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
           <Table
             dataSource={paginatedPayments.map((p) => ({ ...p, key: p.id }))}
             columns={columns}
@@ -378,7 +378,7 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
         </div>
 
         {filteredPayments.length > pageSize && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-zinc-800">
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Showing {startIndex + 1} to {Math.min(endIndex, filteredPayments.length)} of {filteredPayments.length} transactions
             </div>
@@ -414,63 +414,71 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
         }}
         footer={null}
         width="95%"
-        style={{ maxWidth: 600 }}
-        className="dark:bg-gray-800"
+        style={{ maxWidth: 850 }}
+        className="!bg-zinc-950"
         centered
       >
         {selectedPayment && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-b border-zinc-800 pb-6">
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Transaction ID</div>
-                <div className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Transaction ID</div>
+                <div className="font-mono text-sm font-semibold text-white">
                   #{selectedPayment.transactionId}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Order ID</div>
-                <div className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Order ID</div>
+                <div className="font-mono text-sm font-semibold text-white">
                   #{selectedPayment.orderId}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Customer</div>
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Customer</div>
+                <div className="text-sm font-medium text-white">
                   {selectedPayment.customer}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Amount</div>
-                <div className="text-base font-semibold text-gray-900 dark:text-white">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Amount</div>
+                <div className="text-base font-semibold text-emerald-400">
                   ₹{formatPrice(selectedPayment.amount)}
                 </div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Payment Method</div>
-                <Tag color="blue">{getMethodLabel(selectedPayment.method)}</Tag>
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Payment Method</div>
+                <Tag color="blue" className="m-0 font-medium">{getMethodLabel(selectedPayment.method)}</Tag>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Status</div>
-                <Tag color={getStatusColor(selectedPayment.status)} className="capitalize">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Status</div>
+                <Tag color={getStatusColor(selectedPayment.status)} className="capitalize m-0 font-medium">
                   {selectedPayment.status}
                 </Tag>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Date</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Date</div>
+                <div className="text-sm text-zinc-200">
                   {format(new Date(selectedPayment.date), "MMM dd, yyyy")}
                 </div>
               </div>
-              {selectedPayment.fraudFlag && (
-                <div className="col-span-2">
-                  <div className="flex items-center gap-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
-                    <IconAlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                    <span className="text-xs text-orange-700 dark:text-orange-300">
-                      This transaction has been flagged for fraud review
-                    </span>
-                  </div>
+            </div>
+
+            {selectedPayment.fraudFlag && (
+              <div className="border-t border-zinc-800 pt-4">
+                <div className="flex items-center gap-3 p-4 bg-orange-950/20 border border-orange-900/40 rounded-xl text-orange-200">
+                  <IconAlertTriangle className="w-5 h-5 text-orange-400 shrink-0" />
+                  <span className="text-sm">
+                    <strong>Fraud Flag:</strong> This transaction has been flagged for fraud review. Please verify billing details and contact info before shipping.
+                  </span>
                 </div>
-              )}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-zinc-800">
+              <Button size="large" onClick={() => setIsDetailsModalVisible(false)}>Close Details</Button>
             </div>
           </div>
         )}

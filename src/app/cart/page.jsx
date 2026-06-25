@@ -334,9 +334,17 @@ const CartPage = () => {
                       <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 relative">
                         {/* Thumbnails (if any) */}
                         <div className="hidden sm:flex flex-col gap-2">
-                          {[1, 2, 3, 4].map((_, i) => (
-                            <div key={i} className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative cursor-pointer hover:border-[#1e9a58]">
+                          <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative cursor-pointer hover:border-[#1e9a58]">
+                            {item.customization?.previewDataUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={item.customization.previewDataUrl} alt="custom design thumb" className="w-full h-full object-contain" />
+                            ) : (
                               <Image src={item.image || product?.images?.[0] || ""} alt="thumb" fill className="object-cover" />
+                            )}
+                          </div>
+                          {[1, 2, 3].map((_, i) => (
+                            <div key={i} className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative cursor-pointer hover:border-[#1e9a58]">
+                              <Image src={product?.images?.[i + 1] || product?.images?.[0] || item.image || ""} alt="thumb" fill className="object-cover" />
                             </div>
                           ))}
                           <div className="w-12 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-200 text-xs font-semibold text-gray-600 cursor-pointer">
@@ -349,12 +357,21 @@ const CartPage = () => {
                           className="relative w-full sm:w-48 md:w-56 h-48 sm:h-auto shrink-0 bg-gray-100 rounded-2xl overflow-hidden cursor-pointer"
                           onClick={() => handleNavigateToProduct(item)}
                         >
-                          <Image
-                            src={item.image || product?.images?.[0] || ""}
-                            alt={item.name}
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-300"
-                          />
+                          {item.customization?.previewDataUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.customization.previewDataUrl}
+                              alt={item.name}
+                              className="w-full h-full object-contain bg-white hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <Image
+                              src={item.image || product?.images?.[0] || ""}
+                              alt={item.name}
+                              fill
+                              className="object-cover hover:scale-105 transition-transform duration-300"
+                            />
+                          )}
                         </div>
 
                         {/* Product Details */}
@@ -393,13 +410,19 @@ const CartPage = () => {
                           )}
 
                           {/* Stock Status */}
-                          <div className="mb-2 sm:mb-3 flex items-center gap-2">
+                          <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-2">
                             <span className="text-xs sm:text-sm px-2 py-0.5 bg-green-50 text-[#1e9a58] font-semibold rounded">
                               In stock
                             </span>
                             <span className="text-xs px-2 py-0.5 bg-green-50 text-[#1e9a58] font-semibold rounded">
                               Fulfilled
                             </span>
+                            {item.customization && (
+                              <span className="text-xs px-2.5 py-0.5 bg-purple-50 text-purple-700 font-bold rounded border border-purple-100 flex items-center gap-1 shadow-sm">
+                                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                                Customized
+                              </span>
+                            )}
                           </div>
 
                           {/* Color */}
@@ -419,6 +442,60 @@ const CartPage = () => {
                                 <span className="font-medium">Size:</span>{" "}
                                 {item.size}
                               </span>
+                            </div>
+                          )}
+
+                          {/* Customization Details Block */}
+                          {item.customization && (
+                            <div className="mt-2 mb-4 p-3 bg-purple-50/50 rounded-2xl border border-purple-100 max-w-md">
+                              <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider mb-2">Custom Design Configuration</p>
+                              <div className="flex gap-3 items-start">
+                                {item.customization.previewDataUrl && (
+                                  <div className="relative w-16 h-16 bg-white rounded-xl border border-purple-200 overflow-hidden flex-shrink-0 shadow-sm">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img 
+                                      src={item.customization.previewDataUrl} 
+                                      alt="Design preview" 
+                                      className="w-full h-full object-contain" 
+                                    />
+                                  </div>
+                                )}
+                                <div className="space-y-1 min-w-0 flex-1">
+                                  {item.customization.fabricId && (
+                                    <p className="text-[11px] text-gray-600">
+                                      <span className="font-semibold text-purple-700">Fabric/Color:</span>{" "}
+                                      <span className="capitalize">{item.customization.fabricId}</span>
+                                    </p>
+                                  )}
+                                  {item.customization.mockupTemplateName && (
+                                    <p className="text-[11px] text-gray-600">
+                                      <span className="font-semibold text-purple-700">Garment Base:</span>{" "}
+                                      <span className="capitalize">{item.customization.mockupTemplateName}</span>
+                                    </p>
+                                  )}
+                                  {/* Print layers info */}
+                                  {["front", "back"].map((view) => {
+                                    const viewData = item.customization.views?.[view];
+                                    const activeLayers = (viewData?.layers ?? []).filter(
+                                      (l) => l.designId && l.designId !== "none"
+                                    );
+                                    if (!activeLayers.length) return null;
+                                    return (
+                                      <p key={view} className="text-[11px] text-gray-600 truncate">
+                                        <span className="font-semibold text-purple-700 capitalize">{view} prints:</span>{" "}
+                                        <span>
+                                          {activeLayers.map((l) => {
+                                            if (l.type === "text") {
+                                              return `Text ("${l.text || ''}")`;
+                                            }
+                                            return l.designId === "upload" ? "Custom upload" : l.designId;
+                                          }).join(", ")}
+                                        </span>
+                                      </p>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             </div>
                           )}
 

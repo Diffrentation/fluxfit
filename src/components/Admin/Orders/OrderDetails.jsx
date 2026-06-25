@@ -95,25 +95,54 @@ const OrderDetails = ({
         title={
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <span className="text-sm sm:text-base font-semibold">Order #{order.orderId}</span>
-            <Tag color={getStatusColor(order.status)} className="capitalize text-xs sm:text-sm">
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize inline-flex items-center gap-1.5 border ${
+              order.status === "delivered"
+                ? "bg-green-900/20 text-green-300 border-green-800/30"
+                : order.status === "cancelled"
+                ? "bg-red-900/20 text-red-300 border-red-800/30"
+                : order.status === "shipped"
+                ? "bg-purple-900/20 text-purple-300 border-purple-800/30"
+                : order.status === "processing"
+                ? "bg-orange-900/20 text-orange-300 border-orange-800/30"
+                : order.status === "confirmed"
+                ? "bg-blue-900/20 text-blue-300 border-blue-800/30"
+                : order.status === "pending"
+                ? "bg-amber-900/20 text-amber-300 border-amber-800/30"
+                : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50"
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                order.status === "delivered"
+                  ? "bg-green-500"
+                  : order.status === "cancelled"
+                  ? "bg-red-500"
+                  : order.status === "shipped"
+                  ? "bg-purple-500"
+                  : order.status === "processing"
+                  ? "bg-orange-500"
+                  : order.status === "confirmed"
+                  ? "bg-blue-500"
+                  : order.status === "pending"
+                  ? "bg-amber-500"
+                  : "bg-zinc-500"
+              }`} />
               {order.status}
-            </Tag>
+            </span>
           </div>
         }
-        className="shadow-sm dark:bg-gray-800"
+        className="shadow-sm !bg-zinc-950"
         bodyStyle={{ padding: "16px" }}
       >
         <div className="space-y-3 sm:space-y-4">
           {/* Customer Info */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <IconUser className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Customer</span>
+              <IconUser className="w-4 h-4 text-zinc-400" />
+              <span className="font-semibold text-sm sm:text-base text-zinc-100">Customer</span>
             </div>
             <div className="pl-6">
-              <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">{order.address?.name}</div>
-              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{order.address?.phone}</div>
-              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{order.address?.email}</div>
+              <div className="font-medium text-sm sm:text-base text-zinc-100">{order.address?.name}</div>
+              <div className="text-xs sm:text-sm text-zinc-300">{order.address?.phone}</div>
+              <div className="text-xs sm:text-sm text-zinc-300">{order.address?.email}</div>
             </div>
           </div>
 
@@ -122,10 +151,10 @@ const OrderDetails = ({
           {/* Delivery Address */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <IconMapPin className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Delivery Address</span>
+              <IconMapPin className="w-4 h-4 text-zinc-400" />
+              <span className="font-semibold text-sm sm:text-base text-zinc-100">Delivery Address</span>
             </div>
-            <div className="pl-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <div className="pl-6 text-xs sm:text-sm text-zinc-300">
               {order.address?.address}, {order.address?.city}, {order.address?.state} - {order.address?.pincode}
             </div>
           </div>
@@ -134,19 +163,19 @@ const OrderDetails = ({
 
           {/* Order Items */}
           <div>
-            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">Order Items</div>
+            <div className="font-semibold text-sm sm:text-base text-zinc-100 mb-2">Order Items</div>
             <div className="space-y-3">
               {order.items?.map((item, index) => {
                 const isCustom = item.customization?.type === "custom_clothes";
                 const previewSrc = item.customization?.previewDataUrl || item.image || null;
 
                 return (
-                  <div key={index} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <div key={index} className="rounded-lg border border-zinc-800 overflow-hidden">
                     {/* Item header row */}
-                    <div className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-700/50">
+                    <div className="flex gap-3 p-3 bg-zinc-900/50">
                       {/* Image / preview thumbnail — click to fullscreen */}
                       <div className="shrink-0 flex flex-col items-center gap-1">
-                        <div className="relative w-16 h-20 rounded-md overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 flex items-center justify-center group">
+                        <div className="relative w-16 h-20 rounded-md overflow-hidden border border-zinc-800 !bg-zinc-950 flex items-center justify-center group">
                           {previewSrc ? (
                             <>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -181,8 +210,8 @@ const OrderDetails = ({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-xs sm:text-sm text-gray-900 dark:text-white truncate">{item.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <div className="font-medium text-xs sm:text-sm text-zinc-100 truncate">{item.name}</div>
+                        <div className="text-xs text-zinc-400 mt-0.5">
                           {item.size} · {item.color} · Qty: {item.quantity}
                         </div>
                         {isCustom && (
@@ -192,30 +221,30 @@ const OrderDetails = ({
                         )}
                       </div>
 
-                      <div className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white shrink-0">
+                      <div className="font-semibold text-xs sm:text-sm text-zinc-100 shrink-0">
                         ₹{formatPrice(item.price * item.quantity)}
                       </div>
                     </div>
 
                     {/* Custom design detail panel */}
                     {isCustom && (
-                      <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      <div className="p-3 border-t border-zinc-800 !bg-zinc-950 space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                           Custom Design Details
                         </p>
 
                         {/* Fabric / color */}
                         {item.customization.fabricId && (
-                          <div className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                            <span className="font-medium text-gray-500 dark:text-gray-400 w-20 shrink-0">Fabric / Color</span>
+                          <div className="flex items-center gap-2 text-xs text-zinc-300">
+                            <span className="font-medium text-zinc-400 w-20 shrink-0">Fabric / Color</span>
                             <span className="capitalize">{item.customization.fabricId}</span>
                           </div>
                         )}
 
                         {/* Template name */}
                         {item.customization.mockupTemplateName && (
-                          <div className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                            <span className="font-medium text-gray-500 dark:text-gray-400 w-20 shrink-0">Product</span>
+                          <div className="flex items-center gap-2 text-xs text-zinc-300">
+                            <span className="font-medium text-zinc-400 w-20 shrink-0">Product</span>
                             <span>{item.customization.mockupTemplateName}</span>
                           </div>
                         )}
@@ -228,8 +257,8 @@ const OrderDetails = ({
                           );
                           if (!activeLayers.length) return null;
                           return (
-                            <div key={view} className="text-xs text-gray-700 dark:text-gray-300">
-                              <span className="font-medium text-gray-500 dark:text-gray-400 capitalize">{view} prints: </span>
+                            <div key={view} className="text-xs text-zinc-300">
+                              <span className="font-medium text-zinc-400 capitalize">{view} prints: </span>
                               <span>{activeLayers.map((l) => l.designId === "upload" ? "Custom upload" : l.designId).join(", ")}</span>
                             </div>
                           );
@@ -239,22 +268,32 @@ const OrderDetails = ({
                         {item.customization.previewDataUrl && (
                           <div className="pt-1">
                             <div className="flex items-center justify-between mb-1">
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Design Preview</p>
-                              <button
-                                type="button"
-                                onClick={() => setPreviewModal({ open: true, src: item.customization.previewDataUrl, label: item.name })}
-                                className="flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                <IconMaximize className="w-3 h-3" />
-                                View Full
-                              </button>
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Design Preview</p>
+                              <div className="flex items-center gap-3">
+                                <a
+                                  href={item.customization.previewDataUrl}
+                                  download={`Design_${order.orderId || "Order"}_${item.name.replace(/\s+/g, "_")}.png`}
+                                  className="flex items-center gap-1 text-[11px] font-semibold text-emerald-500 hover:text-emerald-400 hover:underline cursor-pointer"
+                                >
+                                  <IconDownload className="w-3.5 h-3.5" />
+                                  Download Design
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewModal({ open: true, src: item.customization.previewDataUrl, label: item.name })}
+                                  className="flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  <IconMaximize className="w-3 h-3" />
+                                  View Full
+                                </button>
+                              </div>
                             </div>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={item.customization.previewDataUrl}
                               alt="Custom design preview"
                               onClick={() => setPreviewModal({ open: true, src: item.customization.previewDataUrl, label: item.name })}
-                              className="w-full max-w-55 rounded-lg border border-gray-200 dark:border-gray-600 object-contain cursor-zoom-in"
+                              className="w-full max-w-55 rounded-lg border border-zinc-800 object-contain cursor-zoom-in"
                             />
                           </div>
                         )}
@@ -270,24 +309,24 @@ const OrderDetails = ({
 
           {/* Order Summary */}
           <div>
-            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">Order Summary</div>
+            <div className="font-semibold text-sm sm:text-base text-zinc-100 mb-2">Order Summary</div>
             <div className="space-y-1 text-xs sm:text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                <span className="text-gray-900 dark:text-white">₹{formatPrice(order.orderSummary?.subtotal || 0)}</span>
+                <span className="text-zinc-400">Subtotal</span>
+                <span className="text-zinc-200">₹{formatPrice(order.orderSummary?.subtotal || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Discount</span>
-                <span className="text-green-600 dark:text-green-400">-₹{formatPrice(order.orderSummary?.discount || 0)}</span>
+                <span className="text-zinc-400">Discount</span>
+                <span className="text-emerald-400">-₹{formatPrice(order.orderSummary?.discount || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Tax</span>
-                <span className="text-gray-900 dark:text-white">₹{formatPrice(order.orderSummary?.tax || 0)}</span>
+                <span className="text-zinc-400">Tax</span>
+                <span className="text-zinc-200">₹{formatPrice(order.orderSummary?.tax || 0)}</span>
               </div>
               <Divider className="my-2" />
-              <div className="flex justify-between font-semibold text-base sm:text-lg">
-                <span className="text-gray-900 dark:text-white">Total</span>
-                <span className="text-gray-900 dark:text-white">₹{formatPrice(order.orderSummary?.grandTotal || 0)}</span>
+              <div className="flex justify-between font-semibold text-base sm:text-lg text-zinc-100">
+                <span>Total</span>
+                <span>₹{formatPrice(order.orderSummary?.grandTotal || 0)}</span>
               </div>
             </div>
           </div>
@@ -297,18 +336,18 @@ const OrderDetails = ({
           {/* Status Timeline */}
           {order.statusHistory && order.statusHistory.length > 0 && (
             <div>
-              <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">Status Timeline</div>
+              <div className="font-semibold text-sm sm:text-base text-zinc-100 mb-2">Status Timeline</div>
               <Timeline
                 items={order.statusHistory.map((history) => ({
                   color: getStatusColor(history.status),
                   children: (
                     <div>
-                      <div className="font-medium text-xs sm:text-sm capitalize text-gray-900 dark:text-white">{history.status}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="font-medium text-xs sm:text-sm capitalize text-zinc-100">{history.status}</div>
+                      <div className="text-xs text-zinc-400">
                         {format(new Date(history.timestamp), "MMM dd, yyyy HH:mm")}
                       </div>
                       {history.note && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
+                        <div className="text-xs text-zinc-400 mt-1 italic">
                           {history.note}
                         </div>
                       )}
@@ -416,27 +455,30 @@ const OrderDetails = ({
           statusForm.resetFields();
         }}
         footer={null}
+        width={750}
       >
-        <Form form={statusForm} layout="vertical" onFinish={handleStatusUpdate}>
-          <Form.Item
-            name="status"
-            label="New Status"
-            rules={[{ required: true, message: "Please select status" }]}
-          >
-            <Select placeholder="Select status">
-              <Option value="pending">Pending</Option>
-              <Option value="confirmed">Confirmed</Option>
-              <Option value="processing">Processing</Option>
-              <Option value="shipped">Shipped</Option>
-              <Option value="delivered">Delivered</Option>
-              <Option value="cancelled">Cancelled</Option>
-              <Option value="returned">Returned</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="note" label="Note (Optional)">
-            <TextArea rows={3} placeholder="Add a note about this status change" />
-          </Form.Item>
-          <div className="flex justify-end gap-2">
+        <Form form={statusForm} layout="vertical" onFinish={handleStatusUpdate} className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Form.Item
+              name="status"
+              label="New Status"
+              rules={[{ required: true, message: "Please select status" }]}
+            >
+              <Select placeholder="Select status" size="large">
+                <Option value="pending">Pending</Option>
+                <Option value="confirmed">Confirmed</Option>
+                <Option value="processing">Processing</Option>
+                <Option value="shipped">Shipped</Option>
+                <Option value="delivered">Delivered</Option>
+                <Option value="cancelled">Cancelled</Option>
+                <Option value="returned">Returned</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item name="note" label="Note (Optional)">
+              <TextArea rows={3} placeholder="Add a note about this status change" />
+            </Form.Item>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-4">
             <Button onClick={() => setIsStatusModalVisible(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit">
               Update Status
@@ -454,22 +496,33 @@ const OrderDetails = ({
           deliveryForm.resetFields();
         }}
         footer={null}
+        width={750}
       >
-        <Form form={deliveryForm} layout="vertical" onFinish={handleDeliveryAssign}>
-          <Form.Item
-            name="partnerId"
-            label="Delivery Partner"
-            rules={[{ required: true, message: "Please select delivery partner" }]}
-          >
-            <Select placeholder="Select delivery partner">
-              {deliveryPartners.map((partner) => (
-                <Option key={partner.id} value={partner.id}>
-                  {partner.name} - {partner.phone}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <div className="flex justify-end gap-2">
+        <Form form={deliveryForm} layout="vertical" onFinish={handleDeliveryAssign} className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-7">
+              <Form.Item
+                name="partnerId"
+                label="Delivery Partner"
+                rules={[{ required: true, message: "Please select delivery partner" }]}
+                className="mb-0"
+              >
+                <Select placeholder="Select delivery partner" size="large">
+                  {deliveryPartners.map((partner) => (
+                    <Option key={partner.id} value={partner.id}>
+                      {partner.name} - {partner.phone}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
+            <div className="md:col-span-5">
+              <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-400 text-xs h-full flex flex-col justify-center">
+                Assigning a delivery partner will notify them of the order details. Make sure their contact info is up to date.
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-6">
             <Button onClick={() => setIsDeliveryModalVisible(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit">
               Assign Partner
@@ -487,16 +540,28 @@ const OrderDetails = ({
           cancelForm.resetFields();
         }}
         footer={null}
+        width={750}
       >
-        <Form form={cancelForm} layout="vertical" onFinish={handleCancel}>
-          <Form.Item
-            name="reason"
-            label="Cancellation Reason"
-            rules={[{ required: true, message: "Please enter cancellation reason" }]}
-          >
-            <TextArea rows={4} placeholder="Enter reason for cancellation" />
-          </Form.Item>
-          <div className="flex justify-end gap-2">
+        <Form form={cancelForm} layout="vertical" onFinish={handleCancel} className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-5">
+              <div className="p-4 bg-red-950/30 border border-red-900/50 rounded-xl text-red-200 text-sm h-full flex flex-col justify-center">
+                <span className="font-bold block mb-1">Warning</span>
+                Cancelling this order is permanent and cannot be undone. Any payment will need manual processing for refunds where applicable.
+              </div>
+            </div>
+            <div className="md:col-span-7">
+              <Form.Item
+                name="reason"
+                label="Cancellation Reason"
+                rules={[{ required: true, message: "Please enter cancellation reason" }]}
+                className="mb-0"
+              >
+                <TextArea rows={4} placeholder="e.g. Out of stock, customer requested cancellation, invalid address, etc." />
+              </Form.Item>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-6">
             <Button onClick={() => setIsCancelModalVisible(false)}>Cancel</Button>
             <Button type="primary" danger htmlType="submit">
               Cancel Order

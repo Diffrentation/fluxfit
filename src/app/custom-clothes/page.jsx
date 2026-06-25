@@ -45,6 +45,10 @@ function CustomClothesPageContent() {
   const [myOrders, setMyOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
+  // Read previewImage from URL (set when coming from a product details page via 'Customize Design')
+  const previewImageFromUrl = searchParams.get("previewImage") || "";
+  const productNameFromUrl = searchParams.get("productName") || "";
+
   // Reset on ?reset=true
   useEffect(() => {
     if (searchParams.get("reset") === "true") {
@@ -205,6 +209,8 @@ function CustomClothesPageContent() {
               transition={{ duration: 0.3 }}
             >
               <CustomOrderForm
+                previewImage={previewImageFromUrl}
+                productName={productNameFromUrl}
                 onSubmitSuccess={() => {
                   setActiveTab("my-orders");
                 }}

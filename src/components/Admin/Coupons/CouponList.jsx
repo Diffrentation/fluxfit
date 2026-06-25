@@ -155,7 +155,7 @@ const CouponList = ({ coupons, onEdit, onDelete }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+      className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden"
     >
       <Table
         dataSource={coupons.map((c) => ({ ...c, key: c.id }))}

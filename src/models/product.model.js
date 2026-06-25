@@ -151,6 +151,31 @@ const productSchema = new mongoose.Schema(
         trim: true,
       },
     ],
+    details: {
+      story: { type: String, trim: true },
+      material: { type: String, trim: true },
+      washingInstructions: { type: String, trim: true },
+      sizeAndFit: { type: String, trim: true },
+    },
+    keyHighlights: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    specifications: [
+      {
+        label: { type: String, trim: true },
+        value: { type: String, trim: true },
+      },
+    ],
+    featureCards: [
+      {
+        icon: { type: String, trim: true },
+        title: { type: String, trim: true },
+        description: { type: String, trim: true },
+      },
+    ],
     shipping: {
       type: String,
       default:
@@ -216,6 +241,11 @@ const productSchema = new mongoose.Schema(
     },
     deletedAt: {
       type: Date,
+    },
+    isCustomizable: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   {
@@ -361,16 +391,48 @@ productSchema.statics.search = async function (query, filters = {}) {
 
   const skip = (page - 1) * limit;
 
-  const [products, total] = await Promise.all([
-    this.find(searchQuery)
-      .populate("category", "name slug")
-      .populate("brand", "name logo")
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    this.countDocuments(searchQuery),
-  ]);
+  let products, total;
+  try {
+    [products, total] = await Promise.all([
+      this.find(searchQuery)
+        .populate("category", "name slug")
+        .populate("brand", "name logo")
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.countDocuments(searchQuery),
+    ]);
+  } catch (err) {
+    if (err.message.includes("text index required") || err.code === 27) {
+      console.warn("Text index missing in Product.search, rebuilding and falling back to regex:", err);
+      this.ensureIndexes().catch(console.error);
+
+      delete searchQuery.$text;
+      searchQuery.name = { $regex: query, $options: "i" };
+
+      let fallbackSort = sort;
+      if (typeof sort === "string" && sort.includes("score")) {
+        fallbackSort = "-createdAt";
+      } else if (typeof sort === "object" && sort.score) {
+        delete sort.score;
+        fallbackSort = Object.keys(sort).length === 0 ? "-createdAt" : sort;
+      }
+
+      [products, total] = await Promise.all([
+        this.find(searchQuery)
+          .populate("category", "name slug")
+          .populate("brand", "name logo")
+          .sort(fallbackSort)
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        this.countDocuments(searchQuery),
+      ]);
+    } else {
+      throw err;
+    }
+  }
 
   return {
     products,

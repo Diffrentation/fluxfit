@@ -153,16 +153,47 @@ export async function GET(request) {
     const skip = (page - 1) * limit;
 
     // Execute query with pagination
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .populate("category", "name slug")
-        .populate("brand", "name logo")
-        .sort(sortObj)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Product.countDocuments(query),
-    ]);
+    let products, total;
+    try {
+      [products, total] = await Promise.all([
+        Product.find(query)
+          .populate("category", "name slug")
+          .populate("brand", "name logo")
+          .sort(sortObj)
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        Product.countDocuments(query),
+      ]);
+    } catch (err) {
+      if (err.message.includes("text index required") || err.code === 27) {
+        console.warn("Text index missing in search, rebuilding and falling back to regex:", err);
+        Product.ensureIndexes().catch(console.error);
+
+        delete query.$text;
+        query.name = { $regex: q.trim(), $options: "i" };
+
+        if (sortObj.score) {
+          delete sortObj.score;
+          if (Object.keys(sortObj).length === 0) {
+            sortObj.createdAt = -1;
+          }
+        }
+
+        [products, total] = await Promise.all([
+          Product.find(query)
+            .populate("category", "name slug")
+            .populate("brand", "name logo")
+            .sort(sortObj)
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          Product.countDocuments(query),
+        ]);
+      } else {
+        throw err;
+      }
+    }
 
     // Format products for response
     const formattedProducts = products.map((product) => {
@@ -219,6 +250,7 @@ export async function GET(request) {
         isFeatured: product.isFeatured || false,
         isNew: product.isNew || false,
         isPopular: product.isPopular || false,
+        isCustomizable: product.isCustomizable || false,
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
       };

@@ -113,11 +113,16 @@ export async function GET(request, { params }) {
           rating: { $ifNull: ["$rating", { average: 0, count: 0 }] },
           reviews: { $ifNull: ["$reviews", 0] },
           features: 1,
+          details: { $ifNull: ["$details", {}] },
+          keyHighlights: { $ifNull: ["$keyHighlights", []] },
+          specifications: { $ifNull: ["$specifications", []] },
+          featureCards: { $ifNull: ["$featureCards", []] },
           shipping: 1,
           returnPolicy: 1,
           isFeatured: { $ifNull: ["$isFeatured", false] },
           isNew: { $ifNull: ["$isNew", false] },
           isPopular: { $ifNull: ["$isPopular", false] },
+          isCustomizable: { $ifNull: ["$isCustomizable", false] },
           lowStockThreshold: { $ifNull: ["$lowStockThreshold", 10] },
           metaTitle: 1,
           metaDescription: 1,
@@ -246,6 +251,10 @@ export async function PUT(request, { params }) {
       stock,
       inStock,
       features,
+      details,
+      keyHighlights,
+      specifications,
+      featureCards,
       shipping,
       returnPolicy,
       metaTitle,
@@ -255,6 +264,7 @@ export async function PUT(request, { params }) {
       isFeatured,
       isNew,
       isPopular,
+      isCustomizable,
       slug,
     } = body;
 
@@ -472,6 +482,29 @@ export async function PUT(request, { params }) {
       }
     }
 
+    if (details !== undefined) updateData.details = details;
+    if (keyHighlights !== undefined) {
+      if (!Array.isArray(keyHighlights)) {
+        errors.push({ field: "keyHighlights", message: "Key Highlights must be an array" });
+      } else {
+        updateData.keyHighlights = keyHighlights;
+      }
+    }
+    if (specifications !== undefined) {
+      if (!Array.isArray(specifications)) {
+        errors.push({ field: "specifications", message: "Specifications must be an array" });
+      } else {
+        updateData.specifications = specifications;
+      }
+    }
+    if (featureCards !== undefined) {
+      if (!Array.isArray(featureCards)) {
+        errors.push({ field: "featureCards", message: "Feature Cards must be an array" });
+      } else {
+        updateData.featureCards = featureCards;
+      }
+    }
+
     if (shipping !== undefined) updateData.shipping = shipping?.trim() || null;
     if (returnPolicy !== undefined) updateData.returnPolicy = returnPolicy?.trim() || null;
     if (metaTitle !== undefined) updateData.metaTitle = metaTitle?.trim() || null;
@@ -497,6 +530,7 @@ export async function PUT(request, { params }) {
     if (isFeatured !== undefined) updateData.isFeatured = isFeatured === true || isFeatured === "true";
     if (isNew !== undefined) updateData.isNew = isNew === true || isNew === "true";
     if (isPopular !== undefined) updateData.isPopular = isPopular === true || isPopular === "true";
+    if (isCustomizable !== undefined) updateData.isCustomizable = isCustomizable === true || isCustomizable === "true";
 
     if (errors.length > 0) {
       return NextResponse.json({ success: false, message: "Validation failed", errors }, { status: 400 });
@@ -576,12 +610,17 @@ export async function PUT(request, { params }) {
           rating: { $ifNull: ["$rating", { average: 0, count: 0 }] },
           reviews: { $ifNull: ["$reviews", 0] },
           features: 1,
+          details: { $ifNull: ["$details", {}] },
+          keyHighlights: { $ifNull: ["$keyHighlights", []] },
+          specifications: { $ifNull: ["$specifications", []] },
+          featureCards: { $ifNull: ["$featureCards", []] },
           shipping: 1,
           returnPolicy: 1,
           status: 1,
           isFeatured: 1,
           isNew: 1,
           isPopular: 1,
+          isCustomizable: 1,
           metaTitle: 1,
           metaDescription: 1,
           metaKeywords: 1,

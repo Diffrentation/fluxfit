@@ -276,53 +276,61 @@ const APIKeysManagement = ({ onSave }) => {
         }}
         footer={null}
         width="95%"
-        style={{ maxWidth: 600 }}
-        className="dark:bg-gray-800"
+        style={{ maxWidth: 850 }}
+        className="!bg-zinc-950"
         centered
       >
-        <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item
-            name="name"
-            label="API Key Name"
-            rules={[{ required: true, message: "Please enter API key name" }]}
-          >
-            <Input placeholder="Stripe Payment" />
-          </Form.Item>
+        <Form form={form} layout="vertical" onFinish={handleSave} className="mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+              <Form.Item
+                name="name"
+                label="API Key Name"
+                rules={[{ required: true, message: "Please enter API key name" }]}
+              >
+                <Input placeholder="Stripe Payment" />
+              </Form.Item>
 
-          <Form.Item
-            name="key"
-            label="API Key"
-            rules={[{ required: true, message: "Please enter API key" }]}
-          >
-            <Input.Password placeholder="Enter API key" />
-          </Form.Item>
+              <Form.Item
+                name="key"
+                label="API Key"
+                rules={[{ required: true, message: "Please enter API key" }]}
+              >
+                <Input.Password placeholder="Enter API key" />
+              </Form.Item>
+            </div>
 
-          <Form.Item
-            name="type"
-            label="Type"
-            rules={[{ required: true, message: "Please select type" }]}
-          >
-            <Select>
-              <Option value="payment">Payment</Option>
-              <Option value="storage">Storage</Option>
-              <Option value="sms">SMS</Option>
-              <Option value="email">Email</Option>
-              <Option value="analytics">Analytics</Option>
-            </Select>
-          </Form.Item>
+            {/* Right Column */}
+            <div className="space-y-4">
+              <Form.Item
+                name="type"
+                label="Type"
+                rules={[{ required: true, message: "Please select type" }]}
+              >
+                <Select>
+                  <Option value="payment">Payment</Option>
+                  <Option value="storage">Storage</Option>
+                  <Option value="sms">SMS</Option>
+                  <Option value="email">Email</Option>
+                  <Option value="analytics">Analytics</Option>
+                </Select>
+              </Form.Item>
 
-          <Form.Item
-            name="status"
-            label="Status"
-            initialValue="active"
-          >
-            <Select>
-              <Option value="active">Active</Option>
-              <Option value="inactive">Inactive</Option>
-            </Select>
-          </Form.Item>
+              <Form.Item
+                name="status"
+                label="Status"
+                initialValue="active"
+              >
+                <Select>
+                  <Option value="active">Active</Option>
+                  <Option value="inactive">Inactive</Option>
+                </Select>
+              </Form.Item>
+            </div>
+          </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 mt-6 border-t border-zinc-800 pt-4">
             <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit">
               {selectedKey ? "Update" : "Add"} API Key

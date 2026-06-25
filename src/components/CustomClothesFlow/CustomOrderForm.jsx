@@ -82,7 +82,7 @@ function getToken() {
   return raw.trim();
 }
 
-export default function CustomOrderForm({ onSubmitSuccess }) {
+export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", productName = "" }) {
   const [clothType, setClothType] = useState("T-Shirt");
   const [clothColor, setClothColor] = useState(PRESET_COLORS[0]);
   const [customColorHex, setCustomColorHex] = useState("#FFFFFF");
@@ -99,7 +99,8 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
   const [submitting, setSubmitting] = useState(false);
   const [adminDesigns, setAdminDesigns] = useState([]);
   const [loadingDesigns, setLoadingDesigns] = useState(true);
-  const [previewImage, setPreviewImage] = useState(null);
+  const [previewModalImage, setPreviewModalImage] = useState(null);
+  const [imagePopupOpen, setImagePopupOpen] = useState(false);
 
   useEffect(() => {
     const fetchDesigns = async () => {
@@ -190,6 +191,41 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
+      {/* ── Product Reference Banner (when coming from product details) ─────── */}
+      {previewImage && (
+        <div className="mb-6 rounded-2xl border border-[#1e9a58]/30 bg-[#f4fbf7] p-4 flex items-center gap-4">
+          {/* Clickable thumbnail → opens lightbox */}
+          <button
+            type="button"
+            onClick={() => setImagePopupOpen(true)}
+            className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 bg-white flex-shrink-0 shadow-sm group cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-[#1e9a58]"
+            title="Click to enlarge"
+          >
+            <img
+              src={previewImage}
+              alt={productName || "Product reference"}
+              className="w-full h-full object-contain p-1 transition-transform duration-200 group-hover:scale-105"
+            />
+            {/* Zoom overlay */}
+            <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0zm-3-1h-2m-2 0H8m2-2v2m0 2v2" />
+              </svg>
+            </span>
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-[#1e9a58] uppercase tracking-wide mb-0.5">Customizing product</p>
+            <p className="text-sm font-bold text-[#0d1c2f] truncate">{productName || "Selected product"}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Fill out the form below and upload your design artwork.</p>
+          </div>
+          <div className="flex-shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#1e9a58] text-white">
+              ✨ Custom Order
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
         {/* ── LEFT PANEL: Configuration ─────────────────────────── */}
         <motion.div
@@ -394,7 +430,7 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
                   <div
                     key={design.id}
                     className="flex-shrink-0 w-24 h-24 relative rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden group cursor-pointer bg-gray-50 dark:bg-gray-700/50"
-                    onClick={() => setPreviewImage(design.imageUrl)}
+                    onClick={() => setPreviewModalImage(design.imageUrl)}
                   >
                     <img
                       src={design.imageUrl}
@@ -492,8 +528,8 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
       </div>
 
       {/* Preview Modal */}
-      {previewImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
+      {previewModalImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm" onClick={() => setPreviewModalImage(null)}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -503,14 +539,14 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
           >
             <button
               type="button"
-              onClick={() => setPreviewImage(null)}
+              onClick={() => setPreviewModalImage(null)}
               className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 p-2 rounded-full transition-colors z-10"
             >
               <IconX size={20} />
             </button>
             <div className="w-full h-full p-4 flex items-center justify-center overflow-auto">
               <img
-                src={previewImage}
+                src={previewModalImage}
                 alt="Preview"
                 className="max-w-full max-h-[80vh] object-contain rounded-lg"
               />
@@ -519,7 +555,7 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
               Drag this image to apply it
             </div>
             <img
-              src={previewImage}
+              src={previewModalImage}
               alt="Drag Source"
               className="absolute inset-0 w-full h-full opacity-0 cursor-grab active:cursor-grabbing"
               draggable
@@ -528,6 +564,50 @@ export default function CustomOrderForm({ onSubmitSuccess }) {
                 e.dataTransfer.effectAllowed = "copy";
               }}
             />
+          </motion.div>
+        </div>
+      )}
+      {/* Image Lightbox Popup */}
+      {imagePopupOpen && previewImage && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+          onClick={() => setImagePopupOpen(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            transition={{ duration: 0.2 }}
+            className="relative bg-white rounded-2xl shadow-2xl overflow-hidden max-w-lg w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setImagePopupOpen(false)}
+              className="absolute top-3 right-3 z-10 bg-gray-100 hover:bg-red-100 hover:text-red-600 text-gray-600 rounded-full p-2 transition-colors shadow-sm"
+              title="Close"
+            >
+              <IconX size={18} />
+            </button>
+            {/* Product name header */}
+            {productName && (
+              <div className="px-5 pt-4 pb-2">
+                <p className="text-xs font-semibold text-[#1e9a58] uppercase tracking-wide">Product Reference</p>
+                <p className="text-base font-bold text-[#0d1c2f] truncate">{productName}</p>
+              </div>
+            )}
+            {/* Full-size image */}
+            <div className="p-4 flex items-center justify-center bg-gray-50">
+              <img
+                src={previewImage}
+                alt={productName || "Product"}
+                className="max-w-full max-h-[65vh] object-contain rounded-lg"
+              />
+            </div>
+            <div className="px-5 py-3 bg-white border-t border-gray-100 text-center">
+              <p className="text-xs text-gray-400">This is your selected product for customization</p>
+            </div>
           </motion.div>
         </div>
       )}

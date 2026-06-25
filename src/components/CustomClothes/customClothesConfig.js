@@ -57,6 +57,11 @@ function trimLayer(layer) {
   } else if (typeof url === "string" && url.length >= 450000) {
     entry.customUploadOmitted = true;
   }
+  if (layer.designId === "text") {
+    entry.text = layer.text || "";
+    entry.font = layer.font || "sans-serif";
+    entry.textColor = layer.textColor || "#000000";
+  }
   return entry;
 }
 

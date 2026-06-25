@@ -223,7 +223,7 @@ const EmailSMSTemplates = ({ onSave }) => {
             <Card title="Available Variables" className="mb-3 sm:mb-4 w-full min-w-0">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {templateVariables.map((variable, index) => (
-                  <div key={index} className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs sm:text-sm">
+                  <div key={index} className="p-2 bg-gray-50 !bg-zinc-950 rounded text-xs sm:text-sm">
                     <code className="text-blue-600 dark:text-blue-400">{variable.value}</code>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{variable.label}</div>
                   </div>
@@ -313,7 +313,7 @@ const EmailSMSTemplates = ({ onSave }) => {
             <Card title="Available Variables" className="mb-3 sm:mb-4 w-full min-w-0">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {templateVariables.map((variable, index) => (
-                  <div key={index} className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs sm:text-sm">
+                  <div key={index} className="p-2 bg-gray-50 !bg-zinc-950 rounded text-xs sm:text-sm">
                     <code className="text-blue-600 dark:text-blue-400">{variable.value}</code>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{variable.label}</div>
                   </div>

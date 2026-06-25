@@ -27,6 +27,7 @@ import {
   IconPhoto,
   IconShirt,
   IconPin,
+  IconBrowser,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -185,6 +186,12 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       path: "/admin/settings",
     },
     {
+      id: "pages",
+      label: "Pages & Content",
+      icon: IconBrowser,
+      path: "/admin/pages",
+    },
+    {
       id: "help",
       label: "Help",
       icon: IconHelp,
@@ -243,7 +250,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-gray-900 dark:bg-gray-800 text-white rounded-lg shadow-lg hover:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-zinc-950 dark:bg-zinc-950 text-white rounded-lg shadow-lg hover:bg-zinc-900 dark:hover:bg-zinc-900 transition-colors"
       >
         {mobileMenuOpen ? (
           <IconX className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -268,7 +275,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
           mass: 0.8,
         }}
         className={cn(
-          "fixed left-0 top-0 h-screen bg-gray-900 dark:bg-gray-800 text-white z-40 hidden lg:block"
+          "fixed left-0 top-0 h-screen bg-zinc-950 dark:bg-zinc-950 text-white z-40 hidden lg:block"
         )}
       >
         <div className="flex flex-col h-full">
@@ -282,7 +289,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
               stiffness: 300,
               damping: 30,
             }}
-            className="border-b border-gray-800 dark:border-gray-700"
+            className="border-b border-zinc-800 dark:border-zinc-800"
           >
             <motion.div
               animate={{
@@ -300,28 +307,26 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                 className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
                 onClick={handleMenuClose}
               >
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 dark:bg-blue-500 rounded-lg flex items-center justify-center shrink-0">
-                  <span className="text-lg sm:text-xl font-bold text-white">
-                    F
-                  </span>
-                </div>
-                <AnimatePresence mode="wait">
-                  {!isCollapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                      }}
-                      className="text-lg sm:text-xl font-bold text-white dark:text-white whitespace-nowrap overflow-hidden"
-                    >
-                      FluxFit Admin
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                {isCollapsed ? (
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden relative shrink-0">
+                    <img
+                      src="/logo.png"
+                      alt="FluxFit Logo"
+                      className="h-full w-auto max-w-none absolute left-0 top-0 object-cover object-left"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-8 sm:h-10 flex items-center gap-2 min-w-0">
+                    <img
+                      src="/logo.png"
+                      alt="FluxFit Logo"
+                      className="h-full w-auto object-contain"
+                    />
+                    <span className="text-xs sm:text-sm font-semibold text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded-full shrink-0">
+                      Admin
+                    </span>
+                  </div>
+                )}
               </Link>
             </motion.div>
           </motion.div>
@@ -350,8 +355,8 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                         "flex items-center px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-colors text-sm sm:text-base relative group w-full",
                         item.id === "dashboard" && !isCollapsed ? "pr-10" : "", // Add padding for pin icon
                         active
-                          ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
-                          : "text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white"
+                          ? "bg-white dark:bg-[#1e9a58] text-[#1e9a58] dark:text-white font-semibold"
+                          : "text-gray-300 dark:text-gray-400 hover:bg-zinc-900 dark:hover:bg-zinc-900 hover:text-white dark:hover:text-white"
                       )}
                       title={isCollapsed ? item.label : ""}
                     >
@@ -387,7 +392,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                       </div>
                       {/* Tooltip for collapsed state */}
                       {isCollapsed && (
-                        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                        <div className="absolute left-full ml-2 px-2 py-1 bg-zinc-900 dark:bg-zinc-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
                           {item.label}
                         </div>
                       )}
@@ -405,8 +410,8 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                           className={cn(
                             "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors z-10",
                             isPinned 
-                              ? "bg-blue-600/20 text-blue-500 hover:bg-blue-600/30" 
-                              : "text-gray-400 hover:text-white hover:bg-gray-800"
+                              ? "bg-[#1e9a58]/20 text-[#1e9a58] hover:bg-[#1e9a58]/30" 
+                              : "text-gray-400 hover:text-white hover:!bg-zinc-950"
                           )}
                           title={isPinned ? "Unpin sidebar" : "Pin sidebar"}
                         >
@@ -421,14 +426,14 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
           </nav>
 
           {/* Logout — icon-only when collapsed so the rail always stays visible */}
-          <div className="border-t border-gray-800 dark:border-gray-700 overflow-hidden mt-auto shrink-0">
+          <div className="border-t border-zinc-800 dark:border-zinc-800 overflow-hidden mt-auto shrink-0">
             {isCollapsed ? (
               <div className="p-2 sm:p-3 flex justify-center">
                 <button
                   type="button"
                   onClick={logout}
                   title="Log out"
-                  className="flex items-center justify-center p-2 sm:p-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white w-full transition-colors"
+                  className="flex items-center justify-center p-2 sm:p-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-zinc-900 dark:hover:bg-zinc-900 hover:text-white w-full transition-colors"
                 >
                   <IconLogout className="w-5 h-5 shrink-0" />
                 </button>
@@ -438,7 +443,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                 <button
                   type="button"
                   onClick={logout}
-                  className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base"
+                  className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-zinc-900 dark:hover:bg-zinc-900 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base"
                 >
                   <IconLogout className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
                   <span className="whitespace-nowrap overflow-hidden">Log out</span>
@@ -465,23 +470,23 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 h-screen w-56 sm:w-64 bg-gray-900 dark:bg-gray-800 text-white z-50 lg:hidden transition-colors duration-300"
+              className="fixed left-0 top-0 h-screen w-56 sm:w-64 bg-zinc-950 dark:bg-zinc-950 text-white z-50 lg:hidden transition-colors duration-300"
             >
               <div className="flex flex-col h-full">
                 {/* Logo */}
-                <div className="p-4 sm:p-6 border-b border-gray-800 dark:border-gray-700">
+                <div className="p-4 sm:p-6 border-b border-zinc-800 dark:border-zinc-800">
                   <Link
                     href="/admin"
                     className="flex items-center gap-2 sm:gap-3"
                     onClick={handleMenuClose}
                   >
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 dark:bg-blue-500 rounded-lg flex items-center justify-center">
-                      <span className="text-lg sm:text-xl font-bold text-white">
-                        F
-                      </span>
-                    </div>
-                    <span className="text-lg sm:text-xl font-bold text-white dark:text-white">
-                      FluxFit Admin
+                    <img
+                      src="/logo.png"
+                      alt="FluxFit Logo"
+                      className="h-8 sm:h-10 w-auto object-contain"
+                    />
+                    <span className="text-xs sm:text-sm font-semibold text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded-full shrink-0">
+                      Admin
                     </span>
                   </Link>
                 </div>
@@ -507,8 +512,8 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                             className={cn(
                               "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-colors text-sm sm:text-base",
                               active
-                                ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
-                                : "text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white"
+                                ? "bg-white dark:bg-[#1e9a58] text-[#1e9a58] dark:text-white font-semibold"
+                                : "text-gray-300 dark:text-gray-400 hover:bg-zinc-900 dark:hover:bg-zinc-900 hover:text-white dark:hover:text-white"
                             )}
                           >
                             <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
@@ -524,10 +529,10 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
                 </nav>
 
                 {/* Logout */}
-                <div className="p-3 sm:p-4 border-t border-gray-800 dark:border-gray-700">
+                <div className="p-3 sm:p-4 border-t border-zinc-800 dark:border-zinc-800">
                   <button 
                     onClick={logout}
-                    className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base"
+                    className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-gray-300 dark:text-gray-400 hover:bg-zinc-900 dark:hover:bg-zinc-900 hover:text-white dark:hover:text-white w-full transition-colors text-sm sm:text-base"
                   >
                     <IconLogout className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>Log out</span>

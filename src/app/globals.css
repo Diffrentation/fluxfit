@@ -125,6 +125,29 @@
   button:not(:disabled) {
     cursor: pointer;
   }
+  
+  /* Override Ant Design Message */
+  .ant-message-notice-content {
+    background-color: #1e9a58 !important;
+    color: white !important;
+    border-radius: 9999px !important;
+    padding: 12px 24px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    font-weight: 500 !important;
+  }
+  .ant-message-custom-content {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  .ant-message-custom-content .anticon {
+    color: white !important;
+  }
+  
+  /* Error message state */
+  .ant-message-error .ant-message-notice-content {
+    background-color: #ef4444 !important;
+  }
 }
 
 @layer utilities {

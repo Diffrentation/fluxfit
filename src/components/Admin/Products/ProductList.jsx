@@ -305,6 +305,31 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
     setProductToDelete(null);
   };
 
+  // Handle quick status change directly from the table
+  const handleStatusChange = useCallback(async (productId, newStatus) => {
+    try {
+      const { data } = await axios.put(
+        `/api/products/${productId}`,
+        { status: newStatus },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      if (data.success) {
+        message.success(`Status changed to "${newStatus}"`);
+        fetchProducts(filtersRef.current);
+        window.dispatchEvent(new Event("products:refresh"));
+      } else {
+        message.error(data.message || "Failed to update status");
+      }
+    } catch (error) {
+      message.error(error.response?.data?.message || "Failed to update status");
+    }
+  }, [fetchProducts]);
+
   // Handle refresh
   const handleRefresh = () => {
     fetchProducts(filters);
@@ -487,6 +512,31 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
                 onClick: () => onEdit && onEdit(record),
               },
               {
+                key: "status",
+                label: "Change Status",
+                icon: <IconCheck className="w-4 h-4" />,
+                children: [
+                  {
+                    key: "status-active",
+                    label: <span className="text-green-600 font-medium">Active</span>,
+                    disabled: record.status === "active",
+                    onClick: () => handleStatusChange(record.id, "active"),
+                  },
+                  {
+                    key: "status-draft",
+                    label: <span className="text-gray-500 font-medium">Draft</span>,
+                    disabled: record.status === "draft",
+                    onClick: () => handleStatusChange(record.id, "draft"),
+                  },
+                  {
+                    key: "status-inactive",
+                    label: <span className="text-orange-500 font-medium">Inactive</span>,
+                    disabled: record.status === "inactive",
+                    onClick: () => handleStatusChange(record.id, "inactive"),
+                  },
+                ],
+              },
+              {
                 type: "divider",
               },
               {
@@ -586,7 +636,7 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
             Created: {safeFormatDate(product.createdAt)}
           </div>
 
-          <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-2 pt-2 border-t border-zinc-800">
             <Button
               type="default"
               size="small"
@@ -623,7 +673,7 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
 
   // Filter controls JSX
   const filterControlsJSX = (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6 shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="!bg-zinc-950 rounded-lg p-4 mb-6 shadow-sm border border-zinc-800">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <Search
@@ -854,7 +904,7 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
           </div>
 
           {/* Table Layout for Desktop */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="hidden lg:block !bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
             <Table
               dataSource={products.map((p) => ({ ...p, key: p.id || Math.random() }))}
               columns={columns}

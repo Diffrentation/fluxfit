@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   IconMail,
   IconPhone,
@@ -19,30 +19,49 @@ const Footer = () => {
     { name: "Contact", link: "/contact" },
   ];
 
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.website) {
+          setSettings(data.data.website);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const email = settings?.email || "fluxfit1@gmail.com";
+  const phone = settings?.phone || "+91 9958724005";
+  const fullAddress = settings?.address 
+    ? `${settings.address.line1}, ${settings.address.city}, ${settings.address.state}, ${settings.address.country}`
+    : "Behrampur, Ghaziabad, Uttar Pradesh, India";
+
   const contactInfo = [
     {
       icon: IconMail,
-      text: "fluxfit1@gmail.com",
-      link: "mailto:fluxfit1@gmail.com",
+      text: email,
+      link: `mailto:${email}`,
       onClick: (e) => {
         e.preventDefault();
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         if (isMobile) {
-          window.location.href = "mailto:fluxfit1@gmail.com";
+          window.location.href = `mailto:${email}`;
         } else {
-          window.open("https://mail.google.com/mail/?view=cm&fs=1&to=fluxfit1@gmail.com", "_blank");
+          window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${email}`, "_blank");
         }
       }
     },
     {
       icon: IconPhone,
-      text: "+91 9958724005",
-      link: "tel:+91 9958724005",
+      text: phone,
+      link: `tel:${phone.replace(/\s+/g, '')}`,
     },
     {
       icon: IconMapPin,
-      text: "Behrampur, Ghaziabad, Uttar Pradesh, India",
-      link: "https://www.google.com/maps/place/Behrampur,+Ghaziabad,+Uttar+Pradesh,+India/@26.7847217,85.1113416,15z/data=!3m1!4b1!4m6!3m5!1s0x39ec105b0e0466e1:0x262a13458380518a!8m2!3d26.7847217!4d85.1113416!16s%2Fg%2F11c402jtvb?entry=ttu&g_ep=EgoyMDI1MDIyMi4wIKXMDSoASAFQAw%3D%3D",
+      text: fullAddress,
+      link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`,
     },
   ];
 

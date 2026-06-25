@@ -150,7 +150,7 @@ const MaintenanceMode = ({ onSave }) => {
           <div className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4">
             Schedule maintenance windows to minimize disruption to your users.
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
+          <div className="bg-gray-50 !bg-zinc-950 p-3 sm:p-4 rounded-lg">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
               <strong>Note:</strong> Scheduled maintenance feature coming soon. For now, you can manually enable/disable maintenance mode.
             </p>

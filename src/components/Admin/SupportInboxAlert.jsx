@@ -38,29 +38,31 @@ export default function SupportInboxAlert() {
   if (pending === null) return null;
 
   return (
-    <Card
-      size="small"
-      className="mb-4 sm:mb-6 border-amber-200 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-950/30"
-    >
-      <div className="flex flex-wrap items-center gap-3">
-        <IconBell className="w-6 h-6 text-amber-700 dark:text-amber-400 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
-            Support inbox
-          </p>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-            {pending === 0
-              ? "No pending contact messages."
-              : `${pending} pending contact message${pending === 1 ? "" : "s"}.`}
-          </p>
+    <div className="mb-6 sm:mb-8">
+      <Card
+        size="small"
+        className="border-amber-200 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-950/30"
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <IconBell className="w-6 h-6 text-amber-700 dark:text-amber-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
+              Support inbox
+            </p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+              {pending === 0
+                ? "No pending contact messages."
+                : `${pending} pending contact message${pending === 1 ? "" : "s"}.`}
+            </p>
+          </div>
+          <Link
+            href="/admin/contacts"
+            className="text-sm font-medium text-emerald-500 dark:text-emerald-400 hover:underline shrink-0"
+          >
+            Open inbox →
+          </Link>
         </div>
-        <Link
-          href="/admin/contacts"
-          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline shrink-0"
-        >
-          Open inbox →
-        </Link>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }

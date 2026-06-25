@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { Button, Input, Switch, Table, message, Upload } from "antd";
-import { IconUpload, IconSparkles, IconTrash } from "@tabler/icons-react";
+import { IconUpload, IconTrash } from "@tabler/icons-react";
 import AdminContent from "@/components/Admin/AdminContent";
 
 const readToken = () => {
@@ -20,7 +20,6 @@ export default function CustomClothesDesignsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [seeding, setSeeding] = useState(false);
 
   const authHeaders = useCallback(() => {
     const token = readToken();
@@ -54,29 +53,6 @@ export default function CustomClothesDesignsAdminPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const handleSeed = async () => {
-    const token = readToken();
-    if (!token) {
-      message.error("Please log in as admin.");
-      return;
-    }
-    setSeeding(true);
-    try {
-      const { data } = await axios.post(
-        "/api/admin/custom-clothes-designs/seed",
-        {},
-        { headers: { ...authHeaders() } }
-      );
-      if (!data?.success) throw new Error(data?.message || "Seed failed");
-      message.success(data.message);
-      await load();
-    } catch (e) {
-      message.error(e.response?.data?.message || e.message || "Seed failed");
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const beforeUpload = async (file) => {
     const token = readToken();
@@ -217,7 +193,7 @@ export default function CustomClothesDesignsAdminPage() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-transparent">
       <AdminContent>
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -229,15 +205,10 @@ export default function CustomClothesDesignsAdminPage() {
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Upload images that appear only in the Custom Clothes designer (not
-            the main shop). Use{" "}
-            <span className="font-medium text-gray-800 dark:text-gray-200">
-              Load 10 demo characters
-            </span>{" "}
-            once to seed bundled SVG mascots, or add your own via Cloudinary
-            upload.
+            the main shop). Add your own designs via Cloudinary upload.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mt-8 flex flex-wrap items-end gap-3 rounded-xl border border-zinc-800 !bg-zinc-950 p-4">
             <div className="min-w-[200px] flex-1">
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 Display name
@@ -260,16 +231,9 @@ export default function CustomClothesDesignsAdminPage() {
                 Upload image
               </Button>
             </Upload>
-            <Button
-              icon={<IconSparkles className="h-4 w-4" />}
-              loading={seeding}
-              onClick={handleSeed}
-            >
-              Load 10 demo characters
-            </Button>
           </div>
 
-          <div className="mt-8 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mt-8 rounded-xl border border-zinc-800 !bg-zinc-950 p-4">
             <Table
               rowKey="id"
               loading={loading}
@@ -278,7 +242,7 @@ export default function CustomClothesDesignsAdminPage() {
               pagination={{ pageSize: 12 }}
               locale={{
                 emptyText:
-                  "No designs yet. Seed demos or upload an image (log in as admin).",
+                  "No designs yet. Upload an image to get started (log in as admin).",
               }}
             />
           </div>

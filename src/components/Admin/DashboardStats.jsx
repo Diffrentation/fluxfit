@@ -145,7 +145,7 @@ const DashboardStats = ({ refreshNonce, reportType }) => {
 
   if (error) {
     return (
-      <div className="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300">
+      <div className="p-4 sm:p-6 !bg-zinc-950 border border-zinc-800 rounded-lg text-gray-600 dark:text-gray-300">
         Failed to load dashboard stats.
       </div>
     );
@@ -159,8 +159,9 @@ const DashboardStats = ({ refreshNonce, reportType }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
+          whileHover={{ y: -6, scale: 1.02 }}
         >
-          <Card className="hover:shadow-lg transition-shadow h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Card className="hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 h-full !bg-zinc-950 border-zinc-800">
             <Statistic
               title={<span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{stat.title}</span>}
               value={stat.isCurrency ? formatPrice(stat.value) : stat.value.toLocaleString('en-IN')}
@@ -180,20 +181,21 @@ const DashboardStats = ({ refreshNonce, reportType }) => {
                 content: {
                   color:
                     stat.color === "green"
-                      ? "#10b981"
+                      ? "#1e9a58"
                       : stat.color === "blue"
-                      ? "#3b82f6"
+                      ? "#0284c7"
                       : stat.color === "purple"
-                      ? "#a855f7"
-                      : "#f97316",
-                  fontSize: "18px",
+                      ? "#7c3aed"
+                      : "#ea580c",
+                  fontSize: "24px",
                   fontWeight: "bold",
+                  marginTop: "4px"
                 },
               }}
                           />
-            <div className="mt-2 flex items-center gap-1 text-xs sm:text-sm">
-              <IconTrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 dark:text-green-400" />
-              <span className="text-green-600 dark:text-green-400 font-medium">
+            <div className="mt-4 pt-3 border-t border-gray-100 border-zinc-800 flex items-center gap-1 text-xs sm:text-sm">
+              <IconTrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-[#1e9a58] dark:text-[#22c55e]" />
+              <span className="text-[#1e9a58] dark:text-[#22c55e] font-bold">
                 {stat.growth == null ? "+0%" : `+${stat.growth}%`}
               </span>
               <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">vs last period</span>

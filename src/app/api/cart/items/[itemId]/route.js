@@ -291,6 +291,7 @@ export async function PUT(request, { params }) {
               size: updatedItem.variant.size || null,
               color: updatedItem.variant.color || null,
             },
+            customization: updatedItem.customization || null,
             quantity: updatedItem.quantity,
             price: updatedItem.price,
             subtotal: updatedItem.price * updatedItem.quantity,

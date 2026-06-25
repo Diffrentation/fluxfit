@@ -103,7 +103,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
       transition={{ duration: 0.2 }}
     >
       <Card
-        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 w-full min-w-0"
+        className="h-full border border-zinc-800 hover:shadow-md transition-shadow !bg-zinc-950 w-full min-w-0"
         bodyStyle={{ padding: "12px" }}
       >
         <div className="space-y-3">
@@ -156,7 +156,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
             )}
           </div>
 
-          <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-2 pt-2 border-t border-zinc-800">
             {refund.status === "pending" && (
               <>
                 <Button
@@ -294,7 +294,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
       className="space-y-3 sm:space-y-4"
     >
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 !bg-zinc-950 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-zinc-800">
         <div className="flex-1 min-w-0">
           <Input
             placeholder="Search by refund ID, order ID, or customer"
@@ -329,7 +329,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
           <Table
             dataSource={paginatedRefunds.map((r) => ({ ...r, key: r.id }))}
             columns={columns}
@@ -368,7 +368,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
         </div>
 
         {filteredRefunds.length > pageSize && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-zinc-800">
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Showing {startIndex + 1} to {Math.min(endIndex, filteredRefunds.length)} of {filteredRefunds.length} refunds
             </div>
@@ -396,7 +396,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
 
       {/* Reject Modal */}
       <Modal
-        title="Reject Refund"
+        title="Reject Refund Request"
         open={isModalVisible}
         onCancel={() => {
           setIsModalVisible(false);
@@ -404,20 +404,33 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
           setSelectedRefund(null);
         }}
         footer={null}
-        className="dark:bg-gray-800"
+        width={750}
+        className="!bg-zinc-950"
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item
-            name="reason"
-            label="Rejection Reason"
-            rules={[{ required: true, message: "Please enter rejection reason" }]}
-          >
-            <TextArea rows={4} placeholder="Enter reason for rejection" />
-          </Form.Item>
-          <Form.Item name="action" hidden initialValue="reject">
-            <Input />
-          </Form.Item>
-          <div className="flex justify-end gap-2">
+        <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-5">
+              <div className="p-4 bg-red-950/30 border border-red-900/50 rounded-xl text-red-200 text-sm h-full flex flex-col justify-center">
+                <span className="font-bold block mb-1">Warning: Rejecting Request</span>
+                Rejecting this refund request will mark it as rejected. The customer will be notified, and this action cannot be undone. Please specify a clear reason for the rejection.
+              </div>
+            </div>
+            <div className="md:col-span-7">
+              <Form.Item
+                name="reason"
+                label="Rejection Reason"
+                rules={[{ required: true, message: "Please enter rejection reason" }]}
+                className="mb-0"
+              >
+                <TextArea rows={4} placeholder="e.g., Return window expired, item damaged by customer, etc." />
+              </Form.Item>
+              <Form.Item name="action" hidden initialValue="reject">
+                <Input />
+              </Form.Item>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-6 border-t border-zinc-800 pt-4">
             <Button onClick={() => {
               setIsModalVisible(false);
               form.resetFields();
@@ -442,71 +455,80 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
         }}
         footer={null}
         width="95%"
-        style={{ maxWidth: 600 }}
-        className="dark:bg-gray-800"
+        style={{ maxWidth: 850 }}
+        className="!bg-zinc-950"
         centered
       >
         {selectedRefundDetails && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-b border-zinc-800 pb-6">
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Refund ID</div>
-                <div className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Refund ID</div>
+                <div className="font-mono text-sm font-semibold text-white">
                   #{selectedRefundDetails.id}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Order ID</div>
-                <div className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Order ID</div>
+                <div className="font-mono text-sm font-semibold text-white">
                   #{selectedRefundDetails.orderId}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Customer</div>
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Customer</div>
+                <div className="text-sm font-medium text-white">
                   {selectedRefundDetails.customer}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Amount</div>
-                <div className="text-base font-semibold text-gray-900 dark:text-white">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Amount</div>
+                <div className="text-base font-semibold text-emerald-400">
                   ₹{formatPrice(selectedRefundDetails.amount)}
                 </div>
               </div>
-              <div className="col-span-2">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reason</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
-                  {selectedRefundDetails.reason}
-                </div>
-              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Status</div>
-                <Tag color={getStatusColor(selectedRefundDetails.status)} className="capitalize">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Status</div>
+                <Tag color={getStatusColor(selectedRefundDetails.status)} className="capitalize m-0 font-medium">
                   {selectedRefundDetails.status}
                 </Tag>
               </div>
               <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Requested Date</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Requested Date</div>
+                <div className="text-sm text-zinc-200">
                   {format(new Date(selectedRefundDetails.requestedDate), "MMM dd, yyyy")}
                 </div>
               </div>
               {selectedRefundDetails.processedDate && (
                 <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Processed Date</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                  <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Processed Date</div>
+                  <div className="text-sm text-zinc-200">
                     {format(new Date(selectedRefundDetails.processedDate), "MMM dd, yyyy")}
                   </div>
                 </div>
               )}
-              {selectedRefundDetails.rejectionReason && (
-                <div className="col-span-2">
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Rejection Reason</div>
-                  <div className="text-sm text-red-600 dark:text-red-400 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                    {selectedRefundDetails.rejectionReason}
-                  </div>
+            </div>
+
+            <div className="border-t border-zinc-800 pt-4">
+              <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-2">Reason for Refund</div>
+              <div className="text-sm text-zinc-300 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800/80">
+                {selectedRefundDetails.reason}
+              </div>
+            </div>
+
+            {selectedRefundDetails.rejectionReason && (
+              <div className="border-t border-zinc-800 pt-4">
+                <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-2">Rejection Reason</div>
+                <div className="text-sm text-red-400 p-4 bg-red-950/20 border border-red-900/40 rounded-xl">
+                  {selectedRefundDetails.rejectionReason}
                 </div>
-              )}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <Button size="large" onClick={() => setIsDetailsModalVisible(false)}>Close Details</Button>
             </div>
           </div>
         )}

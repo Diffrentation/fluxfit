@@ -47,6 +47,7 @@ function Herobanner() {
   const [slides, setSlides] = useState(FALLBACK_SLIDES);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [pageData, setPageData] = useState(null);
 
   useEffect(() => {
     fetch("/api/hero-banners")
@@ -58,6 +59,15 @@ function Herobanner() {
       })
       .catch(() => {})
       .finally(() => setLoaded(true));
+
+    fetch("/api/pages/home")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data?.data) {
+          setPageData(data.data.data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const slideVariants = {
@@ -146,7 +156,7 @@ function Herobanner() {
                     <IconArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
                   </Link>
                   <Link
-                    href="/product-list"
+                    href="/custom-clothes"
                     className="px-8 py-4 border-2 border-green-600/20 hover:border-green-600 text-green-700 rounded-xl font-bold text-base transition-all duration-300 bg-transparent hover:bg-green-50"
                   >
                     Custom Order
@@ -161,7 +171,7 @@ function Herobanner() {
                     <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100 group-hover:scale-110 transition-transform duration-300">
                       <IconUsers className="text-green-600" size={24} />
                     </div>
-                    <div className="text-2xl lg:text-3xl font-extrabold text-[#0d1c2f] mb-1">500+</div>
+                    <div className="text-2xl lg:text-3xl font-extrabold text-[#0d1c2f] mb-1">{pageData?.customers || "500+"}</div>
                     <div className="text-sm text-gray-500 font-medium">Happy Customers</div>
                   </div>
 
@@ -170,7 +180,7 @@ function Herobanner() {
                       <IconStarFilled className="text-green-600" size={24} />
                     </div>
                     <div className="text-2xl lg:text-3xl font-extrabold text-[#0d1c2f] mb-1 flex items-baseline gap-1">
-                      4.8 <IconStarFilled size={18} className="text-[#0d1c2f]" />
+                      {pageData?.rating || "4.8"} <IconStarFilled size={18} className="text-[#0d1c2f]" />
                     </div>
                     <div className="text-sm text-gray-500 font-medium">Average Rating</div>
                   </div>
@@ -179,7 +189,7 @@ function Herobanner() {
                     <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100 group-hover:scale-110 transition-transform duration-300">
                       <IconTruck className="text-green-600" size={24} />
                     </div>
-                    <div className="text-2xl lg:text-3xl font-extrabold text-[#0d1c2f] mb-1">24/7</div>
+                    <div className="text-2xl lg:text-3xl font-extrabold text-[#0d1c2f] mb-1">{pageData?.delivery || "24/7"}</div>
                     <div className="text-sm text-gray-500 font-medium">Order Delivery</div>
                   </div>
 

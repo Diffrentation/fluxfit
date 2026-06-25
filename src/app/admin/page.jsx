@@ -179,10 +179,10 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-transparent transition-colors duration-300">
       <div className="flex">
         {/* Main Content */}
-        <AdminContent className="pt-16 sm:pt-20 lg:pt-16">
+        <AdminContent className="pt-16 sm:pt-20 lg:pt-4">
           <div className="p-3 sm:p-4 md:p-6 pb-6 sm:pb-8">
             {/* Header */}
             <motion.div
@@ -253,7 +253,7 @@ const AdminDashboard = () => {
                     type="default"
                     icon={<IconEye className="w-4 h-4" />}
                     onClick={handleUserView}
-                    className="w-full sm:w-auto bg-white hover:bg-gray-50 border-gray-300 shadow-sm transition-all text-gray-700"
+                    className="w-full sm:w-auto !bg-zinc-900 hover:bg-zinc-800 border-zinc-700 shadow-sm transition-all text-gray-300"
                   >
                     View as User
                   </Button>

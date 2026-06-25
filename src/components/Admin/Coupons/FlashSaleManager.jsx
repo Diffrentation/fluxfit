@@ -176,49 +176,57 @@ const FlashSaleManager = () => {
           form.resetFields();
         }}
         footer={null}
-        width={600}
+        width={850}
       >
         <Form form={form} layout="vertical" onFinish={handleSave} className="mt-4">
-          <Form.Item
-            name="name"
-            label="Sale Name"
-            rules={[{ required: true, message: "Please enter sale name" }]}
-          >
-            <Input placeholder="Enter flash sale name" />
-          </Form.Item>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+              <Form.Item
+                name="name"
+                label="Sale Name"
+                rules={[{ required: true, message: "Please enter sale name" }]}
+              >
+                <Input placeholder="Enter flash sale name" />
+              </Form.Item>
 
-          <Form.Item
-            name="discount"
-            label="Discount Percentage"
-            rules={[{ required: true, message: "Please enter discount" }]}
-          >
-            <InputNumber
-              min={0}
-              max={100}
-              style={{ width: "100%" }}
-              placeholder="0-100"
-              formatter={(value) => `${value}%`}
-              parser={(value) => value.replace("%", "")}
-            />
-          </Form.Item>
+              <Form.Item
+                name="discount"
+                label="Discount Percentage"
+                rules={[{ required: true, message: "Please enter discount" }]}
+              >
+                <InputNumber
+                  min={0}
+                  max={100}
+                  style={{ width: "100%" }}
+                  placeholder="0-100"
+                  formatter={(value) => `${value}%`}
+                  parser={(value) => value.replace("%", "")}
+                />
+              </Form.Item>
+            </div>
 
-          <Form.Item
-            name="dateRange"
-            label="Sale Period"
-            rules={[{ required: true, message: "Please select sale period" }]}
-          >
-            <RangePicker
-              style={{ width: "100%" }}
-              format="YYYY-MM-DD"
-              disabledDate={(current) => current && current < dayjs().startOf("day")}
-            />
-          </Form.Item>
+            {/* Right Column */}
+            <div className="space-y-4">
+              <Form.Item
+                name="dateRange"
+                label="Sale Period"
+                rules={[{ required: true, message: "Please select sale period" }]}
+              >
+                <RangePicker
+                  style={{ width: "100%" }}
+                  format="YYYY-MM-DD"
+                  disabledDate={(current) => current && current < dayjs().startOf("day")}
+                />
+              </Form.Item>
 
-          <Form.Item name="description" label="Description (Optional)">
-            <TextArea rows={3} placeholder="Enter sale description" />
-          </Form.Item>
+              <Form.Item name="description" label="Description (Optional)">
+                <TextArea rows={2} placeholder="Enter sale description" />
+              </Form.Item>
+            </div>
+          </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 mt-6 border-t border-zinc-800 pt-4">
             <Button onClick={() => setIsFormVisible(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit">
               {selectedSale ? "Update" : "Create"} Sale

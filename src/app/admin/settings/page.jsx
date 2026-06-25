@@ -26,7 +26,7 @@ const SettingsPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-transparent transition-colors duration-300">
       <div className="flex">
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">

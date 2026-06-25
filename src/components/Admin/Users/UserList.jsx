@@ -151,7 +151,7 @@ const UserList = ({
       className="w-full"
     >
       <Card
-        className={`h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all cursor-pointer ${
+        className={`h-full border border-zinc-800 hover:shadow-md transition-all cursor-pointer ${
           selectedUserId === user.id
             ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
             : "hover:border-blue-300 dark:hover:border-blue-600"
@@ -255,7 +255,7 @@ const UserList = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+      className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden"
     >
       {/* Desktop Table View */}
       <div className="hidden lg:block">
@@ -293,7 +293,7 @@ const UserList = ({
         </div>
 
         {pagination && total > pageSize && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-zinc-800">
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Showing {(currentPage - 1) * pageSize + 1} to{" "}
               {Math.min(currentPage * pageSize, total)} of {total} users

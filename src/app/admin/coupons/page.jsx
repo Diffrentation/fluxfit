@@ -120,7 +120,7 @@ const CouponManagementPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-transparent">
       <div className="flex">
         <AdminContent className="pt-20 lg:pt-16">
           <div className="p-4 md:p-6 pb-8">
@@ -154,7 +154,7 @@ const CouponManagementPage = () => {
                     ),
                     children: (
                       <div>
-                        <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+                        <div className="flex flex-col sm:flex-row gap-3 !bg-zinc-950 p-4 rounded-lg shadow-sm border border-zinc-800 mb-4">
                           <div className="flex-1">
                             <Search
                               placeholder="Search by coupon code"

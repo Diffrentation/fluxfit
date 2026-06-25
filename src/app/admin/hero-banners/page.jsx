@@ -5,7 +5,7 @@ import HeroBannerManagement from "@/components/Admin/HeroBanners/HeroBannerManag
 
 export default function HeroBannersAdminPage() {
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
+    <div className="flex h-screen bg-transparent overflow-hidden">
       <AdminContent>
         <HeroBannerManagement />
       </AdminContent>

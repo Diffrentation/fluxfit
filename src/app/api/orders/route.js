@@ -189,6 +189,7 @@ export async function GET(request) {
           discount: item.discount || 0,
           total: item.total,
           status: item.status,
+          customization: item.customization || null,
           returnRequested: item.returnRequested || false,
           refundRequested: item.refundRequested || false,
         };

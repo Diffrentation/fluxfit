@@ -66,7 +66,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
       transition={{ duration: 0.2 }}
     >
       <Card
-        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 w-full min-w-0"
+        className="h-full border border-zinc-800 hover:shadow-md transition-shadow !bg-zinc-950 w-full min-w-0"
         bodyStyle={{ padding: "12px" }}
       >
         <div className="space-y-3">
@@ -109,7 +109,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
                 ₹{formatPrice(tax.igst)}
               </span>
             </div>
-            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
               <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Total Tax</span>
               <span className="text-base font-bold text-purple-600 dark:text-purple-400">
                 ₹{formatPrice(tax.totalTax)}
@@ -201,7 +201,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
     >
       {/* Statistics Cards - Responsive Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 w-full">
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+        <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
           <Statistic
             title="Total CGST"
             value={totalCGST}
@@ -210,7 +210,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
             valueStyle={{ color: "#1890ff" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+        <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
           <Statistic
             title="Total SGST"
             value={totalSGST}
@@ -219,7 +219,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
             valueStyle={{ color: "#52c41a" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+        <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
           <Statistic
             title="Total IGST"
             value={totalIGST}
@@ -228,7 +228,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
             valueStyle={{ color: "#fa8c16" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+        <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
           <Statistic
             title="Total Tax Collected"
             value={totalTax}
@@ -240,7 +240,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-3 sm:mb-4">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 !bg-zinc-950 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-zinc-800 mb-3 sm:mb-4">
         <Select
           placeholder="All States"
           value={stateFilter}
@@ -281,7 +281,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
           <Table
             dataSource={paginatedTaxData.map((t) => ({ ...t, key: t.id }))}
             columns={columns}
@@ -320,7 +320,7 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
         </div>
 
         {filteredTaxData.length > pageSize && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-zinc-800">
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Showing {startIndex + 1} to {Math.min(endIndex, filteredTaxData.length)} of {filteredTaxData.length} transactions
             </div>

@@ -203,7 +203,7 @@ const BrandList = ({ onEdit, onDelete }) => {
 
   /* ---------------- RENDER ---------------- */
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="!bg-zinc-950 rounded-lg shadow-sm border overflow-hidden">
       {loading ? (
         <div className="flex justify-center py-10">
           <Spin size="large" />

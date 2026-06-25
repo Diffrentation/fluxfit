@@ -143,20 +143,24 @@ const OrdersChart = ({ reportType = "daily", dateRange, refreshNonce }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
+      whileHover={{ y: -4 }}
+      className="h-full"
     >
       <Card
         title={
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <IconShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Orders Count</span>
+              <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                <IconShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e9a58] dark:text-[#22c55e]" />
+              </div>
+              <span className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">Orders Count</span>
             </div>
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Total: <span className="font-bold text-purple-600 dark:text-purple-400">{totalOrders}</span>
+              Total: <span className="font-bold text-[#1e9a58] dark:text-[#22c55e] text-lg">{totalOrders}</span>
             </div>
           </div>
         }
-        className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+        className="h-full !bg-zinc-950 backdrop-blur-md shadow-sm hover:shadow-md transition-shadow border border-zinc-800"
       >
         {loading ? (
           <div className="h-[250px] flex items-center justify-center">
@@ -195,12 +199,12 @@ const OrdersChart = ({ reportType = "daily", dateRange, refreshNonce }) => {
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="#1e9a58" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-3 h-[120px] border-t border-gray-200 dark:border-gray-700 pt-3">
+            <div className="mt-3 h-[120px] border-t border-zinc-800 pt-3">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={lineChartData}>
                   <CartesianGrid
@@ -221,7 +225,7 @@ const OrdersChart = ({ reportType = "daily", dateRange, refreshNonce }) => {
                   <Line
                     type="monotone"
                     dataKey="count"
-                    stroke="#10b981"
+                    stroke="#1e9a58"
                     strokeWidth={2}
                     dot={false}
                   />

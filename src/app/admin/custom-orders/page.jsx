@@ -108,11 +108,11 @@ function ReviewModal({ order, onClose, onUpdated }) {
     >
       <div className="space-y-5 py-2">
         {/* User info */}
-        <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+        <div className="flex items-center gap-3 !bg-zinc-950 rounded-xl p-4">
           {order.user?.avatar ? (
             <img src={order.user.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+            <div className="w-10 h-10 rounded-full bg-emerald-950/30 flex items-center justify-center text-emerald-400 font-bold text-lg border border-emerald-900/40">
               {order.user?.name?.[0] || "U"}
             </div>
           )}
@@ -130,7 +130,7 @@ function ReviewModal({ order, onClose, onUpdated }) {
 
         {/* Order details chips */}
         <div className="flex flex-wrap gap-2">
-          <span className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm rounded-full font-medium border border-indigo-200">
+          <span className="px-3 py-1.5 bg-zinc-900 text-zinc-300 text-sm rounded-full font-medium border border-zinc-800">
             {order.clothType}
           </span>
           <span
@@ -176,7 +176,7 @@ function ReviewModal({ order, onClose, onUpdated }) {
                   src={order.designImages[s.key]}
                   alt={s.label}
                   width="100%"
-                  className="rounded-xl border border-gray-200 object-contain bg-gray-50"
+                  className="rounded-xl border border-zinc-800 object-contain !bg-zinc-900"
                   style={{ height: 120, objectFit: "contain" }}
                 />
               </div>
@@ -234,7 +234,7 @@ function ReviewModal({ order, onClose, onUpdated }) {
               type="primary"
               onClick={handleSave}
               loading={saving}
-              className="bg-indigo-600 border-indigo-600 hover:bg-indigo-700"
+              className="bg-emerald-600 border-emerald-600 hover:bg-emerald-700"
             >
               Save Changes
             </Button>
@@ -289,7 +289,7 @@ export default function AdminCustomOrdersPage() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-transparent">
       <AdminContent>
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -300,7 +300,7 @@ export default function AdminCustomOrdersPage() {
           <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
             <div>
               <div className="flex items-center gap-2">
-                <IconShirt size={24} className="text-indigo-600" />
+                <IconShirt size={24} className="text-emerald-500" />
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   Custom Clothing Orders
                 </h1>
@@ -333,8 +333,8 @@ export default function AdminCustomOrdersPage() {
                 className={[
                   "flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 border",
                   statusFilter === tab.key
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300",
+                    ? "bg-emerald-600 text-white border-emerald-600"
+                    : "!bg-zinc-950 text-gray-600 dark:text-gray-300 border-zinc-800 hover:border-emerald-500",
                 ].join(" ")}
               >
                 {tab.label}
@@ -371,7 +371,7 @@ export default function AdminCustomOrdersPage() {
               <Spin size="large" />
             </div>
           ) : orders.length === 0 ? (
-            <div className="text-center py-24 bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700">
+            <div className="text-center py-24 !bg-zinc-950 rounded-3xl border border-zinc-800">
               <div className="text-5xl mb-4">🧵</div>
               <p className="text-gray-500 font-medium">No orders found</p>
             </div>
@@ -383,7 +383,7 @@ export default function AdminCustomOrdersPage() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.03 }}
-                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+                  className="!bg-zinc-950 rounded-2xl border border-zinc-800 p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start gap-4 flex-wrap">
                     {/* Design thumbnails */}
@@ -396,7 +396,7 @@ export default function AdminCustomOrdersPage() {
                             key={s}
                             src={order.designImages[s]}
                             alt={s}
-                            className="w-14 h-14 rounded-xl border border-gray-200 object-contain bg-gray-50"
+                            className="w-14 h-14 rounded-xl border border-zinc-800 object-contain !bg-zinc-900"
                           />
                         ))}
                       {Object.values(order.designImages || {}).filter(Boolean).length === 0 && (
@@ -493,7 +493,7 @@ export default function AdminCustomOrdersPage() {
                             <Button
                               size="small"
                               icon={<IconTool size={14} />}
-                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                              className="text-emerald-400 border-emerald-800 hover:bg-emerald-950/30"
                               onClick={async () => {
                                 const token = getToken();
                                 if (!token) return;

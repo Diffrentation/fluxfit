@@ -30,7 +30,7 @@ export default function AdminContent({ children, className }) {
         mass: 0.8,
       }}
       className={cn(
-        "flex-1 min-w-0 mt-16",
+        "flex-1 min-w-0 mt-16 lg:mt-0 p-4 sm:p-6 lg:p-8",
         className
       )}
     >

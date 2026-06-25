@@ -162,7 +162,7 @@ export async function GET(request) {
     // 3. Execute Unified Pipeline
     const skip = (page - 1) * limit;
 
-    const result = await Product.aggregate([
+    const pipeline = [
       { $match: query },
       {
         $facet: {
@@ -226,6 +226,7 @@ export async function GET(request) {
                 isFeatured: 1,
                 isNew: 1,
                 isPopular: 1,
+                isCustomizable: 1,
                 createdAt: 1,
                 updatedAt: 1,
 
@@ -251,7 +252,34 @@ export async function GET(request) {
            ]
         }
       }
-    ]);
+    ];
+
+    let result;
+    try {
+      result = await Product.aggregate(pipeline);
+    } catch (err) {
+      if (err.message.includes("text index required") || err.code === 27) {
+        console.warn("Text index missing in Products API GET, rebuilding and falling back to regex:", err);
+        Product.ensureIndexes().catch(console.error);
+
+        delete query.$text;
+        query.name = { $regex: search.trim(), $options: "i" };
+
+        if (sortObj.score) {
+          delete sortObj.score;
+          if (Object.keys(sortObj).length === 0) {
+            sortObj.createdAt = -1;
+          }
+        }
+
+        pipeline[0].$match = query;
+        pipeline[1].$facet.data[0].$sort = sortObj;
+
+        result = await Product.aggregate(pipeline);
+      } else {
+        throw err;
+      }
+    }
 
     const products = result[0].data;
     const total = result[0].metadata[0]?.total || 0;
@@ -311,6 +339,10 @@ export async function POST(request) {
       stock,
       inStock,
       features,
+      details,
+      keyHighlights,
+      specifications,
+      featureCards,
       shipping,
       returnPolicy,
       metaTitle,
@@ -320,6 +352,7 @@ export async function POST(request) {
       isFeatured = false,
       isNew = false,
       isPopular = false,
+      isCustomizable = false,
     } = body;
 
     // Validate required fields
@@ -522,6 +555,7 @@ export async function POST(request) {
       isFeatured: isFeatured || false,
       isNew: isNew || false,
       isPopular: isPopular || false,
+      isCustomizable: isCustomizable || false,
     };
 
     // Add optional fields
@@ -539,6 +573,10 @@ export async function POST(request) {
       productData.sizes = sizes.map((s) => s.trim());
     if (features && Array.isArray(features))
       productData.features = features.map((f) => f.trim());
+    if (details) productData.details = details;
+    if (keyHighlights && Array.isArray(keyHighlights)) productData.keyHighlights = keyHighlights;
+    if (specifications && Array.isArray(specifications)) productData.specifications = specifications;
+    if (featureCards && Array.isArray(featureCards)) productData.featureCards = featureCards;
     if (shipping) productData.shipping = shipping.trim();
     if (returnPolicy) productData.returnPolicy = returnPolicy.trim();
     if (metaTitle) productData.metaTitle = metaTitle.trim();
@@ -610,6 +648,10 @@ export async function POST(request) {
             stock: newProduct.stock,
             inStock: newProduct.inStock,
             features: newProduct.features || [],
+            details: newProduct.details || {},
+            keyHighlights: newProduct.keyHighlights || [],
+            specifications: newProduct.specifications || [],
+            featureCards: newProduct.featureCards || [],
             shipping: newProduct.shipping,
             returnPolicy: newProduct.returnPolicy,
             status: newProduct.status,

@@ -116,63 +116,71 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
       open={visible}
       onCancel={onClose}
       footer={null}
-      width={600}
+      width={850}
       destroyOnClose
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
-        <Form.Item
-          name="name"
-          label="Brand Name"
-          rules={[{ required: true, message: "Please enter brand name" }]}
-        >
-          <Input
-            placeholder="Enter brand name"
-            onChange={(e) =>
-              form.setFieldsValue({ slug: generateSlug(e.target.value) })
-            }
-          />
-        </Form.Item>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-4">
+            <Form.Item
+              name="name"
+              label="Brand Name"
+              rules={[{ required: true, message: "Please enter brand name" }]}
+            >
+              <Input
+                placeholder="Enter brand name"
+                onChange={(e) =>
+                  form.setFieldsValue({ slug: generateSlug(e.target.value) })
+                }
+              />
+            </Form.Item>
 
-        <Form.Item
-          name="slug"
-          label="URL Slug"
-          rules={[
-            { required: true, message: "Please enter URL slug" },
-            { pattern: /^[a-z0-9-]+$/, message: "Invalid slug format" },
-          ]}
-        >
-          <Input placeholder="brand-slug" />
-        </Form.Item>
+            <Form.Item
+              name="slug"
+              label="URL Slug"
+              rules={[
+                { required: true, message: "Please enter URL slug" },
+                { pattern: /^[a-z0-9-]+$/, message: "Invalid slug format" },
+              ]}
+            >
+              <Input placeholder="brand-slug" />
+            </Form.Item>
 
-        <Form.Item name="description" label="Description">
-          <TextArea rows={3} placeholder="Enter brand description" />
-        </Form.Item>
+            <Form.Item name="sortOrder" label="Sort Order" initialValue={0}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </Form.Item>
+          </div>
 
-        {/* Logo Upload */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Brand Logo
-          </label>
-          <Upload
-            listType="picture-card"
-            fileList={uploadFileList}
-            onChange={handleLogoUpload}
-            maxCount={1}
-          >
-            {logoList.length < 1 && (
-              <div>
-                <IconUpload className="w-6 h-6" />
-                <div className="mt-2">Upload</div>
-              </div>
-            )}
-          </Upload>
+          {/* Right Column */}
+          <div className="space-y-4">
+            <Form.Item name="description" label="Description">
+              <TextArea rows={4} placeholder="Enter brand description" />
+            </Form.Item>
+
+            {/* Logo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                Brand Logo
+              </label>
+              <Upload
+                listType="picture-card"
+                fileList={uploadFileList}
+                onChange={handleLogoUpload}
+                maxCount={1}
+              >
+                {logoList.length < 1 && (
+                  <div>
+                    <IconUpload className="w-6 h-6 mx-auto" />
+                    <div className="mt-2 text-xs">Upload</div>
+                  </div>
+                )}
+              </Upload>
+            </div>
+          </div>
         </div>
 
-        <Form.Item name="sortOrder" label="Sort Order" initialValue={0}>
-          <InputNumber min={0} style={{ width: "100%" }} />
-        </Form.Item>
-
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-3 mt-6 border-t border-zinc-800 pt-4">
           <Button onClick={onClose}>Cancel</Button>
           <Button type="primary" htmlType="submit" size="large" loading={loading}>
             {brand ? "Update Brand" : "Create Brand"}

@@ -232,6 +232,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 : productData.metaKeywords,
               status: productData.status || "draft",
               lowStockThreshold: productData.lowStockThreshold || 10,
+              isCustomizable: productData.isCustomizable || false,
             };
 
             form.setFieldsValue({
@@ -279,6 +280,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         form.setFieldsValue({
           ...product,
           category: normalizeCategoryId(product?.category),
+          isCustomizable: product?.isCustomizable || false,
         });
         initialEditSlugRef.current = String(product?.slug || "")
           .trim()
@@ -382,7 +384,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     (variant, index) => (
       <div className="w-64 space-y-3">
         <div>
-          <p className="text-xs font-medium text-gray-700 mb-2">Preset colors</p>
+          <p className="text-xs font-medium text-zinc-400 mb-2">Preset colors</p>
           <div className="grid grid-cols-5 gap-2">
             {COLOR_PRESETS.map((color) => (
               <button
@@ -392,8 +394,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 title={color.label}
                 className={`h-8 w-8 rounded-full border-2 transition ${
                   String(variant.color || "").toLowerCase() === color.value.toLowerCase()
-                    ? "border-gray-900 scale-105"
-                    : "border-gray-200"
+                    ? "border-white scale-105"
+                    : "border-zinc-800"
                 }`}
                 style={{ backgroundColor: color.value }}
                 onClick={() => handleVariantChange(index, "color", color.value)}
@@ -403,9 +405,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         </div>
 
         <div>
-          <p className="text-xs font-medium text-gray-700 mb-2">Custom color</p>
+          <p className="text-xs font-medium text-zinc-400 mb-2">Custom color</p>
           <div className="space-y-3">
-            <div className="flex justify-center rounded-lg border border-gray-200 bg-white p-3">
+            <div className="flex justify-center rounded-lg border border-zinc-800 !bg-zinc-950 p-3">
               <HexColorPicker
                 color={variant.color || "#1677ff"}
                 onChange={(value) => handleVariantChange(index, "color", value)}
@@ -415,13 +417,13 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               color={variant.color || "#1677ff"}
               onChange={(value) => handleVariantChange(index, "color", value)}
               prefixed
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+              className="w-full rounded-md border border-zinc-800 bg-zinc-950 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
             />
           </div>
         </div>
 
         <div>
-          <p className="text-xs font-medium text-gray-700 mb-2">Color value</p>
+          <p className="text-xs font-medium text-zinc-400 mb-2">Color value</p>
           <Input
             value={variant.color}
             onChange={(e) => handleVariantChange(index, "color", e.target.value)}
@@ -451,6 +453,12 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           originalPrice: values.originalPrice,
           images: imageList.map((url, i) => ({ url, isPrimary: i === 0 })),
           variants,
+          details: values.details,
+          keyHighlights: values.keyHighlights,
+          specifications: values.specifications,
+          featureCards: values.featureCards,
+          shipping: values.shipping,
+          isCustomizable: values.isCustomizable || false,
           // stock and inStock are auto-computed by the model pre-save hook
           metaTitle: values.metaTitle,
           metaDescription: values.metaDescription,
@@ -560,7 +568,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   }, [autoSlug, watchedValues.metaTitle]);
 
   const createStepOrder = useMemo(
-    () => ["basic", "images", "variants", "inventory", "seo"],
+    () => ["basic", "images", "variants", "inventory", "details", "seo"],
     [],
   );
 
@@ -570,6 +578,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       images: areImagesStepComplete,
       variants: areVariantsStepComplete,
       inventory: isInventoryStepComplete,
+      details: true,
       seo: isSeoStepComplete,
     }),
     [
@@ -753,7 +762,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             </Form.Item>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <Form.Item
               name="category"
               label="Category"
@@ -773,6 +782,15 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 <Option value="active">Active</Option>
                 <Option value="inactive">Inactive</Option>
               </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="isCustomizable"
+              label="Enable Custom Design"
+              valuePropName="checked"
+              initialValue={false}
+            >
+              <Switch checkedChildren="Yes" unCheckedChildren="No" />
             </Form.Item>
           </div>
 
@@ -804,7 +822,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       children: (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
               Product Images
             </label>
             <Upload
@@ -835,14 +853,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 </div>
               )}
             </Upload>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-zinc-500 mt-2">
               Upload up to 5 images. First image will be the main product image.
             </p>
           </div>
 
           {imageList.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
                 Image Preview
               </label>
               <div className="grid grid-cols-5 gap-4">
@@ -853,7 +871,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
                   return (
                     <div key={index} className="relative group">
-                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center">
                         <Image
                           src={imageUrl}
                           alt={`Product image ${index + 1}`}
@@ -892,8 +910,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-gray-900">Product Variants</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="font-semibold text-zinc-100">Product Variants</h3>
+              <p className="text-sm text-zinc-400">
                 Manage different sizes, colors, and pricing for this product
               </p>
             </div>
@@ -907,7 +925,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           </div>
 
           {variants.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
+            <div className="text-center py-8 text-zinc-500 border-2 border-dashed border-zinc-800 rounded-lg">
               No variants added. Click "Add Variant" to create product
               variations.
             </div>
@@ -915,10 +933,10 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             <div className="space-y-4">
               {variants.map((variant, index) => (
                 <div key={index}>
-                  <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="p-4 border border-zinc-800 rounded-lg bg-zinc-900/40">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">
                         Size
                       </label>
                       <Select
@@ -939,7 +957,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                       </Select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">
                         Color
                       </label>
                       <div className="flex gap-2">
@@ -970,7 +988,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">
                         Price (₹)
                       </label>
                       <InputNumber
@@ -989,7 +1007,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-zinc-300 mb-1">
                         Stock
                       </label>
                       <InputNumber
@@ -1009,7 +1027,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                   </div>
                   {/* Auto-SKU preview */}
                   <div className="mt-3 grid gap-2 md:grid-cols-[120px_1fr] md:items-center">
-                    <span className="text-xs text-gray-500">Auto SKU</span>
+                    <span className="text-xs text-zinc-400">Auto SKU</span>
                     <Input
                       readOnly
                       value={
@@ -1042,11 +1060,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       children: (
         <div className="space-y-4">
           {/* Auto-computed total stock */}
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-700">Total Stock</p>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-sm font-medium text-zinc-300">Total Stock</p>
+                <p className="text-xs text-zinc-500 mt-0.5">
                   Auto-calculated from variant stocks
                 </p>
               </div>
@@ -1068,14 +1086,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               </div>
             </div>
             {variants.length === 0 && (
-              <p className="text-xs text-amber-600 mt-3 border-t border-amber-200 pt-2">
+              <p className="text-xs text-amber-600 mt-3 border-t border-amber-900/50 pt-2">
                 Add variants in the Variants tab to calculate stock automatically.
               </p>
             )}
             {variants.length > 0 && (
-              <div className="mt-3 border-t border-gray-200 pt-3 space-y-1">
+              <div className="mt-3 border-t border-zinc-800 pt-3 space-y-1">
                 {variants.map((v, i) => (
-                  <div key={i} className="flex justify-between text-xs text-gray-600">
+                  <div key={i} className="flex justify-between text-xs text-zinc-400">
                     <span>
                       {v.size || "—"} / {v.color || "—"}
                     </span>
@@ -1097,6 +1115,131 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               <Button disabled>units</Button>
             </Space.Compact>
           </Form.Item>
+        </div>
+      ),
+    },
+    {
+      key: "details",
+      label: "Features & Details",
+      children: (
+        <div className="space-y-6">
+          {/* Story & Materials */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-zinc-100 border-b border-zinc-800 pb-2">Overview</h3>
+            <Form.Item name={["details", "story"]} label="Product Story">
+              <TextArea rows={4} placeholder="Write a compelling story about this product..." />
+            </Form.Item>
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item name={["details", "material"]} label="Material">
+                <Input placeholder="e.g., 100% Cotton" />
+              </Form.Item>
+              <Form.Item name={["details", "washingInstructions"]} label="Care Instructions">
+                <Input placeholder="e.g., Machine wash cold" />
+              </Form.Item>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item name={["details", "sizeAndFit"]} label="Size & Fit">
+                <Input placeholder="e.g., True to size. Model is 6'1 wearing Medium." />
+              </Form.Item>
+              <Form.Item name="shipping" label="Shipping Information">
+                <Input placeholder="e.g., Free shipping over ₹500" />
+              </Form.Item>
+            </div>
+          </div>
+
+          {/* Key Highlights */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-zinc-100 border-b border-zinc-800 pb-2">Key Highlights</h3>
+            <p className="text-xs text-zinc-500 -mt-2">Bullet points that appear next to the product images.</p>
+            <Form.List name="keyHighlights">
+              {(fields, { add, remove }) => (
+                <div className="space-y-2">
+                  {fields.map((field, index) => (
+                    <div key={field.key} className="flex gap-2">
+                      <Form.Item {...field} noStyle>
+                        <Input placeholder="e.g., Premium breathable fabric" />
+                      </Form.Item>
+                      <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} onClick={() => remove(field.name)} />
+                    </div>
+                  ))}
+                  <Button type="dashed" onClick={() => add()} block icon={<IconPlus className="w-4 h-4" />}>
+                    Add Highlight
+                  </Button>
+                </div>
+              )}
+            </Form.List>
+          </div>
+
+          {/* Specifications */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-zinc-100 border-b border-zinc-800 pb-2">Specifications</h3>
+            <Form.List name="specifications">
+              {(fields, { add, remove }) => (
+                <div className="space-y-2">
+                  {fields.map((field) => (
+                    <div key={field.key} className="flex gap-2">
+                      <Form.Item name={[field.name, "label"]} noStyle>
+                        <Input placeholder="Label (e.g., Weight)" style={{ width: "40%" }} />
+                      </Form.Item>
+                      <Form.Item name={[field.name, "value"]} noStyle>
+                        <Input placeholder="Value (e.g., 200g)" style={{ width: "60%" }} />
+                      </Form.Item>
+                      <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} onClick={() => remove(field.name)} />
+                    </div>
+                  ))}
+                  <Button type="dashed" onClick={() => add()} block icon={<IconPlus className="w-4 h-4" />}>
+                    Add Specification
+                  </Button>
+                </div>
+              )}
+            </Form.List>
+          </div>
+
+          {/* Feature Cards */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-zinc-100 border-b border-zinc-800 pb-2">Detailed Feature Cards</h3>
+            <Form.List name="featureCards">
+              {(fields, { add, remove }) => (
+                <div className="space-y-4">
+                  {fields.map((field) => (
+                    <div key={field.key} className="p-4 border border-zinc-800 rounded-lg bg-zinc-950/40 relative mt-2">
+                      <Button 
+                        type="text" danger 
+                        icon={<IconX className="w-4 h-4" />} 
+                        onClick={() => remove(field.name)} 
+                        className="absolute top-2 right-2"
+                      />
+                      <div className="grid grid-cols-2 gap-4 pr-8">
+                        <Form.Item name={[field.name, "title"]} label="Title">
+                          <Input placeholder="e.g., Built for Performance" />
+                        </Form.Item>
+                        <Form.Item name={[field.name, "icon"]} label="Icon Name">
+                          <Select placeholder="Select Icon">
+                            <Option value="activity">Activity / Performance</Option>
+                            <Option value="battery">Battery / Power</Option>
+                            <Option value="bluetooth">Bluetooth / Connectivity</Option>
+                            <Option value="leaf">Leaf / Eco-friendly</Option>
+                            <Option value="wash_machine">Wash / Care</Option>
+                            <Option value="shield">Shield / Protection</Option>
+                            <Option value="star">Star / Premium</Option>
+                            <Option value="droplet">Droplet / Water Resistant</Option>
+                            <Option value="sun">Sun / UV Protection</Option>
+                            <Option value="wind">Wind / Breathable</Option>
+                          </Select>
+                        </Form.Item>
+                      </div>
+                      <Form.Item name={[field.name, "description"]} label="Description" className="mb-0">
+                        <TextArea rows={2} placeholder="Description for this feature" />
+                      </Form.Item>
+                    </div>
+                  ))}
+                  <Button type="dashed" onClick={() => add()} block icon={<IconPlus className="w-4 h-4" />}>
+                    Add Feature Card
+                  </Button>
+                </div>
+              )}
+            </Form.List>
+          </div>
         </div>
       ),
     },

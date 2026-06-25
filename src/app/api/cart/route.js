@@ -60,6 +60,7 @@ export async function GET(request) {
           size: item.variant.size || null,
           color: item.variant.color || null,
         },
+        customization: item.customization || null,
         quantity: item.quantity,
         price: item.price,
         subtotal: item.price * item.quantity,

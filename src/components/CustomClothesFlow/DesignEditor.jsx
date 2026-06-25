@@ -79,6 +79,24 @@ function productForCart(product, fallbackImage) {
   };
 }
 
+function renderTextToDataUrl(text, font, color) {
+  if (typeof window === "undefined") return "";
+  const canvas = document.createElement("canvas");
+  canvas.width = 600;
+  canvas.height = 150;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = `bold 72px "${font}"`;
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  return canvas.toDataURL("image/png");
+}
+
 export default function DesignEditor({ product }) {
   const { addToCart } = useCart();
 
@@ -88,6 +106,51 @@ export default function DesignEditor({ product }) {
   const [designPick, setDesignPick] = useState(() => new Set());
   const pendingLayerSelectRef = useRef(null);
   const [adminCustomDesigns, setAdminCustomDesigns] = useState([]);
+
+  const [customText, setCustomText] = useState("");
+  const [textFont, setTextFont] = useState("sans-serif");
+  const [textColor, setTextColor] = useState("#000000");
+
+  const handleAddTextLayer = () => {
+    if (!customText.trim()) return;
+    const dataUrl = renderTextToDataUrl(customText.trim(), textFont, textColor);
+    if (!dataUrl) return;
+
+    setViewPlacements((p) => {
+      const L = [...(p[activeView]?.layers ?? [])];
+      const layersFiltered = L.filter((l) => l.designId !== "none");
+      const nl = createLayer("text", layersFiltered.length);
+      nl.customImageDataUrl = dataUrl;
+      nl.designId = "text";
+      nl.text = customText.trim();
+      nl.font = textFont;
+      nl.textColor = textColor;
+      pendingLayerSelectRef.current = nl.id;
+      return { ...p, [activeView]: { layers: [...layersFiltered, nl] } };
+    });
+
+    setCustomText("");
+    message.success("Text print added to " + activeView);
+  };
+
+  const handleEditText = (layerId, field, value) => {
+    setViewPlacements((p) => {
+      const updatedLayers = (p[activeView]?.layers ?? []).map((l) => {
+        if (l.id === layerId) {
+          const nextLayer = { ...l, [field]: value };
+          const dataUrl = renderTextToDataUrl(
+            nextLayer.text || "Text",
+            nextLayer.font || "sans-serif",
+            nextLayer.textColor || "#000000"
+          );
+          nextLayer.customImageDataUrl = dataUrl;
+          return nextLayer;
+        }
+        return l;
+      });
+      return { ...p, [activeView]: { layers: updatedLayers } };
+    });
+  };
 
   const colorImageMap = useMemo(() => {
     const map = {};
@@ -665,6 +728,51 @@ export default function DesignEditor({ product }) {
               className="block w-full text-xs text-neutral-500 file:mr-2 file:rounded-lg file:border-0 file:bg-neutral-900 file:px-2 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-neutral-700 dark:text-neutral-400 dark:file:bg-white dark:file:text-neutral-900"
             />
           </div>
+
+          <div className="mt-4 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+            <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+              Add Custom Text
+            </label>
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Enter custom text..."
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={textFont}
+                  onChange={(e) => setTextFont(e.target.value)}
+                  className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-xs font-semibold text-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                >
+                  <option value="sans-serif">Sans-Serif</option>
+                  <option value="serif">Serif</option>
+                  <option value="monospace">Monospace</option>
+                  <option value="Impact">Impact</option>
+                  <option value="Brush Script MT">Cursive</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Courier New">Courier</option>
+                  <option value="Georgia">Georgia</option>
+                </select>
+                <input
+                  type="color"
+                  value={textColor}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  className="h-8 w-full cursor-pointer rounded-lg border border-neutral-300 bg-transparent p-0.5 dark:border-neutral-700"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleAddTextLayer}
+                disabled={!customText.trim()}
+                className="w-full rounded-lg bg-neutral-900 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+              >
+                Add Text Print
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -780,6 +888,42 @@ export default function DesignEditor({ product }) {
               className="w-full accent-neutral-900 dark:accent-white"
             />
           </div>
+
+          {activeLayer && activeLayer.designId === "text" && (
+            <div className="mt-4 border-t border-neutral-100 pt-3 dark:border-neutral-800 space-y-3">
+              <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">Edit Text Layer</p>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={activeLayer.text || ""}
+                  onChange={(e) => handleEditText(activeLayer.id, "text", e.target.value)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={activeLayer.font || "sans-serif"}
+                    onChange={(e) => handleEditText(activeLayer.id, "font", e.target.value)}
+                    className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-xs font-semibold text-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                  >
+                    <option value="sans-serif">Sans-Serif</option>
+                    <option value="serif">Serif</option>
+                    <option value="monospace">Monospace</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Brush Script MT">Cursive</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Courier New">Courier</option>
+                    <option value="Georgia">Georgia</option>
+                  </select>
+                  <input
+                    type="color"
+                    value={activeLayer.textColor || "#000000"}
+                    onChange={(e) => handleEditText(activeLayer.id, "textColor", e.target.value)}
+                    className="h-8 w-full cursor-pointer rounded-lg border border-neutral-300 bg-transparent p-0.5 dark:border-neutral-700"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <button
             type="button"

@@ -88,7 +88,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
       transition={{ duration: 0.2 }}
     >
       <Card
-        className="h-full border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 w-full min-w-0"
+        className="h-full border border-zinc-800 hover:shadow-md transition-shadow !bg-zinc-950 w-full min-w-0"
         bodyStyle={{ padding: "12px" }}
       >
         <div className="space-y-3">
@@ -125,7 +125,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
                 ₹{formatPrice(settlement.tax)}
               </span>
             </div>
-            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
               <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Settlement</span>
               <span className="text-base font-bold text-green-600 dark:text-green-400">
                 ₹{formatPrice(settlement.settlement)}
@@ -147,7 +147,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
             )}
           </div>
 
-          <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-2 pt-2 border-t border-zinc-800">
             {settlement.status === "pending" && (
               <Button
                 type="primary"
@@ -286,7 +286,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
     >
       {/* Statistics Cards - Responsive Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 w-full">
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+        <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
           <Statistic
             title="Pending Settlements"
             value={totalPending}
@@ -295,7 +295,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
             valueStyle={{ color: "#fa8c16" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+        <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
           <Statistic
             title="Processed This Month"
             value={totalProcessed}
@@ -304,7 +304,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
             valueStyle={{ color: "#52c41a" }}
           />
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 sm:col-span-2 lg:col-span-1 w-full min-w-0">
+        <Card className="!bg-zinc-950 border-zinc-800 sm:col-span-2 lg:col-span-1 w-full min-w-0">
           <Statistic
             title="Total Vendors"
             value={uniqueVendors.length}
@@ -314,7 +314,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white dark:bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-3 sm:mb-4">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 !bg-zinc-950 p-2 sm:p-3 md:p-4 rounded-lg shadow-sm border border-zinc-800 mb-3 sm:mb-4">
         <Select
           placeholder="All Vendors"
           value={vendorFilter}
@@ -361,7 +361,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
           <Table
             dataSource={paginatedSettlements.map((s) => ({ ...s, key: s.id }))}
             columns={columns}
@@ -400,7 +400,7 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
         </div>
 
         {filteredSettlements.length > pageSize && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-zinc-800">
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Showing {startIndex + 1} to {Math.min(endIndex, filteredSettlements.length)} of {filteredSettlements.length} settlements
             </div>

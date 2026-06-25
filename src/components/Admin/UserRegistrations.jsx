@@ -127,6 +127,7 @@ const UserRegistrations = ({ reportType = "daily", dateRange, refreshNonce }) =>
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
+      whileHover={{ y: -6, scale: 1.02 }}
     >
       <Card
         title={
@@ -140,7 +141,7 @@ const UserRegistrations = ({ reportType = "daily", dateRange, refreshNonce }) =>
             </div>
           </div>
         }
-        className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+        className="hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 h-full !bg-zinc-950 border-zinc-800"
       >
         {loading ? (
           <div className="h-[250px] flex items-center justify-center">

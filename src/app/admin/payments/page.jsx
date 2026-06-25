@@ -245,7 +245,7 @@ const PaymentManagementPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-transparent transition-colors duration-300">
       <div className="flex">
         <AdminContent>
           <div className="p-2 sm:p-4 md:p-6 pb-4 sm:pb-6 md:pb-8 w-full overflow-x-hidden">
@@ -267,7 +267,7 @@ const PaymentManagementPage = () => {
 
               {/* Statistics Cards - Responsive Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6 w-full">
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+                <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
                   <Statistic
                     title="Total Revenue"
                     value={stats.totalRevenue}
@@ -276,7 +276,7 @@ const PaymentManagementPage = () => {
                     valueStyle={{ color: "#3f8600" }}
                   />
                 </Card>
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+                <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
                   <Statistic
                     title="Total Refunds"
                     value={stats.totalRefunds}
@@ -285,7 +285,7 @@ const PaymentManagementPage = () => {
                     valueStyle={{ color: "#cf1322" }}
                   />
                 </Card>
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+                <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
                   <Statistic
                     title="Pending Settlements"
                     value={stats.pendingSettlements}
@@ -294,7 +294,7 @@ const PaymentManagementPage = () => {
                     valueStyle={{ color: "#1890ff" }}
                   />
                 </Card>
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-full min-w-0">
+                <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
                   <Statistic
                     title="Tax Collected (GST)"
                     value={stats.taxCollected}

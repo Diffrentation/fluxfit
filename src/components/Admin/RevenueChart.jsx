@@ -130,20 +130,24 @@ const RevenueChart = ({ reportType = "daily", dateRange, refreshNonce }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
+      whileHover={{ y: -6, scale: 1.02 }}
+      className="h-full"
     >
       <Card
         title={
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <IconTrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-              <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Revenue Trend</span>
+              <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                <IconTrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e9a58] dark:text-[#22c55e]" />
+              </div>
+              <span className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">Revenue Trend</span>
             </div>
             <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Total: <span className="font-bold text-green-600 dark:text-green-400">₹{formatPrice(totalRevenue)}</span>
+              Total: <span className="font-bold text-[#1e9a58] dark:text-[#22c55e] text-lg">₹{formatPrice(totalRevenue)}</span>
             </div>
           </div>
         }
-        className="h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+        className="hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 h-full !bg-zinc-950 border-zinc-800"
       >
         {loading ? (
           <div className="h-[250px] flex items-center justify-center">
@@ -160,8 +164,8 @@ const RevenueChart = ({ reportType = "daily", dateRange, refreshNonce }) => {
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                <stop offset="5%" stopColor="#1e9a58" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#1e9a58" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
@@ -186,7 +190,7 @@ const RevenueChart = ({ reportType = "daily", dateRange, refreshNonce }) => {
             <Area
               type="monotone"
               dataKey="revenue"
-              stroke="#3b82f6"
+              stroke="#1e9a58"
               fillOpacity={1}
               fill="url(#colorRevenue)"
               strokeWidth={2}
@@ -202,7 +206,7 @@ const RevenueChart = ({ reportType = "daily", dateRange, refreshNonce }) => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <div className="w-3 h-3 bg-[#1e9a58] rounded-full shadow-[0_0_8px_rgba(30,154,88,0.5)]"></div>
             <span className="text-gray-600 dark:text-gray-400">Revenue</span>
           </div>
         </div>

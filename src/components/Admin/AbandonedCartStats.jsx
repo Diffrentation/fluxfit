@@ -105,6 +105,7 @@ const AbandonedCartStats = ({ refreshNonce }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
+      whileHover={{ y: -6, scale: 1.02 }}
     >
       <Card
         title={
@@ -113,7 +114,7 @@ const AbandonedCartStats = ({ refreshNonce }) => {
             <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Abandoned Cart Statistics</span>
           </div>
         }
-        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+        className="hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 h-full !bg-zinc-950 border-zinc-800"
       >
         {loading ? (
           <div className="h-[240px] flex items-center justify-center">

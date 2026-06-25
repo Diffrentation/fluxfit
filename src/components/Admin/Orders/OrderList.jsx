@@ -42,8 +42,8 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
             {record.address?.name?.[0]?.toUpperCase() || "C"}
           </Avatar>
           <div>
-            <div className="font-medium text-gray-900">{record.address?.name || "N/A"}</div>
-            <div className="text-xs text-gray-500">{record.address?.phone || ""}</div>
+            <div className="font-medium text-zinc-100">{record.address?.name || "N/A"}</div>
+            <div className="text-xs text-zinc-400">{record.address?.phone || ""}</div>
           </div>
         </div>
       ),
@@ -53,7 +53,7 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
       key: "items",
       width: 100,
       render: (_, record) => (
-        <span className="text-gray-600">{record.items?.length || 0} items</span>
+        <span className="text-zinc-300">{record.items?.length || 0} items</span>
       ),
     },
     {
@@ -62,7 +62,7 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
       key: "total",
       width: 120,
       render: (summary) => (
-        <span className="font-semibold text-gray-900">
+        <span className="font-semibold text-zinc-100">
           ₹{formatPrice(summary?.grandTotal || 0)}
         </span>
       ),
@@ -73,9 +73,38 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
       key: "status",
       width: 130,
       render: (status) => (
-        <Tag color={getStatusColor(status)} className="capitalize">
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize inline-flex items-center gap-1.5 border ${
+          status === "delivered"
+            ? "bg-green-900/20 text-green-300 border-green-800/30"
+            : status === "cancelled"
+            ? "bg-red-900/20 text-red-300 border-red-800/30"
+            : status === "shipped"
+            ? "bg-purple-900/20 text-purple-300 border-purple-800/30"
+            : status === "processing"
+            ? "bg-orange-900/20 text-orange-300 border-orange-800/30"
+            : status === "confirmed"
+            ? "bg-blue-900/20 text-blue-300 border-blue-800/30"
+            : status === "pending"
+            ? "bg-amber-900/20 text-amber-300 border-amber-800/30"
+            : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50"
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            status === "delivered"
+              ? "bg-green-500"
+              : status === "cancelled"
+              ? "bg-red-500"
+              : status === "shipped"
+              ? "bg-purple-500"
+              : status === "processing"
+              ? "bg-orange-500"
+              : status === "confirmed"
+              ? "bg-blue-500"
+              : status === "pending"
+              ? "bg-amber-500"
+              : "bg-zinc-500"
+          }`} />
           {status}
-        </Tag>
+        </span>
       ),
     },
     {
@@ -84,7 +113,7 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
       key: "date",
       width: 120,
       render: (date) => (
-        <span className="text-gray-600">{format(new Date(date), "MMM dd, yyyy")}</span>
+        <span className="text-zinc-300">{format(new Date(date), "MMM dd, yyyy")}</span>
       ),
     },
     {
@@ -141,7 +170,7 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
           className={`h-full border ${
             isSelected
               ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-              : "border-gray-200 dark:border-gray-700"
+              : "border-zinc-800"
           } hover:shadow-md transition-shadow`}
           bodyStyle={{ padding: "16px" }}
         >
@@ -154,9 +183,38 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
                     <span className="font-mono font-semibold text-sm sm:text-base text-blue-600 dark:text-blue-400">
                       #{order.orderId}
                     </span>
-                    <Tag color={getStatusColor(order.status)} className="capitalize text-xs sm:text-sm">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold capitalize inline-flex items-center gap-1.5 border ${
+                      order.status === "delivered"
+                        ? "bg-green-900/20 text-green-300 border-green-800/30"
+                        : order.status === "cancelled"
+                        ? "bg-red-900/20 text-red-300 border-red-800/30"
+                        : order.status === "shipped"
+                        ? "bg-purple-900/20 text-purple-300 border-purple-800/30"
+                        : order.status === "processing"
+                        ? "bg-orange-900/20 text-orange-300 border-orange-800/30"
+                        : order.status === "confirmed"
+                        ? "bg-blue-900/20 text-blue-300 border-blue-800/30"
+                        : order.status === "pending"
+                        ? "bg-amber-900/20 text-amber-300 border-amber-800/30"
+                        : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50"
+                    }`}>
+                      <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
+                        order.status === "delivered"
+                          ? "bg-green-500"
+                          : order.status === "cancelled"
+                          ? "bg-red-500"
+                          : order.status === "shipped"
+                          ? "bg-purple-500"
+                          : order.status === "processing"
+                          ? "bg-orange-500"
+                          : order.status === "confirmed"
+                          ? "bg-blue-500"
+                          : order.status === "pending"
+                          ? "bg-amber-500"
+                          : "bg-zinc-500"
+                      }`} />
                       {order.status}
-                    </Tag>
+                    </span>
                   </div>
                   <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     {format(new Date(order.orderDate), "MMM dd, yyyy")}
@@ -192,21 +250,21 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
                   {order.address?.name?.[0]?.toUpperCase() || "C"}
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
+                  <div className="font-medium text-sm sm:text-base text-zinc-100 truncate">
                     {order.address?.name || "N/A"}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  <div className="text-xs text-zinc-400 truncate">
                     {order.address?.phone || ""}
                   </div>
                 </div>
               </div>
 
               {/* Order Summary */}
-              <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+                <div className="text-xs sm:text-sm text-zinc-300">
                   {order.items?.length || 0} items
                 </div>
-                <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
+                <div className="font-semibold text-sm sm:text-base text-zinc-100">
                   ₹{formatPrice(order.orderSummary?.grandTotal || 0)}
                 </div>
               </div>
@@ -221,7 +279,7 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+      className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden"
     >
       {/* Desktop Table View */}
       <div className="hidden lg:block">
@@ -236,7 +294,7 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
           scroll={{ x: 1000 }}
           onRow={(record) => ({
             onClick: () => onSelect(record),
-            className: selectedOrderId === record.orderId ? "bg-blue-50 dark:bg-blue-900/20" : "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50",
+            className: selectedOrderId === record.orderId ? "bg-blue-50 dark:bg-blue-900/20" : "cursor-pointer hover:bg-zinc-800/50",
           })}
         />
       </div>
@@ -250,8 +308,8 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
         </div>
 
         {orders.length > pageSize && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-zinc-800">
+            <div className="text-xs sm:text-sm text-zinc-300">
               Showing {startIndex + 1} to {Math.min(endIndex, orders.length)} of {orders.length} orders
             </div>
             <Pagination

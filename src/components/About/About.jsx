@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,6 +20,19 @@ import {
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 
 const About = () => {
+  const [pageData, setPageData] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/pages/about')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.data?.data) {
+          setPageData(res.data.data);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
   const fadeInUp = {
     initial: { opacity: 0, y: 60 },
     animate: { opacity: 1, y: 0 },
@@ -137,25 +150,29 @@ const About = () => {
                 Our Story
               </h2>
               <div className="w-12 h-1 bg-[#1e9a58] mb-8 rounded-full"></div>
-              <div className="space-y-6 text-gray-600 leading-relaxed text-lg">
-                <p>
-                  Welcome to <strong>FluxFit</strong>, where fashion meets
-                  creativity! We are a leading provider of custom clothing and
-                  printing services, dedicated to helping you express your
-                  unique style and personality through high-quality garments.
-                </p>
-                <p>
-                  Founded with a passion for design and quality, FluxFit has
-                  grown to become a trusted name in the custom printing
-                  industry. We specialize in printing any kind of design on
-                  clothes - from simple text and logos to intricate artwork and
-                  full-color graphics.
-                </p>
-                <p>
-                  Whether you're looking for personalized t-shirts, stylish
-                  jackets, comfortable hoodies, or any other apparel, we have
-                  the expertise and technology to bring your vision to life.
-                </p>
+              <div className="space-y-6 text-gray-600 leading-relaxed text-lg whitespace-pre-wrap">
+                {pageData?.storyText || (
+                  <>
+                    <p>
+                      Welcome to <strong>FluxFit</strong>, where fashion meets
+                      creativity! We are a leading provider of custom clothing and
+                      printing services, dedicated to helping you express your
+                      unique style and personality through high-quality garments.
+                    </p>
+                    <p>
+                      Founded with a passion for design and quality, FluxFit has
+                      grown to become a trusted name in the custom printing
+                      industry. We specialize in printing any kind of design on
+                      clothes - from simple text and logos to intricate artwork and
+                      full-color graphics.
+                    </p>
+                    <p>
+                      Whether you're looking for personalized t-shirts, stylish
+                      jackets, comfortable hoodies, or any other apparel, we have
+                      the expertise and technology to bring your vision to life.
+                    </p>
+                  </>
+                )}
               </div>
             </motion.div>
             <motion.div

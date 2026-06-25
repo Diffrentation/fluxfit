@@ -298,78 +298,87 @@ const ShippingRules = ({ onSave }) => {
         }}
         footer={null}
         width="95%"
-        style={{ maxWidth: 600 }}
-        className="dark:bg-gray-800"
+        style={{ maxWidth: 850 }}
+        className="!bg-zinc-950"
         centered
       >
-        <Form form={ruleForm} layout="vertical" onFinish={handleSaveRule}>
-          <Form.Item
-            name="name"
-            label="Rule Name"
-            rules={[{ required: true, message: "Please enter rule name" }]}
-          >
-            <Input placeholder="Free Shipping" />
-          </Form.Item>
+        <Form form={ruleForm} layout="vertical" onFinish={handleSaveRule} className="mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+              <Form.Item
+                name="name"
+                label="Rule Name"
+                rules={[{ required: true, message: "Please enter rule name" }]}
+              >
+                <Input placeholder="Free Shipping" />
+              </Form.Item>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <Form.Item
-              name="minOrder"
-              label="Minimum Order (₹)"
-              rules={[{ required: true, message: "Please enter minimum order" }]}
-            >
-              <InputNumber min={0} style={{ width: "100%" }} />
-            </Form.Item>
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item
+                  name="minOrder"
+                  label="Minimum Order (₹)"
+                  rules={[{ required: true, message: "Please enter minimum order" }]}
+                  className="mb-0"
+                >
+                  <InputNumber min={0} style={{ width: "100%" }} />
+                </Form.Item>
 
-            <Form.Item
-              name="maxOrder"
-              label="Maximum Order (₹)"
-              tooltip="Leave empty for no maximum"
-            >
-              <InputNumber min={0} style={{ width: "100%" }} />
-            </Form.Item>
+                <Form.Item
+                  name="maxOrder"
+                  label="Maximum Order (₹)"
+                  tooltip="Leave empty for no maximum"
+                  className="mb-0"
+                >
+                  <InputNumber min={0} style={{ width: "100%" }} />
+                </Form.Item>
+              </div>
+
+              <Form.Item
+                name="cost"
+                label="Shipping Cost (₹)"
+                rules={[{ required: true, message: "Please enter shipping cost" }]}
+              >
+                <InputNumber min={0} style={{ width: "100%" }} />
+              </Form.Item>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              <Form.Item
+                name="estimatedDays"
+                label="Estimated Delivery Days"
+                rules={[{ required: true, message: "Please enter estimated days" }]}
+              >
+                <Input placeholder="3-5" />
+              </Form.Item>
+
+              <Form.Item
+                name="applicableRegions"
+                label="Applicable Regions"
+                initialValue={["All"]}
+              >
+                <Select mode="tags" placeholder="Select or add regions">
+                  <Option value="All">All</Option>
+                  <Option value="Metro Cities">Metro Cities</Option>
+                  <Option value="Tier 1 Cities">Tier 1 Cities</Option>
+                  <Option value="Tier 2 Cities">Tier 2 Cities</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="isActive"
+                label="Active"
+                valuePropName="checked"
+                initialValue={true}
+                className="mb-0"
+              >
+                <Switch />
+              </Form.Item>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <Form.Item
-              name="cost"
-              label="Shipping Cost (₹)"
-              rules={[{ required: true, message: "Please enter shipping cost" }]}
-            >
-              <InputNumber min={0} style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="estimatedDays"
-              label="Estimated Delivery Days"
-              rules={[{ required: true, message: "Please enter estimated days" }]}
-            >
-              <Input placeholder="3-5" />
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            name="applicableRegions"
-            label="Applicable Regions"
-            initialValue={["All"]}
-          >
-            <Select mode="tags" placeholder="Select or add regions">
-              <Option value="All">All</Option>
-              <Option value="Metro Cities">Metro Cities</Option>
-              <Option value="Tier 1 Cities">Tier 1 Cities</Option>
-              <Option value="Tier 2 Cities">Tier 2 Cities</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="isActive"
-            label="Active"
-            valuePropName="checked"
-            initialValue={true}
-          >
-            <Switch />
-          </Form.Item>
-
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 mt-6 border-t border-zinc-800 pt-4">
             <Button onClick={() => setIsRuleModalVisible(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit">
               {selectedRule ? "Update" : "Add"} Rule

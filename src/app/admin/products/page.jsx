@@ -113,20 +113,10 @@ const ProductManagementPage = () => {
   };
 
   const handleDeleteProduct = (productId) => {
-    Modal.confirm({
-      title: "Delete Product",
-      content:
-        "Are you sure you want to delete this product? This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      onOk: () => {
-        // Update state by removing the product
-        setProducts((prevProducts) =>
-          prevProducts.filter((product) => product.id !== productId)
-        );
-        message.success("Product deleted successfully");
-      },
-    });
+    // Update state by removing the product
+    setProducts((prevProducts) =>
+      prevProducts.filter((product) => product.id !== productId)
+    );
   };
 
   const handleSaveProduct = (productData) => {
@@ -294,7 +284,7 @@ const ProductManagementPage = () => {
   const categories = ["All", "Women", "Men", "Bag", "Shoes", "Watches"];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-transparent transition-colors duration-300">
       <div className="flex">
         {/* Main Content */}
         <AdminContent>
@@ -381,7 +371,7 @@ const ProductManagementPage = () => {
         footer={null}
         width="95%"
         style={{ maxWidth: 600 }}
-        className="dark:bg-gray-800"
+        className="!bg-zinc-950"
         centered
       >
         <BulkUploadForm onUpload={handleBulkUpload} uploadKey={uploadKey} />

@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -16,32 +16,51 @@ const GetInTouch = () => {
     transition: { duration: 0.6 },
   };
 
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.website) {
+          setSettings(data.data.website);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const email = settings?.email || "fluxfit1@gmail.com";
+  const phone = settings?.phone || "+91 9958724005";
+  const fullAddress = settings?.address 
+    ? `${settings.address.line1}, ${settings.address.city}, ${settings.address.state}, ${settings.address.country}`
+    : "Behrampur, Ghaziabad, Uttar Pradesh, India";
+
   const contactInfo = [
     {
       icon: IconMail,
-      text: "fluxfit1@gmail.com",
-      link: "mailto:fluxfit1@gmail.com",
+      text: email,
+      link: `mailto:${email}`,
       label: "Email us",
       onClick: (e) => {
         e.preventDefault();
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         if (isMobile) {
-          window.location.href = "mailto:fluxfit1@gmail.com";
+          window.location.href = `mailto:${email}`;
         } else {
-          window.open("https://mail.google.com/mail/?view=cm&fs=1&to=fluxfit1@gmail.com", "_blank");
+          window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${email}`, "_blank");
         }
       }
     },
     {
       icon: IconPhone,
-      text: "+91 9958724005",
-      link: "tel:+919958724005",
+      text: phone,
+      link: `tel:${phone.replace(/\s+/g, '')}`,
       label: "Call us",
     },
     {
       icon: IconMapPin,
-      text: "Behrampur, Ghaziabad, Uttar Pradesh, India",
-      link: "https://www.google.com/maps/place/Behrampur,+Ghaziabad,+Uttar+Pradesh,+India",
+      text: fullAddress,
+      link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`,
       label: "Visit us",
     },
   ];

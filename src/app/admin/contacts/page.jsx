@@ -344,7 +344,7 @@ export default function AdminContactsPage() {
   const emptyState = !loading && tableRows.length === 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-transparent transition-colors duration-300">
       <div className="flex min-w-0">
         <AdminContent className="pt-16 sm:pt-20 lg:pt-16">
           <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-4 p-3 sm:gap-5 sm:p-4 md:gap-6 md:p-6 pb-8">
@@ -382,7 +382,7 @@ export default function AdminContactsPage() {
             </header>
 
             {/* Main content: card shells full width; inner table scrolls on md+ */}
-            <section className="min-w-0 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <section className="min-w-0 rounded-xl border shadow-sm border-zinc-800 !bg-zinc-950">
               <Spin spinning={loading}>
                 {/* Desktop / tablet: data table */}
                 <div className="hidden min-w-0 md:block">
@@ -465,7 +465,7 @@ export default function AdminContactsPage() {
                             <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                               Message
                             </p>
-                            <div className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-md bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-900/50 dark:text-gray-200">
+                            <div className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-md !bg-zinc-900 p-3 text-sm text-gray-700 dark:text-gray-200">
                               {row.message}
                             </div>
                           </div>

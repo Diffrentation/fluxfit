@@ -29,9 +29,16 @@ import {
 import axios from "axios";
 import { uploadImage } from "@/lib/upload-client";
 import { AgGridReact } from "ag-grid-react";
-import { ModuleRegistry, AllCommunityModule, themeQuartz } from "ag-grid-community";
+import { ModuleRegistry, AllCommunityModule, themeQuartz, colorSchemeDark } from "ag-grid-community";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: '#09090b',
+  foregroundColor: '#e4e4e7',
+  headerBackgroundColor: '#18181b',
+  borderColor: '#27272a',
+  rowHoverColor: '#18181b',
+});
 
 const { TextArea } = Input;
 
@@ -341,17 +348,17 @@ export default function HeroBannerManagement() {
           return (
             <div className="h-full flex items-center gap-2 flex-wrap py-2">
               {record.badge ? (
-                <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
+                <span className="px-2 py-1 text-xs rounded bg-blue-900/40 text-blue-400 border border-blue-800/50">
                   {record.badge}
                 </span>
               ) : null}
               {record.discountText ? (
-                <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-700">
+                <span className="px-2 py-1 text-xs rounded bg-red-900/40 text-red-400 border border-red-800/50">
                   {record.discountText}
                 </span>
               ) : null}
               {record.salePrice ? (
-                <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
+                <span className="px-2 py-1 text-xs rounded bg-green-900/40 text-green-400 border border-green-800/50">
                   ₹{Number(record.salePrice).toLocaleString()}
                 </span>
               ) : null}
@@ -381,8 +388,8 @@ export default function HeroBannerManagement() {
           <span
             className={`px-2 py-1 text-xs rounded font-medium ${
               params.value
-                ? "bg-green-100 text-green-700"
-                : "bg-gray-200 text-gray-700"
+                ? "bg-green-900/40 text-green-400 border border-green-800/50"
+                : "bg-zinc-800 text-zinc-400 border border-zinc-700"
             }`}
           >
             {params.value ? "Active" : "Inactive"}
@@ -469,7 +476,7 @@ export default function HeroBannerManagement() {
         {isClient ? (
           <div style={{ width: "100%", height: 460 }}>
             <AgGridReact
-              theme={themeQuartz}
+              theme={myDarkTheme}
               modules={[AllCommunityModule]}
               rowData={rowData}
               columnDefs={columnDefs}
@@ -490,7 +497,7 @@ export default function HeroBannerManagement() {
         )}
 
         {!loading && rowData.length > 0 && (
-          <div className="mt-3 rounded border border-gray-200 dark:border-gray-700 p-3">
+          <div className="mt-3 rounded border border-zinc-800 p-3">
             <p className="text-xs text-gray-500 mb-2">Fallback list:</p>
             <div className="space-y-1">
               {rowData.map((item) => (
@@ -511,133 +518,142 @@ export default function HeroBannerManagement() {
         onOk={handleSave}
         okText={saving ? "Saving…" : "Save"}
         confirmLoading={saving}
-        width={700}
+        width={950}
         destroyOnClose
       >
         <Form form={form} layout="vertical" className="mt-4">
-          {/* Image Upload */}
-          <Form.Item
-            label="Slide Image"
-            name="image"
-            rules={[
-              { required: true, message: "Please provide an image" },
-              {
-                validator: (_, value) => {
-                  if (!value || isLikelyImageUrl(value)) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(
-                    new Error("Please provide a valid direct image URL")
-                  );
-                },
-              },
-            ]}
-          >
-            <div className="space-y-3">
-              {previewImage && (
-                <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                  <img
-                    src={previewImage}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Image & Status */}
+            <div className="lg:col-span-5 space-y-4">
+              <Form.Item
+                label="Slide Image"
+                name="image"
+                rules={[
+                  { required: true, message: "Please provide an image" },
+                  {
+                    validator: (_, value) => {
+                      if (!value || isLikelyImageUrl(value)) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(
+                        new Error("Please provide a valid direct image URL")
+                      );
+                    },
+                  },
+                ]}
+              >
+                <div className="space-y-3">
+                  {previewImage && (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border border-zinc-800 bg-zinc-900/50">
+                      <img
+                        src={previewImage}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      placeholder="Image URL"
+                      value={form.getFieldValue("image") || ""}
+                      onChange={(e) => {
+                        form.setFieldValue("image", e.target.value);
+                        setPreviewImage(e.target.value);
+                      }}
+                    />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                    <Button
+                      icon={
+                        imageUploading ? <Spin size="small" /> : <IconPhoto size={15} />
+                      }
+                      loading={imageUploading}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Upload
+                    </Button>
+                  </div>
                 </div>
-              )}
-              <div className="flex gap-2 items-center">
-                <Input
-                  placeholder="Image URL"
-                  value={form.getFieldValue("image") || ""}
-                  onChange={(e) => {
-                    form.setFieldValue("image", e.target.value);
-                    setPreviewImage(e.target.value);
-                  }}
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-                <Button
-                  icon={
-                    imageUploading ? <Spin size="small" /> : <IconPhoto size={15} />
-                  }
-                  loading={imageUploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Upload
-                </Button>
+              </Form.Item>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item label="Display Order" name="order">
+                  <InputNumber min={0} className="w-full" />
+                </Form.Item>
+
+                <Form.Item label="Background Color" name="bgColor">
+                  <Input placeholder="e.g. #f3f4f6" />
+                </Form.Item>
               </div>
+
+              <Form.Item label="Active Status" name="isActive" valuePropName="checked">
+                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+              </Form.Item>
             </div>
-          </Form.Item>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-            <Form.Item
-              label="Title"
-              name="title"
-              rules={[{ required: true, message: "Title is required" }]}
-            >
-              <Input placeholder="e.g. NEW SEASON" />
-            </Form.Item>
+            {/* Right Column: Text Content & Pricing */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item
+                  label="Title"
+                  name="title"
+                  rules={[{ required: true, message: "Title is required" }]}
+                >
+                  <Input placeholder="e.g. NEW SEASON" />
+                </Form.Item>
 
-            <Form.Item label="Subtitle" name="subtitle">
-              <Input placeholder="e.g. Women Collection 2026" />
-            </Form.Item>
+                <Form.Item label="Subtitle" name="subtitle">
+                  <Input placeholder="e.g. Women Collection" />
+                </Form.Item>
 
-            <Form.Item label="Button Text" name="buttonText">
-              <Input placeholder="SHOP NOW" />
-            </Form.Item>
+                <Form.Item label="Button Text" name="buttonText">
+                  <Input placeholder="SHOP NOW" />
+                </Form.Item>
 
-            <Form.Item label="Button Link" name="buttonLink">
-              <Input placeholder="/product-list" />
-            </Form.Item>
+                <Form.Item label="Button Link" name="buttonLink">
+                  <Input placeholder="/product-list" />
+                </Form.Item>
 
-            <Form.Item label="Badge" name="badge">
-              <Input placeholder="e.g. HOT, NEW, SALE" />
-            </Form.Item>
+                <Form.Item label="Badge (e.g. HOT, NEW)" name="badge">
+                  <Input placeholder="HOT" />
+                </Form.Item>
 
-            <Form.Item label="Discount Text" name="discountText">
-              <Input placeholder="e.g. UP TO 50% OFF" />
-            </Form.Item>
+                <Form.Item label="Discount Text" name="discountText">
+                  <Input placeholder="UP TO 50% OFF" />
+                </Form.Item>
 
-            <Form.Item label="Original Price (₹)" name="originalPrice">
-              <InputNumber
-                min={0}
-                className="w-full"
-                placeholder="e.g. 2999"
-                prefix="₹"
-              />
-            </Form.Item>
+                <Form.Item label="Original Price (₹)" name="originalPrice">
+                  <InputNumber
+                    min={0}
+                    className="w-full"
+                    placeholder="2999"
+                    prefix="₹"
+                  />
+                </Form.Item>
 
-            <Form.Item label="Sale Price (₹)" name="salePrice">
-              <InputNumber
-                min={0}
-                className="w-full"
-                placeholder="e.g. 1499"
-                prefix="₹"
-              />
-            </Form.Item>
+                <Form.Item label="Sale Price (₹)" name="salePrice">
+                  <InputNumber
+                    min={0}
+                    className="w-full"
+                    placeholder="1499"
+                    prefix="₹"
+                  />
+                </Form.Item>
+              </div>
 
-            <Form.Item label="Background Color" name="bgColor">
-              <Input placeholder="e.g. #f3f4f6 or leave blank" />
-            </Form.Item>
-
-            <Form.Item label="Display Order" name="order">
-              <InputNumber min={0} className="w-full" />
-            </Form.Item>
+              <Form.Item label="Description" name="description" className="mb-0">
+                <TextArea
+                  rows={2}
+                  placeholder="Optional short description shown below the title"
+                />
+              </Form.Item>
+            </div>
           </div>
-
-          <Form.Item label="Description" name="description">
-            <TextArea
-              rows={2}
-              placeholder="Optional short description shown below the title"
-            />
-          </Form.Item>
-
-          <Form.Item label="Active" name="isActive" valuePropName="checked">
-            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-          </Form.Item>
         </Form>
       </Modal>
     </div>

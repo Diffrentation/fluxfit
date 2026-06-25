@@ -76,7 +76,7 @@ function ProductDetails() {
   const infoSectionRef = useRef(null);
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const { setCustomDesignSelection } = useCustomDesign();
+
 
   const [otherProducts, setOtherProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -96,6 +96,8 @@ function ProductDetails() {
   const [submitReviewLoading, setSubmitReviewLoading] = useState(false);
   const [isReviewAuth, setIsReviewAuth] = useState(false);
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  const [reviewImages, setReviewImages] = useState([]);
+  const reviewImageInputRef = useRef(null);
 
   const ratingOptions = [
     { label: "All Ratings", value: "" },
@@ -105,6 +107,22 @@ function ProductDetails() {
     { label: "2 stars", value: "2" },
     { label: "1 star", value: "1" },
   ];
+  const getIconComponent = useCallback((iconName) => {
+    switch (iconName) {
+      case "activity": return IconActivity;
+      case "battery": return IconBattery;
+      case "bluetooth": return IconBluetooth;
+      case "leaf": return IconLeaf;
+      case "wash_machine": return IconWashMachine;
+      case "shield": return IconShield;
+      case "star": return IconStar;
+      case "droplet": return IconWiperWash; 
+      case "sun": return IconMoonStars; 
+      case "wind": return IconRefresh; 
+      default: return IconActivity;
+    }
+  }, []);
+
   const [activeSection, setActiveSection] = useState("overview");
 
   const scrollToSection = (id) => {
@@ -323,6 +341,25 @@ function ProductDetails() {
     [helpfulClickedMap, reviews]
   );
 
+  const handleReviewImageSelect = useCallback((e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const remaining = 5 - reviewImages.length;
+    const toAdd = files.slice(0, remaining);
+    toAdd.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setReviewImages((prev) => [...prev, { file, dataUrl: ev.target.result }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  }, [reviewImages.length]);
+
+  const handleRemoveReviewImage = useCallback((index) => {
+    setReviewImages((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
   const handleSubmitReview = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token || token === "undefined" || token === "null") {
@@ -346,6 +383,7 @@ function ProductDetails() {
         {
           rating: Number(newReviewRating),
           comment: newReviewComment.trim(),
+          images: reviewImages.map((img) => img.dataUrl),
         },
         {
           headers: {
@@ -357,6 +395,7 @@ function ProductDetails() {
       if (data?.success) {
         setNewReviewComment("");
         setNewReviewRating(5);
+        setReviewImages([]);
         message.success(
           data.message || "Review submitted. It will be visible after admin approval."
         );
@@ -369,7 +408,7 @@ function ProductDetails() {
     } finally {
       setSubmitReviewLoading(false);
     }
-  }, [fetchReviews, newReviewComment, newReviewRating, product?.id]);
+  }, [fetchReviews, newReviewComment, newReviewRating, product?.id, reviewImages]);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 400);
@@ -463,33 +502,24 @@ function ProductDetails() {
   const handleAddCustomDesign = () => {
     if (!product) return;
 
-    const colorImageMap = (product.variants || []).reduce((acc, variant) => {
-      const color = String(variant?.color || "").trim().toLowerCase();
-      const image = getVariantImage(variant);
-      if (color && image && !acc[color]) {
-        acc[color] = image;
-      }
-      return acc;
-    }, {});
+    // Build the product preview image URL to pass along to the custom clothes page
+    const previewImageUrl =
+      product.images?.[selectedImage] ||
+      product.images?.[0] ||
+      "";
 
     const customProductId = product.id || product._id || params?.id;
 
-    setCustomDesignSelection({
-      productId: customProductId,
-      name: product.name,
-      images: product.images || [],
-      colors: product.colors || [],
-      colorImageMap,
-      selectedColor: selectedColor || product.colors?.[0] || "",
-      selectedImage: product.images?.[selectedImage] || product.images?.[0] || "",
-      sourceRoute: `/product-details/${params.id}`,
-    });
-
     if (!customProductId) {
-      message.error("Unable to open custom design editor for this product");
+      message.error("Unable to open custom design for this product");
       return;
     }
-    router.push(`/custom-clothes/editor?productId=${encodeURIComponent(String(customProductId))}`);
+
+    // Redirect to the custom-clothes order form with the product image as a reference
+    const url = new URL("/custom-clothes", window.location.origin);
+    if (previewImageUrl) url.searchParams.set("previewImage", previewImageUrl);
+    url.searchParams.set("productName", product.name || "");
+    router.push(url.pathname + url.search);
   };
 
   const scrollToTop = () => {
@@ -738,13 +768,20 @@ function ProductDetails() {
                   <div className="flex items-center gap-3">
                     {product.colors.map((color) => {
                       const isSelected = selectedColor === color;
+                      // Detect if the color value is a hex code or a name
+                      const isHex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color.trim());
+                      const bgStyle = isHex ? { backgroundColor: color } : {};
+                      const bgClass = !isHex ? (colorMap[color.toLowerCase()] || "bg-gray-300") : "";
                       return (
                         <button
                           key={color}
                           onClick={() => handleColorSelect(color)}
-                          className={`relative w-14 h-8 rounded-lg ${colorMap[color.toLowerCase()] || "bg-gray-200"} flex items-center justify-center transition-all ${
-                            isSelected ? "ring-2 ring-[#1e9a58] ring-offset-2 scale-110" : "border-2 border-transparent hover:scale-105"
-                          }`}
+                          className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all border-2 ${
+                            isSelected
+                              ? "ring-2 ring-[#1e9a58] ring-offset-2 scale-110 border-white"
+                              : "border-gray-200 hover:scale-105"
+                          } ${bgClass}`}
+                          style={bgStyle}
                           aria-label={color}
                           title={color}
                         />
@@ -796,6 +833,17 @@ function ProductDetails() {
                   {displayPricing.inStock ? "Buy Now" : "Out of Stock"}
                 </button>
               </div>
+              {product?.isCustomizable && (
+                <div className="pt-3 w-full">
+                  <button
+                    onClick={handleAddCustomDesign}
+                    className="w-full h-14 bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-lg rounded-xl flex items-center justify-center gap-2 border-none shadow-md shadow-green-500/20 hover:shadow-green-500/30 transition-all duration-200 transform hover:scale-[1.01]"
+                  >
+                    <IconScissors className="w-6 h-6" />
+                    Customize Design
+                  </button>
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -984,25 +1032,22 @@ function ProductDetails() {
                     </div>
 
                     {/* Product Story */}
+                    {product.details?.story && (
                     <div id="product-story" className="flex flex-col lg:flex-row gap-8 items-center bg-gray-50 rounded-2xl p-6 lg:p-8">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-4">
                           <div className="w-1.5 h-6 bg-[#1e9a58] rounded-full"></div>
                           <h3 className="text-xl font-bold text-[#0d1c2f]">Product Story</h3>
                         </div>
-                        <p className="text-gray-600 font-medium">
-                          {product.description || "Designed for those who value simplicity and elegance. This product is made to elevate your everyday style with the perfect blend of comfort and class."}
+                        <p className="text-gray-600 font-medium whitespace-pre-wrap">
+                          {product.details.story}
                         </p>
                       </div>
-                      {/* Video/Image Placeholder */}
-                      <div className="w-full lg:w-[350px] h-[200px] bg-gray-200 rounded-xl relative overflow-hidden flex items-center justify-center group cursor-pointer shadow-sm">
-                        <Image src={product.images[selectedImage]} alt="Video Thumbnail" fill className="object-cover" />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
-                        <div className="absolute w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                          <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[12px] border-l-[#1e9a58] border-b-[8px] border-b-transparent ml-1"></div>
-                        </div>
+                      <div className="w-full lg:w-[350px] h-[200px] bg-gray-200 rounded-xl relative overflow-hidden flex items-center justify-center group shadow-sm">
+                        <Image src={product.images[selectedImage] || product.images[0]} alt="Story Image" fill className="object-cover" />
                       </div>
                     </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1017,74 +1062,77 @@ function ProductDetails() {
                     </p>
                   </div>
 
-                  {/* 5-Column Feature Cards */}
+                  {/* Dynamic Feature Cards */}
+                  {product.featureCards && product.featureCards.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    {[
-                      { icon: IconActivity, title: "Premium Fabric", desc: "Soft, breathable & durable fabric for all-day comfort." },
-                      { icon: IconScissors, title: "Perfect Fit", desc: "Tailored fit that complements your style effortlessly." },
-                      { icon: IconRefresh, title: "Fade Resistant", desc: "High-quality dye technology keeps it looking new." },
-                      { icon: IconWashMachine, title: "Easy Maintenance", desc: "Machine washable and easy to care for everyday use." },
-                      { icon: IconLeaf, title: "Lightweight", desc: "Feels light on your skin, perfect for every season." }
-                    ].map((feat, i) => (
+                    {product.featureCards.map((feat, i) => {
+                      const IconComp = getIconComponent(feat.icon);
+                      return (
                       <div key={i} className="border border-gray-100 rounded-2xl p-5 text-center flex flex-col items-center hover:shadow-md transition-shadow bg-white">
                         <div className="w-12 h-12 rounded-xl bg-[#e4f7ed] text-[#1e9a58] flex items-center justify-center mb-4">
-                          <feat.icon className="w-6 h-6" stroke={1.5} />
+                          {IconComp && <IconComp className="w-6 h-6" stroke={1.5} />}
                         </div>
                         <h4 className="font-bold text-[#0d1c2f] text-sm mb-2">{feat.title}</h4>
-                        <p className="text-xs text-gray-500 font-medium leading-relaxed">{feat.desc}</p>
+                        <p className="text-xs text-gray-500 font-medium leading-relaxed">{feat.description}</p>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
+                  )}
 
+                  {product.keyHighlights && product.keyHighlights.length > 0 && (
                   <div id="key-highlights" className="space-y-4">
                     <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Key Highlights</h3>
                     <ul className="list-disc pl-5 text-gray-600 space-y-2 font-medium">
-                      <li>Designed for maximum breathability and stretch.</li>
-                      <li>Signature FluxFit moisture-wicking technology.</li>
-                      <li>Seamless construction to prevent chafing during intense workouts.</li>
-                      <li>Reflective logo detailing for visibility in low light.</li>
+                      {product.keyHighlights.map((highlight, index) => (
+                        <li key={index}>{highlight}</li>
+                      ))}
                     </ul>
                   </div>
+                  )}
 
+                  {((product.details?.material) || (product.details?.washingInstructions)) && (
                   <div id="material-care" className="space-y-4">
                     <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Material & Care</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {product.details?.material && (
                       <div className="bg-white border border-gray-100 p-4 rounded-xl">
                         <h4 className="font-bold text-[#1e9a58] mb-1">Materials</h4>
-                        <p className="text-sm text-gray-500">85% Recycled Polyester, 15% Elastane</p>
+                        <p className="text-sm text-gray-500">{product.details.material}</p>
                       </div>
+                      )}
+                      {product.details?.washingInstructions && (
                       <div className="bg-white border border-gray-100 p-4 rounded-xl">
                         <h4 className="font-bold text-[#1e9a58] mb-1">Washing Instructions</h4>
-                        <p className="text-sm text-gray-500">Machine wash cold with like colors. Tumble dry low. Do not iron.</p>
+                        <p className="text-sm text-gray-500">{product.details.washingInstructions}</p>
                       </div>
+                      )}
                     </div>
                   </div>
+                  )}
 
+                  {product.details?.sizeAndFit && (
                   <div id="size-fit" className="space-y-4">
                     <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Size & Fit</h3>
-                    <p className="text-gray-600 font-medium">This product has a slim fit tailored to hug your body seamlessly. If you prefer a looser fit, we recommend sizing up. Model is 6'1" and wears size Medium.</p>
+                    <p className="text-gray-600 font-medium whitespace-pre-wrap">{product.details.sizeAndFit}</p>
                   </div>
+                  )}
 
                   <div id="more-info" className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
                     {/* Specifications */}
+                    {product.specifications && product.specifications.length > 0 && (
                     <div className="lg:col-span-2">
                       <h3 className="font-bold text-[#0d1c2f] mb-4">Product Specifications</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                        {[
-                          { label: "Material", val: "100% Premium Cotton" },
-                          { label: "Fabric Type", val: "Pique Knit" },
-                          { label: "Fit Type", val: "Regular Fit" },
-                          { label: "Sleeve Type", val: "Full Sleeve" },
-                          { label: "Neck Type", val: "Polo Neck" },
-                          { label: "Pattern", val: "Solid" }
-                        ].map((spec, i) => (
+                        {product.specifications.map((spec, i) => (
                           <div key={i} className="flex justify-between items-center border-b border-gray-100 py-2">
                             <span className="text-sm text-gray-500 font-medium">{spec.label}</span>
-                            <span className="text-sm font-bold text-[#0d1c2f]">{spec.val}</span>
+                            <span className="text-sm font-bold text-[#0d1c2f]">{spec.value}</span>
                           </div>
                         ))}
                       </div>
                     </div>
+                    )}
 
                     {/* Authenticity Verified */}
                     <div className="lg:col-span-1 bg-[#f4faf7] rounded-2xl p-6 flex flex-col justify-center border border-[#e4f7ed]">
@@ -1110,6 +1158,19 @@ function ProductDetails() {
                       <h2 className="text-2xl font-extrabold text-[#0d1c2f] mb-2">Fast & Reliable Delivery</h2>
                       <p className="text-gray-500 font-medium">We ensure your order reaches you safely and on time.</p>
                     </div>
+
+                    {/* Dynamic Shipping Banner */}
+                    {product.shipping && (
+                    <div className="flex items-center justify-between bg-[#f4faf7] border border-[#e4f7ed] rounded-xl p-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <IconTruck className="w-6 h-6 text-[#1e9a58]" />
+                        <div>
+                          <h4 className="font-bold text-[#1e9a58] text-sm">Shipping Information</h4>
+                          <p className="text-xs text-gray-500 whitespace-pre-wrap">{product.shipping}</p>
+                        </div>
+                      </div>
+                    </div>
+                    )}
 
                     {/* Free Shipping Banner */}
                     <div className="flex items-center justify-between bg-[#f4faf7] border border-[#e4f7ed] rounded-xl p-4">
@@ -1430,14 +1491,46 @@ function ProductDetails() {
                           />
                           
                           <div className="pt-4 border-t border-gray-100">
-                            <p className="text-xs font-bold text-gray-600 mb-2">Add Photos or Video</p>
-                            <div className="flex gap-2">
-                              <button className="w-12 h-12 border border-gray-200 border-dashed rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
-                                +
-                              </button>
+                            <p className="text-xs font-bold text-gray-600 mb-2">Add Photos <span className="font-normal text-gray-400">(up to 5)</span></p>
+                            {/* Hidden file input */}
+                            <input
+                              ref={reviewImageInputRef}
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={handleReviewImageSelect}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              {/* Preview thumbnails */}
+                              {reviewImages.map((img, idx) => (
+                                <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200 group">
+                                  <img src={img.dataUrl} alt={`Review photo ${idx + 1}`} className="w-full h-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveReviewImage(idx)}
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                              {/* Add button */}
+                              {reviewImages.length < 5 && (
+                                <button
+                                  type="button"
+                                  onClick={() => reviewImageInputRef.current?.click()}
+                                  className="w-14 h-14 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 hover:border-[#1e9a58] hover:text-[#1e9a58] hover:bg-[#f4fbf7] transition-all text-xl font-light"
+                                >
+                                  +
+                                </button>
+                              )}
                             </div>
+                            {reviewImages.length > 0 && (
+                              <p className="text-xs text-gray-400 mt-1.5">{reviewImages.length} photo{reviewImages.length > 1 ? "s" : ""} selected</p>
+                            )}
                           </div>
-
+                          
                           <Button
                             type="primary"
                             className="w-full h-10 bg-[#1e9a58] hover:bg-green-700 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
