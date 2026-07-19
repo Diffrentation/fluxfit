@@ -43,6 +43,8 @@ function Signup() {
     password: "",
     phone: "",
     address: {
+      addressLine1: "",
+      landmark: "",
       city: "",
       state: "",
       country: "India",
@@ -65,6 +67,8 @@ function Signup() {
         data.append("password", formData.password);
         data.append("phone", formData.phone);
     
+        data.append("address.addressLine1", formData.address.addressLine1);
+        data.append("address.landmark", formData.address.landmark);
         data.append("address.city", formData.address.city);
         data.append("address.state", formData.address.state);
         data.append("address.country", formData.address.country);
@@ -159,6 +163,7 @@ function Signup() {
       !formData.email ||
       !formData.password ||
       !formData.phone ||
+      !formData.address.addressLine1 ||
       !formData.address.city ||
       !formData.address.state ||
       !formData.address.pincode
@@ -311,7 +316,40 @@ function Signup() {
             <div className="flex-1 h-px bg-gray-100 ml-4"></div>
           </div>
 
+          <div className="grid grid-cols-1 gap-5 mb-5">
+            <LabelInputContainer>
+              <Label htmlFor="address.addressLine1" className="text-sm font-bold text-gray-700 mb-1">Address / Street</Label>
+              <div className="relative">
+                <IconMapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="address.addressLine1"
+                  value={formData.address.addressLine1}
+                  onChange={handleChange}
+                  placeholder="123 Main St, Apartment 4B"
+                  type="text"
+                  required
+                  className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+              </div>
+            </LabelInputContainer>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            <LabelInputContainer>
+              <Label htmlFor="address.landmark" className="text-sm font-bold text-gray-700 mb-1">Landmark (Optional)</Label>
+              <div className="relative">
+                <IconMapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                <Input
+                  id="address.landmark"
+                  value={formData.address.landmark}
+                  onChange={handleChange}
+                  placeholder="Near Central Park"
+                  type="text"
+                  className="pl-11 h-12 bg-white border border-gray-200 rounded-xl focus-visible:ring-[#1e9a58] text-base"
+                />
+              </div>
+            </LabelInputContainer>
+
             <LabelInputContainer>
               <Label htmlFor="address.city" className="text-sm font-bold text-gray-700 mb-1">City</Label>
               <div className="relative">
@@ -327,7 +365,9 @@ function Signup() {
                 />
               </div>
             </LabelInputContainer>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
             <LabelInputContainer>
               <Label htmlFor="address.state" className="text-sm font-bold text-gray-700 mb-1">State</Label>
               <div className="relative">
@@ -346,7 +386,7 @@ function Signup() {
             </LabelInputContainer>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
             <LabelInputContainer>
               <Label htmlFor="address.country" className="text-sm font-bold text-gray-700 mb-1">Country</Label>
               <div className="relative">

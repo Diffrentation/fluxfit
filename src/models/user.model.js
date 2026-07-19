@@ -97,6 +97,8 @@ const userSchema = new mongoose.Schema(
     },
 
     address: {
+      addressLine1: { type: String, trim: true },
+      landmark: { type: String, trim: true },
       city: { type: String, trim: true },
       state: { type: String, trim: true },
       country: { type: String, default: "India" },

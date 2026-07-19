@@ -1,7 +1,10 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { addItemToServerCart } from "@/lib/cart-api-client";
 import { blockAdminAction } from "@/lib/adminBlocker";
+import { useAuth } from "@/context/AuthContext";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 const CartContext = createContext();
 
@@ -25,6 +28,9 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
 
   // Load cart and coupon from localStorage on mount
   useEffect(() => {
@@ -62,8 +68,7 @@ export const CartProvider = ({ children }) => {
     }
   }, [appliedCoupon]);
 
-  const addToCart = (product, options = {}) => {
-    if (blockAdminAction()) return false;
+  const _doAddToCart = useCallback((product, options = {}) => {
     const { size, color, quantity = 1, customization } = options;
     const productId = product?.id ?? product?._id;
 
@@ -117,7 +122,37 @@ export const CartProvider = ({ children }) => {
       });
     });
     return true;
+  }, []);
+
+  const addToCart = (product, options = {}) => {
+    if (blockAdminAction()) return false;
+    
+    if (!isAuthenticated) {
+      sessionStorage.setItem("pendingAddToCart", JSON.stringify({ product, options }));
+      toast.error("Please log in to add items to your cart");
+      router.push("/auth/login");
+      return false;
+    }
+
+    return _doAddToCart(product, options);
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const pendingCartItem = sessionStorage.getItem("pendingAddToCart");
+      if (pendingCartItem) {
+        try {
+          const { product, options } = JSON.parse(pendingCartItem);
+          _doAddToCart(product, options);
+          toast.success("Product added to cart successfully.");
+        } catch (error) {
+          console.error("Failed to restore pending cart item:", error);
+        } finally {
+          sessionStorage.removeItem("pendingAddToCart");
+        }
+      }
+    }
+  }, [isAuthenticated, _doAddToCart]);
 
   const removeFromCart = (id, size, color, customization = null) => {
     if (blockAdminAction()) return;

@@ -34,6 +34,8 @@ export async function POST(request) {
       // Address can be provided either as JSON string `address` or fielded `address.city`, etc.
       const addressRaw = form.get("address");
       const addressFields = {
+        addressLine1: form.get("address.addressLine1"),
+        landmark: form.get("address.landmark"),
         city: form.get("address.city"),
         state: form.get("address.state"),
         country: form.get("address.country"),
@@ -215,6 +217,8 @@ export async function POST(request) {
 
     if (address) {
       userData.address = {
+        addressLine1: address.addressLine1?.trim() || "",
+        landmark: address.landmark?.trim() || "",
         city: address.city?.trim() || "",
         state: address.state?.trim() || "",
         country: address.country?.trim() || "India",

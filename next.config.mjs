@@ -21,6 +21,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "www.mamp.one",
       },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
     ],
   },
   // Webpack config for --webpack flag

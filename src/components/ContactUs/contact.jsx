@@ -2,6 +2,8 @@
 import React, { useState, useCallback } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import { 
   IconUser, 
   IconMail, 
@@ -51,6 +53,8 @@ const ContactForm = ({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -67,6 +71,19 @@ const ContactForm = ({
       const clientErr = validateContactForm(formData);
       if (clientErr) {
         toast.error(clientErr);
+        return;
+      }
+
+      if (!isAuthenticated) {
+        sessionStorage.setItem("pendingContactMessage", JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          phone: (formData.phone || "").trim(),
+          subject: formData.subject.trim(),
+          message: formData.message.trim(),
+        }));
+        toast.error("Please login to send a message.");
+        router.push("/auth/login");
         return;
       }
 

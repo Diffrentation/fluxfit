@@ -43,6 +43,27 @@ function Login() {
           authLogin(userPayload, token);
         }
 
+        const pendingContactMessage = sessionStorage.getItem("pendingContactMessage");
+        if (pendingContactMessage) {
+          try {
+            const parsedMessage = JSON.parse(pendingContactMessage);
+            const { data } = await axios.post("/api/contact", parsedMessage, {
+              _skipGlobalToast: true,
+            });
+            if (data?.success) {
+              toast.success("Message sent successfully!");
+              sessionStorage.removeItem("pendingContactMessage");
+            } else {
+              toast.error(data?.message || "Could not send pending message.");
+            }
+          } catch (err) {
+            console.error("Failed to send pending message", err);
+            toast.error("Failed to send pending message.");
+          }
+          router.push("/contact");
+          return;
+        }
+
         router.push("/");
         return;
       }

@@ -743,21 +743,6 @@ function ProductDetails() {
                 )}
               </div>
 
-              {/* Features Grid */}
-              <div className="grid grid-cols-4 gap-4 py-4 border-y border-gray-100">
-                {[
-                  { icon: IconActivity, title: "High Fidelity", sub: "Sound" },
-                  { icon: IconBattery, title: "40H Playtime", sub: "Battery" },
-                  { icon: IconBluetooth, title: "Bluetooth 5.3", sub: "Connectivity" },
-                  { icon: IconLeaf, title: "Ultra Lightweight", sub: "Design" },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex flex-col items-center text-center gap-1">
-                    <item.icon className="w-6 h-6 text-[#1e9a58] mb-1" />
-                    <span className="text-xs font-bold text-[#0d1c2f] leading-tight">{item.title}</span>
-                    <span className="text-[10px] font-medium text-gray-500">{item.sub}</span>
-                  </div>
-                ))}
-              </div>
 
               {/* Color Selector */}
               {product.colors && product.colors.length > 0 && (
