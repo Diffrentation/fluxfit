@@ -641,7 +641,7 @@ function ProductDetails() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
-              className="lg:col-span-6 relative bg-[#fafcfb] rounded-2xl p-6 lg:p-10 flex flex-col items-center justify-center h-[400px] lg:h-[500px] lg:sticky lg:top-24"
+              className="lg:col-span-6 relative bg-[#fafcfb] rounded-2xl p-4 sm:p-6 lg:p-10 flex flex-col items-center justify-center h-[300px] sm:h-[400px] lg:h-[500px] lg:sticky lg:top-24"
             >
               {displayPricing.discountPercent > 0 && (
                 <div className="absolute top-6 left-6 z-10 bg-[#1e9a58] text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm">
@@ -732,12 +732,12 @@ function ProductDetails() {
               </div>
 
               {/* Pricing */}
-              <div className="flex items-baseline gap-4 py-2">
-                <span className="text-4xl lg:text-5xl font-black text-[#0d1c2f]">
+              <div className="flex items-baseline gap-3 sm:gap-4 py-2">
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0d1c2f]">
                   ₹{formatPrice(displayPricing.price)}
                 </span>
                 {displayPricing.originalPrice != null && (
-                  <span className="text-xl font-bold text-gray-400 line-through">
+                  <span className="text-lg sm:text-xl font-bold text-gray-400 line-through">
                     ₹{formatPrice(displayPricing.originalPrice)}
                   </span>
                 )}
@@ -801,19 +801,19 @@ function ProductDetails() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-4 pt-4 w-full">
+              <div className="grid grid-cols-2 gap-3 pt-4 w-full">
                 <button
                   onClick={handleAddToCart}
                   disabled={!displayPricing.inStock}
-                  className="flex-1 h-14 bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-lg rounded-xl flex items-center justify-center gap-2 border-none transition-colors disabled:bg-gray-300 disabled:text-gray-500 w-full"
+                  className="w-full h-12 sm:h-14 bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-sm sm:text-lg rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 border-none transition-colors disabled:bg-gray-300 disabled:text-gray-500"
                 >
-                  {displayPricing.inStock && <IconShoppingCart className="w-6 h-6" />}
+                  {displayPricing.inStock && <IconShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />}
                   {displayPricing.inStock ? "Add to Cart" : "Out of Stock"}
                 </button>
                 <button
                   onClick={handleAddToCart}
                   disabled={!displayPricing.inStock}
-                  className="flex-1 h-14 bg-white border border-[#1e9a58] text-[#1e9a58] hover:bg-[#e4f7ed] font-bold text-lg rounded-xl transition-colors disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 w-full"
+                  className="w-full h-12 sm:h-14 bg-white border border-[#1e9a58] text-[#1e9a58] hover:bg-[#e4f7ed] font-bold text-sm sm:text-lg rounded-xl transition-colors disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50"
                 >
                   {displayPricing.inStock ? "Buy Now" : "Out of Stock"}
                 </button>
@@ -824,7 +824,7 @@ function ProductDetails() {
                     onClick={handleAddCustomDesign}
                     className="w-full h-14 bg-[#1e9a58] hover:bg-green-700 text-white font-bold text-lg rounded-xl flex items-center justify-center gap-2 border-none shadow-md shadow-green-500/20 hover:shadow-green-500/30 transition-all duration-200 transform hover:scale-[1.01]"
                   >
-                    <IconScissors className="w-6 h-6" />
+                    <IconScissors className="w-5 h-5 sm:w-6 sm:h-6" />
                     Customize Design
                   </button>
                 </div>
@@ -833,7 +833,7 @@ function ProductDetails() {
           </div>
 
           {/* Bottom Benefits Bar */}
-          <div className="mt-10 pt-8 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             <div className="flex items-center gap-3">
               <IconTruck className="w-8 h-8 text-[#1e9a58]" />
               <div>
