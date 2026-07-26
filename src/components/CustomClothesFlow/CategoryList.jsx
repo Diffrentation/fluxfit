@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconChevronRight } from "@tabler/icons-react";
 
-function CategoryMenuItem({ category, activeCategoryId, onSelect, depth = 0 }) {
+function CategoryMenuItem({ category, activeCategoryId, onSelect, depth = 0, isLastFew = false }) {
   const [isHovered, setIsHovered] = useState(false);
   const catId = category.id || category._id;
   const isActive = String(activeCategoryId || "") === String(catId || "");
@@ -59,7 +59,7 @@ function CategoryMenuItem({ category, activeCategoryId, onSelect, depth = 0 }) {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -10, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-full top-0 ml-3 min-w-[220px] bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl overflow-visible z-50 py-2"
+            className={`absolute left-full ${isLastFew ? "bottom-0" : "top-0"} ml-3 min-w-[220px] bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl overflow-visible z-50 py-2`}
           >
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 mb-1">
               <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -67,13 +67,14 @@ function CategoryMenuItem({ category, activeCategoryId, onSelect, depth = 0 }) {
               </p>
             </div>
             <ul className="flex flex-col px-2 gap-1 relative">
-              {category.children.map((sub) => (
+              {category.children.map((sub, idx) => (
                 <CategoryMenuItem
                   key={String(sub.id || sub._id)}
                   category={sub}
                   activeCategoryId={activeCategoryId}
                   onSelect={onSelect}
                   depth={depth + 1}
+                  isLastFew={category.children.length > 3 && idx >= category.children.length - 2}
                 />
               ))}
             </ul>
@@ -94,13 +95,14 @@ export default function CategoryList({ categories, activeCategoryId, onSelect })
       </div>
 
       <ul className="flex flex-col gap-1 relative z-10">
-        {categories.map((cat) => (
+        {categories.map((cat, idx) => (
           <CategoryMenuItem
             key={String(cat.id || cat._id)}
             category={cat}
             activeCategoryId={activeCategoryId}
             onSelect={onSelect}
             depth={0}
+            isLastFew={categories.length > 4 && idx >= categories.length - 3}
           />
         ))}
       </ul>
