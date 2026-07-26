@@ -63,16 +63,16 @@ const CustomSelect = ({ name, value, onChange, options, icon: Icon, placeholder 
 
   return (
     <div className="relative" ref={containerRef}>
-      {Icon && <Icon className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1e9a58] ${small ? "w-4 h-4" : "w-5 h-5"}`} />}
+      {Icon && <Icon className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1e9a58] ${small ? "w-4 h-4" : "w-[18px] h-[18px]"}`} />}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full text-left ${Icon ? "pl-11" : "pl-3"} pr-4 ${small ? "h-9 text-xs rounded-lg" : "h-11 text-sm rounded-xl"} bg-white border outline-none transition duration-300 ${
+        className={`w-full text-left ${Icon ? "pl-11" : "pl-4"} pr-4 ${small ? "h-[44px] text-sm rounded-xl" : "h-[48px] text-[15px] rounded-xl"} bg-white border outline-none transition duration-300 ${
           isOpen ? "border-[#1e9a58] ring-1 ring-[#1e9a58]" : "border-gray-200"
         } text-neutral-800 flex justify-between items-center`}
       >
-        <span>{value ? selectedLabel : placeholder}</span>
-        <IconChevronDown className={`text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""} ${small ? "w-3 h-3" : "w-4 h-4"}`} />
+        <span className="truncate">{value ? selectedLabel : placeholder}</span>
+        <IconChevronDown className={`text-gray-400 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""} ${small ? "w-4 h-4" : "w-5 h-5"}`} />
       </button>
 
       {isOpen && (
@@ -81,10 +81,10 @@ const CustomSelect = ({ name, value, onChange, options, icon: Icon, placeholder 
             <button
               key={option.value}
               type="button"
-              className={`w-full text-left px-4 py-2.5 ${small ? "text-xs" : "text-sm"} transition-colors ${
+              className={`w-full text-left px-4 py-3 ${small ? "text-sm" : "text-[15px]"} transition-colors ${
                 value === option.value
                   ? "bg-[#1e9a58] text-white"
-                  : "text-gray-700 hover:bg-[#1e9a58] hover:text-white"
+                  : "text-gray-700 hover:bg-[#eaf5ef] hover:text-[#1e9a58]"
               }`}
               onClick={() => {
                 onChange({ target: { name, value: option.value } });
@@ -399,69 +399,58 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen bg-[#fafcfb] pb-20">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 pt-4 sm:pt-6">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 pt-20 sm:pt-28 pb-8 lg:pb-12">
         
-        {/* Header & Illustration */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-8">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-bold text-[#111827] tracking-tight mb-2">
-              Your Profile, <span className="text-[#1e9a58]">Your Journey</span>
-            </h1>
-            <p className="text-gray-500 text-lg">
-              Keep your details up to date and enjoy a smoother experience.
-            </p>
-          </div>
-          <div className="hidden lg:block">
-            <Image
-              src="/profile-shield.png"
-              alt="Profile Shield"
-              width={250}
-              height={200}
-              className="object-contain"
-            />
-          </div>
+        {/* Header */}
+        <div className="mb-6 lg:mb-8 text-center lg:text-left">
+          <h1 className="text-3xl lg:text-5xl font-bold text-[#111827] tracking-tight mb-2 line-clamp-2">
+            Profile, <span className="text-[#1e9a58]">Your Journey</span>
+          </h1>
+          <p className="text-gray-500 text-[15px] lg:text-lg">
+            Keep your details up to date and enjoy a smoother experience.
+          </p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-4 mb-6">
+        {/* Tabs - Segmented Control */}
+        <div className="bg-gray-100/80 p-1.5 rounded-[16px] flex grid grid-cols-2 gap-1 mb-8">
           <button
             onClick={() => setActiveTab("account")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all ${
+            className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-[14px] transition-all duration-300 ${
               activeTab === "account"
-                ? "bg-[#eaf5ef] text-[#1e9a58] border border-[#1e9a58]"
-                : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"
+                ? "bg-white text-[#1e9a58] shadow-sm ring-1 ring-black/5"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
             }`}
           >
-            <IconUser className="w-5 h-5" /> Account
+            <IconUser className="w-[18px] h-[18px]" /> Account
           </button>
           <button
             onClick={() => setActiveTab("addresses")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all ${
+            className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-[14px] transition-all duration-300 ${
               activeTab === "addresses"
-                ? "bg-[#eaf5ef] text-[#1e9a58] border border-[#1e9a58]"
-                : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"
+                ? "bg-white text-[#1e9a58] shadow-sm ring-1 ring-black/5"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
             }`}
           >
-            <IconMapPin className="w-5 h-5" /> Saved Addresses
+            <IconMapPin className="w-[18px] h-[18px]" /> Saved Addresses
           </button>
         </div>
 
         {/* Main Grid Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           
-          {/* Left Column: Profile Card */}
-          <div className="lg:col-span-4">
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col items-center">
+          {/* Left Sidebar: Profile Card */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col items-center">
               
               {/* Avatar */}
-              <div className="relative group mb-4">
-                <div className="w-[120px] h-[120px] rounded-full border-[3px] border-[#eaf5ef] overflow-hidden flex items-center justify-center bg-gray-50">
+              <div className="relative mb-4 group">
+                <div className="w-[96px] h-[96px] rounded-full border-[3px] border-[#eaf5ef] overflow-hidden flex items-center justify-center bg-gray-50">
                   {uploadingPhoto ? (
                     <IconLoader className="w-8 h-8 text-[#1e9a58] animate-spin" />
                   ) : user?.profileimage ? (
                     <img src={user.profileimage} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <IconUser className="w-16 h-16 text-gray-300" />
+                    <IconUser className="w-12 h-12 text-gray-300" />
                   )}
                 </div>
                 <button
@@ -471,7 +460,7 @@ function ProfileContent() {
                   className="absolute bottom-0 right-0 bg-[#1e9a58] text-white p-2 rounded-full border-[3px] border-white shadow-sm hover:bg-green-700 transition"
                   title="Update Photo"
                 >
-                  <IconCamera className="w-4 h-4" />
+                  <IconCamera className="w-3.5 h-3.5" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -483,114 +472,117 @@ function ProfileContent() {
               </div>
 
               {/* Name & Badges */}
-              <h2 className="text-2xl font-bold text-[#111827] mb-3">
+              <h2 className="text-xl font-bold text-[#111827] mb-2 text-center line-clamp-1">
                 {displayName || user?.username || "Member"}
               </h2>
-              <div className="flex items-center gap-2 mb-8">
-                <span className="px-4 py-1 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-full">
+              <div className="flex flex-wrap justify-center items-center gap-2 mb-6">
+                <span className="px-3 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-full">
                   Buyer
                 </span>
                 {user?.isverified ? (
-                  <span className="px-3 py-1 flex items-center gap-1 text-xs font-bold text-[#1e9a58] bg-[#eaf5ef] border border-[#1e9a58]/30 rounded-full">
-                    <IconRosetteDiscountCheck className="w-4 h-4" /> Verified
+                  <span className="px-3 py-1 flex items-center gap-1 text-[11px] font-bold text-[#1e9a58] bg-[#eaf5ef] border border-[#1e9a58]/30 rounded-full">
+                    <IconRosetteDiscountCheck className="w-3.5 h-3.5" /> Verified
                   </span>
                 ) : (
-                  <span className="px-3 py-1 flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full">
+                  <span className="px-3 py-1 flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full">
                     Unverified
                   </span>
                 )}
               </div>
 
-              {/* Info Block */}
-              <div className="w-full bg-[#f4fbf7] rounded-xl p-5 mb-4 space-y-4">
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <IconMail className="w-5 h-5 shrink-0 text-[#1e9a58]" />
+              {/* Info Block (Icon + Text Row Grid) */}
+              <div className="w-full flex flex-col gap-3 mb-5">
+                <div className="flex items-center gap-3 text-[14px] text-gray-600">
+                  <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+                    <IconMail className="w-[18px] h-[18px] text-gray-400" />
+                  </div>
                   <span className="truncate">{user?.email || "No email"}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <IconUser className="w-5 h-5 shrink-0 text-[#1e9a58]" />
-                  <span>@{user?.username || "—"}</span>
+                <div className="flex items-center gap-3 text-[14px] text-gray-600">
+                  <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+                    <IconUser className="w-[18px] h-[18px] text-gray-400" />
+                  </div>
+                  <span className="truncate">@{user?.username || "—"}</span>
                 </div>
                 {joinDate && (
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <IconMapPin className="w-5 h-5 shrink-0 text-transparent" />
+                  <div className="flex items-center gap-3 text-[14px] text-gray-600">
+                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+                      <IconMapPin className="w-[18px] h-[18px] text-gray-400" />
+                    </div>
                     <span className="font-medium">Member since {joinDate}</span>
                   </div>
                 )}
               </div>
 
               {/* Security Block */}
-              <div className="w-full bg-[#f4fbf7] border border-[#eaf5ef] rounded-xl p-4 flex gap-3">
-                <div className="w-10 h-10 shrink-0 bg-white rounded-full flex items-center justify-center text-[#1e9a58]">
-                  <IconShieldCheck className="w-6 h-6" />
-                </div>
+              <div className="w-full bg-[#eaf5ef] border border-[#1e9a58]/20 rounded-xl p-4 flex gap-3 items-center">
+                <IconShieldCheck className="w-6 h-6 shrink-0 text-[#1e9a58]" />
                 <div>
-                  <h4 className="text-sm font-bold text-[#1e9a58]">Your account is secure</h4>
-                  <p className="text-xs text-gray-500 mt-1 leading-snug">
-                    We never share your personal information.
+                  <h4 className="text-[13px] font-bold text-[#1e9a58]">Your account is secure</h4>
+                  <p className="text-[11px] text-[#1e9a58]/80 mt-0.5 leading-snug">
+                    We never share your personal info.
                   </p>
                 </div>
               </div>
-
             </div>
           </div>
 
-          {/* Right Column: Forms & Content */}
-          <div className="lg:col-span-8">
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 min-h-full">
-              
-              {/* Account Form */}
-              {activeTab === "account" && (
-                <form onSubmit={onSaveAccount}>
+          {/* Right Content: Forms & Addresses */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            
+            {/* Account Form */}
+            {activeTab === "account" && (
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col h-full">
+                <form onSubmit={onSaveAccount} className="flex flex-col h-full">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-bold text-[#111827] flex items-center gap-2">
                       <IconUser className="w-5 h-5 text-[#1e9a58]" /> Personal Details
                     </h3>
-                    <Link href="/orders" className="text-sm font-semibold text-gray-600 hover:text-[#1e9a58] flex items-center gap-1 border border-gray-200 px-4 py-2 rounded-lg transition">
-                      View Orders <IconArrowRight className="w-4 h-4" />
+                    <Link href="/orders" className="text-[13px] font-semibold text-gray-600 hover:text-[#1e9a58] flex items-center gap-1 border border-gray-200 px-3 py-1.5 rounded-lg transition">
+                      Orders <IconArrowRight className="w-4 h-4" />
                     </Link>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-8">
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-sm font-bold text-gray-700">First Name</label>
+                      <label className="text-sm font-medium text-gray-700">First Name</label>
                       <div className="relative">
-                        <IconUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                        <IconUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#1e9a58]" />
                         <input
                           type="text"
                           name="firstname"
                           value={accountForm.firstname}
                           onChange={handleAccountChange}
                           required
-                          className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
+                          className="w-full pl-10 pr-4 h-[48px] bg-white border border-gray-200 rounded-xl text-[15px] outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
                         />
                       </div>
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-sm font-bold text-gray-700">Last Name</label>
+                      <label className="text-sm font-medium text-gray-700">Last Name</label>
                       <div className="relative">
-                        <IconUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                        <IconUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#1e9a58]" />
                         <input
                           type="text"
                           name="lastname"
                           value={accountForm.lastname}
                           onChange={handleAccountChange}
                           required
-                          className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
+                          className="w-full pl-10 pr-4 h-[48px] bg-white border border-gray-200 rounded-xl text-[15px] outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
                         />
                       </div>
                     </div>
                     <div className="flex flex-col space-y-1.5 sm:col-span-2">
-                      <label className="text-sm font-bold text-gray-700">Phone Number</label>
+                      <label className="text-sm font-medium text-gray-700">Phone Number</label>
                       <div className="relative">
-                        <IconPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                        <IconPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#1e9a58]" />
                         <input
                           type="text"
                           name="phone"
                           value={accountForm.phone}
                           onChange={handleAccountChange}
                           placeholder="+91 ..."
-                          className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
+                          className="w-full pl-10 pr-4 h-[48px] bg-white border border-gray-200 rounded-xl text-[15px] outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
                         />
                       </div>
                     </div>
@@ -602,22 +594,22 @@ function ProfileContent() {
                     <IconMapPin className="w-5 h-5 text-[#1e9a58]" /> Location Details
                   </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-8 lg:mb-12">
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-sm font-bold text-gray-700">City</label>
+                      <label className="text-sm font-medium text-gray-700">City</label>
                       <div className="relative">
-                        <IconBuilding className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                        <IconBuilding className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#1e9a58]" />
                         <input
                           type="text"
                           name="city"
                           value={accountForm.city}
                           onChange={handleAccountChange}
-                          className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
+                          className="w-full pl-10 pr-4 h-[48px] bg-white border border-gray-200 rounded-xl text-[15px] outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
                         />
                       </div>
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-sm font-bold text-gray-700">State</label>
+                      <label className="text-sm font-medium text-gray-700">State</label>
                       <CustomSelect
                         name="state"
                         value={accountForm.state}
@@ -633,7 +625,7 @@ function ProfileContent() {
                       />
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-sm font-bold text-gray-700">Country</label>
+                      <label className="text-sm font-medium text-gray-700">Country</label>
                       <CustomSelect
                         name="country"
                         value={accountForm.country}
@@ -646,144 +638,135 @@ function ProfileContent() {
                       />
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-sm font-bold text-gray-700">Pincode</label>
+                      <label className="text-sm font-medium text-gray-700">Pincode</label>
                       <div className="relative">
-                        <IconPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1e9a58]" />
+                        <IconPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#1e9a58]" />
                         <input
                           type="text"
                           name="pincode"
                           value={accountForm.pincode}
                           onChange={handleAccountChange}
                           maxLength={10}
-                          className="w-full pl-11 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
+                          className="w-full pl-10 pr-4 h-[48px] bg-white border border-gray-200 rounded-xl text-[15px] outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="mt-auto pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <button
                       type="submit"
                       disabled={savingAccount}
-                      className="bg-[#1e9a58] hover:bg-green-700 text-white font-bold px-8 py-3 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
+                      className="w-full sm:w-auto h-[48px] bg-[#1e9a58] hover:bg-green-700 text-white font-bold px-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50 text-[15px] shadow-md shadow-green-500/20"
                     >
                       {savingAccount ? "Saving..." : "Save Changes"}
                     </button>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex items-center justify-center sm:justify-end gap-1.5 text-[13px] text-gray-500">
                       <IconLock className="w-4 h-4" /> Changes are secure and encrypted
                     </div>
                   </div>
                 </form>
-              )}
+              </div>
+            )}
 
-              {/* Addresses Tab */}
-              {activeTab === "addresses" && (
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-[#111827] flex items-center gap-2">
-                      <IconMapPin className="w-5 h-5 text-[#1e9a58]" /> Delivery Addresses
-                    </h3>
-                    <button onClick={openNewAddress} className="text-sm font-bold text-[#1e9a58] hover:text-white hover:bg-[#1e9a58] border border-[#1e9a58] px-4 py-2 rounded-lg transition">
-                      + Add Address
+            {/* Addresses Tab */}
+            {activeTab === "addresses" && (
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 h-full">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-[#111827] flex items-center gap-2">
+                    <IconMapPin className="w-5 h-5 text-[#1e9a58]" /> Delivery Addresses
+                  </h3>
+                  <button onClick={openNewAddress} className="text-[13px] font-bold text-white bg-[#1e9a58] hover:bg-green-700 px-4 py-2 rounded-lg transition shadow-sm">
+                    + Add New
+                  </button>
+                </div>
+
+                {addressesLoading ? (
+                  <div className="flex justify-center py-10"><IconLoader className="w-8 h-8 text-[#1e9a58] animate-spin" /></div>
+                ) : addresses.length === 0 ? (
+                  <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl">
+                    <IconMapPin className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h4 className="text-lg font-bold text-gray-700">No saved addresses</h4>
+                    <p className="text-sm text-gray-500 mt-1 mb-4">Add your first address for faster checkout.</p>
+                    <button onClick={openNewAddress} className="bg-[#1e9a58] text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-700 transition">
+                      Add Address
                     </button>
                   </div>
-
-                  {addressesLoading ? (
-                    <div className="flex justify-center py-10"><IconLoader className="w-8 h-8 text-[#1e9a58] animate-spin" /></div>
-                  ) : addresses.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl">
-                      <IconMapPin className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <h4 className="text-lg font-bold text-gray-700">No saved addresses</h4>
-                      <p className="text-sm text-gray-500 mt-1 mb-4">Add your first address for faster checkout.</p>
-                      <button onClick={openNewAddress} className="bg-[#1e9a58] text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 transition">
-                        Add Address
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {addresses.map((addr) => (
-                        <div key={addr.id} className="border border-gray-200 rounded-xl p-5 hover:border-[#1e9a58] transition group relative bg-white">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-bold text-[#111827] flex items-center gap-2">
-                              {addr.type === "home" ? <IconHome className="w-4 h-4 text-gray-500" /> : <IconBuilding className="w-4 h-4 text-gray-500" />}
-                              {addr.name}
-                            </h4>
-                            {addr.isDefault && (
-                              <span className="bg-[#eaf5ef] text-[#1e9a58] text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider">Default</span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 mb-1 leading-relaxed">
-                            {addr.addressLine1} {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
-                          </p>
-                          <p className="text-sm text-gray-600 mb-3">
-                            {addr.city}, {addr.state} {addr.pincode}
-                          </p>
-                          <div className="text-sm text-gray-500 font-medium flex items-center gap-1.5 mb-4">
-                            <IconPhone className="w-4 h-4" /> {addr.phone}
-                          </div>
-
-                          <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                            {!addr.isDefault && (
-                              <button onClick={() => setDefaultAddress(addr.id)} className="text-xs font-bold text-gray-500 hover:text-[#1e9a58] flex items-center gap-1">
-                                <IconStar className="w-3.5 h-3.5" /> Set Default
-                              </button>
-                            )}
-                            <button onClick={() => openEditAddress(addr)} className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-auto">
-                              <IconEdit className="w-3.5 h-3.5" /> Edit
-                            </button>
-                            <button onClick={() => deleteAddress(addr)} className="text-xs font-bold text-red-500 hover:text-red-700 flex items-center gap-1">
-                              <IconTrash className="w-3.5 h-3.5" /> Remove
-                            </button>
-                          </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {addresses.map((addr) => (
+                      <div key={addr.id} className="border border-gray-200 rounded-2xl p-5 hover:border-[#1e9a58] transition group relative bg-white shadow-sm hover:shadow-md">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-bold text-[#111827] flex items-center gap-2">
+                            {addr.type === "home" ? <IconHome className="w-[18px] h-[18px] text-[#1e9a58]" /> : <IconBuilding className="w-[18px] h-[18px] text-[#1e9a58]" />}
+                            {addr.name}
+                          </h4>
+                          {addr.isDefault && (
+                            <span className="bg-[#eaf5ef] text-[#1e9a58] text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border border-[#1e9a58]/30">Default</span>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                        <p className="text-[14px] text-gray-600 mb-1 leading-relaxed">
+                          {addr.addressLine1} {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
+                        </p>
+                        <p className="text-[14px] text-gray-600 mb-3">
+                          {addr.city}, {addr.state} {addr.pincode}
+                        </p>
+                        <div className="text-[14px] text-gray-500 font-medium flex items-center gap-1.5 mb-4 bg-gray-50 p-2 rounded-lg w-fit">
+                          <IconPhone className="w-4 h-4 text-gray-400" /> {addr.phone}
+                        </div>
 
-            </div>
+                        <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                          {!addr.isDefault && (
+                            <button onClick={() => setDefaultAddress(addr.id)} className="text-xs font-bold text-gray-500 hover:text-[#1e9a58] flex items-center gap-1">
+                              <IconStar className="w-3.5 h-3.5" /> Set Default
+                            </button>
+                          )}
+                          <button onClick={() => openEditAddress(addr)} className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-auto bg-blue-50 px-2 py-1 rounded-md">
+                            <IconEdit className="w-3.5 h-3.5" /> Edit
+                          </button>
+                          <button onClick={() => deleteAddress(addr)} className="text-xs font-bold text-red-500 hover:text-red-700 flex items-center gap-1 bg-red-50 px-2 py-1 rounded-md">
+                            <IconTrash className="w-3.5 h-3.5" /> Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
-
         </div>
 
-        {/* Footer Trust Badges */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-10 mt-12 border-t border-gray-200">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#f4fbf7] flex items-center justify-center shrink-0">
-              <IconTruck className="w-6 h-6 text-[#1e9a58]" />
+        {/* Feature Cards Bottom Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mt-8 lg:mt-12 mb-8">
+          <div className="bg-white border border-gray-100 rounded-2xl p-4 lg:p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-[#f4fbf7] flex items-center justify-center mb-3">
+              <IconTruck className="w-5 h-5 lg:w-6 lg:h-6 text-[#1e9a58]" />
             </div>
-            <div>
-              <h4 className="font-bold text-[#111827] text-sm">Fast & Reliable Delivery</h4>
-              <p className="text-xs text-gray-500 mt-1">On-time delivery at your doorstep</p>
-            </div>
+            <h4 className="font-bold text-[#111827] text-[13px] lg:text-sm">Fast Delivery</h4>
+            <p className="text-[11px] lg:text-xs text-gray-500 mt-1 line-clamp-2">On-time delivery at your doorstep</p>
           </div>
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#f4fbf7] flex items-center justify-center shrink-0">
-              <IconRefresh className="w-6 h-6 text-[#1e9a58]" />
+          <div className="bg-white border border-gray-100 rounded-2xl p-4 lg:p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-[#f4fbf7] flex items-center justify-center mb-3">
+              <IconRefresh className="w-5 h-5 lg:w-6 lg:h-6 text-[#1e9a58]" />
             </div>
-            <div>
-              <h4 className="font-bold text-[#111827] text-sm">Easy Returns</h4>
-              <p className="text-xs text-gray-500 mt-1">Hassle-free returns within 7 days</p>
-            </div>
+            <h4 className="font-bold text-[#111827] text-[13px] lg:text-sm">Easy Returns</h4>
+            <p className="text-[11px] lg:text-xs text-gray-500 mt-1 line-clamp-2">Hassle-free returns within 7 days</p>
           </div>
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#f4fbf7] flex items-center justify-center shrink-0">
-              <IconShieldCheck className="w-6 h-6 text-[#1e9a58]" />
+          <div className="bg-white border border-gray-100 rounded-2xl p-4 lg:p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-[#f4fbf7] flex items-center justify-center mb-3">
+              <IconShieldCheck className="w-5 h-5 lg:w-6 lg:h-6 text-[#1e9a58]" />
             </div>
-            <div>
-              <h4 className="font-bold text-[#111827] text-sm">100% Secure Payments</h4>
-              <p className="text-xs text-gray-500 mt-1">Safe & encrypted transactions</p>
-            </div>
+            <h4 className="font-bold text-[#111827] text-[13px] lg:text-sm">100% Secure</h4>
+            <p className="text-[11px] lg:text-xs text-gray-500 mt-1 line-clamp-2">Safe & encrypted transactions</p>
           </div>
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#f4fbf7] flex items-center justify-center shrink-0">
-              <IconHeadset className="w-6 h-6 text-[#1e9a58]" />
+          <div className="bg-white border border-gray-100 rounded-2xl p-4 lg:p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-[#f4fbf7] flex items-center justify-center mb-3">
+              <IconHeadset className="w-5 h-5 lg:w-6 lg:h-6 text-[#1e9a58]" />
             </div>
-            <div>
-              <h4 className="font-bold text-[#111827] text-sm">24/7 Customer Support</h4>
-              <p className="text-xs text-gray-500 mt-1">We're here to help anytime</p>
-            </div>
+            <h4 className="font-bold text-[#111827] text-[13px] lg:text-sm">24/7 Support</h4>
+            <p className="text-[11px] lg:text-xs text-gray-500 mt-1 line-clamp-2">We're here to help anytime</p>
           </div>
         </div>
 
@@ -797,58 +780,58 @@ function ProfileContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => setAddressModalOpen(false)}
             />
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-gray-100"
             >
-              <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50">
                 <h3 className="font-bold text-lg text-[#111827]">
                   {editingAddress ? "Edit Address" : "New Address"}
                 </h3>
-                <button onClick={() => setAddressModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition">
+                <button onClick={() => setAddressModalOpen(false)} className="text-gray-400 hover:text-gray-700 bg-white p-1 rounded-full shadow-sm transition">
                   <IconX className="w-5 h-5" />
                 </button>
               </div>
               
-              <div className="p-5 overflow-y-auto">
+              <div className="p-5 overflow-y-auto custom-scrollbar">
                 <form id="address-form" onSubmit={saveAddress} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5 col-span-2 sm:col-span-1">
                       <label className="text-xs font-bold text-gray-700">Full Name</label>
-                      <input type="text" name="name" required value={addressForm.name} onChange={handleAddressChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="name" required value={addressForm.name} onChange={handleAddressChange} className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="space-y-1.5 col-span-2 sm:col-span-1">
                       <label className="text-xs font-bold text-gray-700">Phone</label>
-                      <input type="text" name="phone" required value={addressForm.phone} onChange={handleAddressChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="phone" required value={addressForm.phone} onChange={handleAddressChange} className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="space-y-1.5 col-span-2">
                       <label className="text-xs font-bold text-gray-700">Address Line 1</label>
-                      <input type="text" name="addressLine1" required value={addressForm.addressLine1} onChange={handleAddressChange} placeholder="Street, building, flat" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="addressLine1" required value={addressForm.addressLine1} onChange={handleAddressChange} placeholder="Street, building, flat" className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="space-y-1.5 col-span-2">
                       <label className="text-xs font-bold text-gray-700">Address Line 2 (Optional)</label>
-                      <input type="text" name="addressLine2" value={addressForm.addressLine2} onChange={handleAddressChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="addressLine2" value={addressForm.addressLine2} onChange={handleAddressChange} className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-700">City</label>
-                      <input type="text" name="city" required value={addressForm.city} onChange={handleAddressChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="city" required value={addressForm.city} onChange={handleAddressChange} className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-700">State</label>
-                      <input type="text" name="state" required value={addressForm.state} onChange={handleAddressChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="state" required value={addressForm.state} onChange={handleAddressChange} className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-700">Country</label>
-                      <input type="text" name="country" value={addressForm.country} onChange={handleAddressChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="country" value={addressForm.country} onChange={handleAddressChange} className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-700">Pincode</label>
-                      <input type="text" name="pincode" required value={addressForm.pincode} onChange={handleAddressChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="pincode" required value={addressForm.pincode} onChange={handleAddressChange} className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="space-y-1.5 col-span-2 sm:col-span-1">
                       <label className="text-xs font-bold text-gray-700">Type</label>
@@ -867,10 +850,10 @@ function ProfileContent() {
                     </div>
                     <div className="space-y-1.5 col-span-2 sm:col-span-1">
                       <label className="text-xs font-bold text-gray-700">Landmark</label>
-                      <input type="text" name="landmark" value={addressForm.landmark} onChange={handleAddressChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
+                      <input type="text" name="landmark" value={addressForm.landmark} onChange={handleAddressChange} className="w-full px-3 h-[44px] border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1e9a58] focus:ring-1 focus:ring-[#1e9a58]" />
                     </div>
                     <div className="col-span-2 pt-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-2 cursor-pointer w-max">
                         <input type="checkbox" name="isDefault" checked={addressForm.isDefault} onChange={handleAddressChange} className="w-4 h-4 text-[#1e9a58] rounded focus:ring-[#1e9a58] border-gray-300" />
                         <span className="text-sm font-medium text-gray-700">Set as default delivery address</span>
                       </label>
@@ -880,10 +863,10 @@ function ProfileContent() {
               </div>
 
               <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
-                <button type="button" onClick={() => setAddressModalOpen(false)} className="px-5 py-2 rounded-lg font-bold text-gray-600 hover:bg-gray-200 transition">
+                <button type="button" onClick={() => setAddressModalOpen(false)} className="px-5 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-200 transition text-[14px]">
                   Cancel
                 </button>
-                <button type="submit" form="address-form" disabled={savingAddress} className="px-5 py-2 rounded-lg font-bold text-white bg-[#1e9a58] hover:bg-green-700 transition disabled:opacity-50">
+                <button type="submit" form="address-form" disabled={savingAddress} className="px-6 py-2.5 rounded-xl font-bold text-white bg-[#1e9a58] hover:bg-green-700 transition disabled:opacity-50 text-[14px] shadow-sm shadow-green-500/20">
                   {savingAddress ? "Saving..." : "Save Address"}
                 </button>
               </div>
