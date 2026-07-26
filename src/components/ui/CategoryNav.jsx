@@ -192,10 +192,11 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
   const selectedId = selectedCategoryId;
 
   return (
-    <div className="relative">
+    <div className="relative w-full max-w-full">
       <div
         ref={wrapperRef}
-        className="flex items-center gap-6 border-b border-gray-200 pb-4 mb-2 overflow-x-auto"
+        className="flex items-center gap-4 sm:gap-6 overflow-x-auto w-full [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
       >
         <button
           key="all"

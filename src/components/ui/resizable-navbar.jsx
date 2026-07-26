@@ -57,9 +57,6 @@ export const NavBody = ({ children, className, visible }) => {
         stiffness: 200,
         damping: 50,
       }}
-      style={{
-        minWidth: "800px",
-      }}
       className={cn(
         "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex dark:bg-transparent",
         visible && "bg-white/80 dark:bg-neutral-950/80",
@@ -168,30 +165,70 @@ export const MobileNavHeader = ({ children, className }) => {
 };
 
 export const MobileNavMenu = ({ children, className, isOpen, onClose }) => {
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className={cn(
-            "absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 rounded-lg bg-white px-4 py-8 shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] dark:bg-neutral-950",
-            className
-          )}
-        >
-          {children}
-        </motion.div>
+        <div className="fixed inset-0 z-[100]" onClick={onClose}>
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          />
+          
+          {/* Drawer / Popup */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, originX: 1, originY: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "absolute right-3 sm:right-4 top-3 sm:top-4 flex h-auto max-h-[calc(100dvh-24px)] w-[260px] sm:w-[280px] flex-col bg-white shadow-[0_10px_40px_rgba(0,0,0,0.15)] dark:bg-neutral-950 rounded-2xl overflow-hidden z-10 border border-gray-100",
+              className
+            )}
+          >
+            {/* Header inside drawer */}
+            <div className="flex items-center justify-between px-3 h-[44px] border-b border-gray-100 shrink-0 sticky top-0 bg-white z-10">
+              <a href="/" className="relative z-20 flex items-center py-1">
+                <img src="/logo.png" alt="FluxFit Logo" className="h-5 sm:h-6 w-auto max-w-[80px] object-contain" />
+              </a>
+              <button onClick={onClose} className="p-1 -mr-1 text-black hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center">
+                <IconX className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
+            
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto px-2 py-2 pb-3 flex flex-col relative">
+              {children}
+            </div>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
 };
 
 export const MobileNavToggle = ({ isOpen, onClick }) => {
-  return isOpen ? (
-    <IconX className="text-black dark:text-white" onClick={onClick} />
-  ) : (
-    <IconMenu2 className="text-black dark:text-white" onClick={onClick} />
+  return (
+    <button
+      onClick={onClick}
+      className="p-2 -mr-2 text-black dark:text-white hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
+      aria-label="Toggle menu"
+    >
+      {isOpen ? <IconX className="w-5 h-5 sm:w-6 sm:h-6" /> : <IconMenu2 className="w-5 h-5 sm:w-6 sm:h-6" />}
+    </button>
   );
 };
 
@@ -199,12 +236,12 @@ export const NavbarLogo = () => {
   return (
     <a
       href="/"
-      className="relative z-20 mr-4 flex items-center px-2 py-1"
+      className="relative z-20 flex items-center py-1"
     >
       <img
         src="/logo.png"
         alt="FluxFit Logo"
-        className="h-10 w-auto object-contain"
+        className="h-8 sm:h-10 w-auto max-w-[100px] md:max-w-none object-contain"
       />
     </a>
   );

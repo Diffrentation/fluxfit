@@ -227,17 +227,24 @@ export function Nav() {
             isOpen={isMobileMenuOpen}
             onClose={() => setIsMobileMenuOpen(false)}
           >
-            {mobileNavItems.map((item, idx) => (
-              <Link
-                key={`mobile-link-${idx}`}
-                href={item.link}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="relative text-neutral-600 dark:text-neutral-300"
-              >
-                <span className="block">{item.name}</span>
-              </Link>
-            ))}
-            <div className="flex w-full flex-col gap-3 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+            {mobileNavItems.map((item, idx) => {
+              const active = item.link === "/" ? pathname === "/" : pathname?.startsWith(item.link.split('?')[0]);
+              return (
+                <Link
+                  key={`mobile-link-${idx}`}
+                  href={item.link}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`relative w-full py-2 px-3 text-[13px] sm:text-[14px] font-medium transition-colors border-b border-gray-100/50 last:border-0 ${
+                    active 
+                      ? 'text-[#1e9a58] bg-[#f4fbf7] border-l-[3px] border-l-[#1e9a58]' 
+                      : 'text-neutral-600 hover:text-[#1e9a58] hover:bg-gray-50/50 dark:text-neutral-300 border-l-[3px] border-l-transparent'
+                  }`}
+                >
+                  <span className="block">{item.name}</span>
+                </Link>
+              );
+            })}
+            <div className="flex w-full flex-col gap-1.5 pt-2 pb-0 mt-auto border-t border-neutral-100 dark:border-neutral-700">
               {!showAuthChrome ? (
                 <>
                   <NavbarButton
@@ -246,7 +253,7 @@ export function Nav() {
                       router.push("/auth/login");
                     }}
                     variant="primary"
-                    className="w-full"
+                    className="w-full h-[36px] flex items-center justify-center text-[12px] sm:text-[13px] rounded-lg font-bold"
                   >
                     Login
                   </NavbarButton>
@@ -256,7 +263,7 @@ export function Nav() {
                       router.push("/auth/register");
                     }}
                     variant="primary"
-                    className="w-full"
+                    className="w-full h-[36px] flex items-center justify-center text-[12px] sm:text-[13px] rounded-lg font-bold"
                   >
                     Register
                   </NavbarButton>
@@ -286,7 +293,7 @@ export function Nav() {
                       logout();
                     }}
                     variant="secondary"
-                    className="w-full"
+                    className="w-full h-[36px] flex items-center justify-center text-[12px] sm:text-[13px] rounded-lg font-bold text-red-600 border border-red-100 hover:bg-red-50"
                   >
                     Logout
                   </NavbarButton>

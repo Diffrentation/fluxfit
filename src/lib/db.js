@@ -1,4 +1,11 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// Fix: Override DNS to use Google's public DNS (8.8.8.8) in every thread
+// that imports this module. The instrumentation.js override only applies to
+// the main Next.js server process, not to Turbopack API route worker threads.
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+dns.setDefaultResultOrder("ipv4first");
 
 /**
  * Global is used here to maintain a cached connection across hot reloads

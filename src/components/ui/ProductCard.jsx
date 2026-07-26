@@ -77,7 +77,7 @@ const ProductCard = ({ product, onQuickView }) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
-      <div className="relative w-full aspect-square bg-[#f8f9fa] overflow-hidden">
+      <div className="relative w-full aspect-[4/5] bg-[#f8f9fa] overflow-hidden">
         <div className="relative w-full h-full">
           <Image
             src={product.image}
@@ -109,11 +109,11 @@ const ProductCard = ({ product, onQuickView }) => {
               }
             }
           }}
-          className="absolute top-3 right-3 z-10 w-9 h-9 flex items-center justify-center bg-white rounded-full shadow-sm hover:shadow-md transition-all hover:scale-110"
+          className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:shadow-md transition-all hover:scale-110"
           aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
           <IconHeart
-            className={`w-5 h-5 transition-colors ${
+            className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${
               isWishlisted ? "fill-blue-500 text-blue-500" : "text-blue-500"
             }`}
           />
@@ -121,11 +121,11 @@ const ProductCard = ({ product, onQuickView }) => {
       </div>
 
       {/* Product Info */}
-      <div className="p-4 sm:p-5 flex flex-col flex-1 bg-gradient-to-r from-white via-white to-[#e1f0ff] z-10">
-        <h3 className="text-[#0d1c2f] font-bold text-base sm:text-lg mb-1 line-clamp-1">
+      <div className="p-3 sm:p-4 flex flex-col flex-1 bg-gradient-to-r from-white via-white to-[#e1f0ff] z-10">
+        <h3 className="text-[#0d1c2f] font-bold text-xs sm:text-sm mb-1 line-clamp-2 min-h-[32px] sm:min-h-[36px] leading-snug">
           {product.name}
         </h3>
-        <p className="text-[#00c0a3] font-bold text-lg mb-4">
+        <p className="text-[#00c0a3] font-extrabold text-sm sm:text-base mb-1.5 sm:mb-2">
           ₹{parseFloat(price).toLocaleString("en-IN", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -133,21 +133,21 @@ const ProductCard = ({ product, onQuickView }) => {
         </p>
 
         {/* Action Buttons (Always Visible) */}
-        <div className="mt-auto flex flex-col sm:flex-row gap-2 pt-2">
+        <div className="mt-auto flex flex-col gap-1.5 pt-1.5 border-t border-gray-100">
           <button
             onClick={handleQuickView}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg border border-gray-200 text-green-600 hover:border-green-500 hover:bg-green-50 text-sm font-bold transition-colors whitespace-nowrap"
+            className="w-full flex items-center justify-center gap-1.5 h-8 sm:h-9 px-2 rounded-lg border border-gray-200 text-green-600 hover:border-green-500 hover:bg-green-50 text-[11px] sm:text-xs font-bold transition-colors whitespace-nowrap"
           >
-            <IconEye size={18} /> Quick View
+            <IconEye size={14} className="shrink-0" /> Quick View
           </button>
           <button
             onClick={handleAddToCart}
             disabled={product.inStock === false || product.stock === 0}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-[#1e9a58] hover:bg-[#188149] text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            className="w-full flex items-center justify-center gap-1.5 h-8 sm:h-9 px-2 rounded-lg bg-[#1e9a58] hover:bg-[#188149] text-white text-[11px] sm:text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-sm"
           >
             {isAddingToCart ? "Adding..." : (
               <>
-                <IconShoppingCart size={18} /> Add to Cart
+                <IconShoppingCart size={14} className="shrink-0" /> Add to Cart
               </>
             )}
           </button>

@@ -70,9 +70,9 @@ const GetInTouch = () => {
       {/* Background Decor Elements */}
       
       {/* Subtle Gradient Orbs */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
-        <div className="absolute top-0 left-10 w-[500px] h-[500px] bg-blue-300/20 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-0 right-10 w-[600px] h-[600px] bg-indigo-300/10 rounded-full blur-[120px]"></div>
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-0 left-10 w-[min(500px,90vw)] h-[min(500px,90vw)] bg-blue-300/20 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-0 right-10 w-[min(600px,90vw)] h-[min(600px,90vw)] bg-indigo-300/10 rounded-full blur-[120px]"></div>
       </div>
 
       {/* Dotted Pattern */}
@@ -118,7 +118,7 @@ const GetInTouch = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="relative overflow-hidden bg-gradient-to-b from-white/95 to-[#f8fafe]/95 backdrop-blur-md p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] transition-all duration-300 border border-white/60 hover:border-blue-200 group"
+                  className="relative overflow-hidden bg-gradient-to-b from-white/95 to-[#f8fafe]/95 backdrop-blur-md p-5 sm:p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] transition-all duration-300 border border-white/60 hover:border-blue-200 group"
                 >
                   <div className="flex flex-col items-center text-center">
                     <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#1e9a58] transition-colors duration-300">
@@ -127,7 +127,7 @@ const GetInTouch = () => {
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       {info.label}
                     </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">
+                    <p className="text-gray-600 text-sm leading-relaxed break-words max-w-full">
                       {info.text}
                     </p>
                   </div>

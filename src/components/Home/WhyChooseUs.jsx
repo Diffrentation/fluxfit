@@ -37,7 +37,7 @@ const features = [
 
 const WhyChooseUs = () => {
   return (
-    <section className="py-16 md:py-24 bg-transparent relative z-10 overflow-hidden">
+    <section className="py-10 sm:py-16 md:py-24 bg-transparent relative z-10 overflow-hidden">
       {/* Subtle Background Gradients */}
       <div className="absolute inset-0 w-full h-full pointer-events-none opacity-60 z-0">
         <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-gradient-to-bl from-green-300/20 to-transparent rounded-full blur-3xl"></div>
