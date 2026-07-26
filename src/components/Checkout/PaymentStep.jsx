@@ -16,7 +16,7 @@ import { Button, Radio, Input, Form, message, Card, Divider } from "antd";
 
 const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }) => {
   const [form] = Form.useForm();
-  const [selectedPaymentType, setSelectedPaymentType] = useState(selectedMethod || null);
+  const [selectedPaymentType, setSelectedPaymentType] = useState(selectedMethod || "cod");
   const [cardDetails, setCardDetails] = useState(paymentDetails.cardDetails || {});
   const [upiId, setUpiId] = useState(paymentDetails.upiId || "");
   const [netBankingBank, setNetBankingBank] = useState(paymentDetails.bank || "");
@@ -28,48 +28,6 @@ const PaymentStep = ({ onPaymentSelect, selectedMethod, paymentDetails, amount }
       icon: <IconCash className="w-6 h-6" />,
       description: "Pay when you receive your order",
       color: "green",
-    },
-    {
-      id: "card",
-      name: "Credit/Debit Card",
-      icon: <IconCreditCard className="w-6 h-6" />,
-      description: "Visa, Mastercard, RuPay",
-      color: "blue",
-    },
-    {
-      id: "upi",
-      name: "UPI",
-      icon: <IconWallet className="w-6 h-6" />,
-      description: "Google Pay, PhonePe, Paytm, BHIM",
-      color: "purple",
-    },
-    {
-      id: "netbanking",
-      name: "Net Banking",
-      icon: <IconBuildingBank className="w-6 h-6" />,
-      description: "All major banks",
-      color: "orange",
-    },
-    {
-      id: "razorpay",
-      name: "Razorpay",
-      icon: <IconLock className="w-6 h-6" />,
-      description: "Secure payment gateway",
-      color: "indigo",
-    },
-    {
-      id: "stripe",
-      name: "Stripe",
-      icon: <IconLock className="w-6 h-6" />,
-      description: "International payments",
-      color: "blue",
-    },
-    {
-      id: "paypal",
-      name: "PayPal",
-      icon: <IconBrandPaypal className="w-6 h-6" />,
-      description: "Pay with PayPal account",
-      color: "blue",
     },
   ];
 

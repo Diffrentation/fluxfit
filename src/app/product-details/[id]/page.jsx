@@ -484,6 +484,37 @@ function ProductDetails() {
     message.success("Added to cart");
   };
 
+  const handleBuyNow = () => {
+    if (!product) return;
+    
+    if (!displayPricing.inStock) {
+      if (!product.inStock || product.stock === 0) {
+        message.error(`Sorry, ${product.name} is completely out of stock.`);
+      } else {
+        message.error(`Sorry, the selected variant (${selectedSize}, ${selectedColor}) is out of stock.`);
+      }
+      return;
+    }
+
+    const success = addToCart(
+      {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        price: displayPricing.price,
+        image: product.images?.[0],
+        images: product.images,
+      },
+      {
+        size: selectedSize || "One Size",
+        color: selectedColor || "default",
+        quantity,
+      }
+    );
+    if (success === false) return;
+    router.push("/checkout");
+  };
+
   const getVariantImage = (variant) => {
     if (!variant || typeof variant !== "object") return "";
 
@@ -811,7 +842,7 @@ function ProductDetails() {
                   {displayPricing.inStock ? "Add to Cart" : "Out of Stock"}
                 </button>
                 <button
-                  onClick={handleAddToCart}
+                  onClick={handleBuyNow}
                   disabled={!displayPricing.inStock}
                   className="w-full h-12 sm:h-14 bg-white border border-[#1e9a58] text-[#1e9a58] hover:bg-[#e4f7ed] font-bold text-sm sm:text-lg rounded-xl transition-colors disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50"
                 >

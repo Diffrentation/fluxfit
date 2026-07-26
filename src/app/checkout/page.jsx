@@ -28,7 +28,7 @@ const CheckoutPageContent = () => {
     useCart();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   const [paymentDetails, setPaymentDetails] = useState({});
   const [orderData, setOrderData] = useState(null);
 
