@@ -202,7 +202,7 @@ export const MobileNavMenu = ({ children, className, isOpen, onClose }) => {
             {/* Header inside drawer */}
             <div className="flex items-center justify-between px-3 h-[44px] border-b border-gray-100 shrink-0 sticky top-0 bg-white z-10">
               <a href="/" className="relative z-20 flex items-center py-1">
-                <img src="/logo.png" alt="FluxFit Logo" className="h-5 sm:h-6 w-auto max-w-[80px] object-contain" />
+                <img src="/logo.png" alt="FluxFit Logo" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full object-contain" />
               </a>
               <button onClick={onClose} className="p-1 -mr-1 text-black hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center">
                 <IconX className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -241,7 +241,7 @@ export const NavbarLogo = () => {
       <img
         src="/logo.png"
         alt="FluxFit Logo"
-        className="h-8 sm:h-10 w-auto max-w-[100px] md:max-w-none object-contain"
+        className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-contain"
       />
     </a>
   );

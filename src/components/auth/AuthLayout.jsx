@@ -13,23 +13,23 @@ import {
 export default function AuthLayout({ children }) {
   return (
     <div className="min-h-screen bg-[#f0f7fb] flex flex-col font-sans">
-      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-[1400px] mx-auto p-4 sm:p-8 lg:p-12 gap-8 lg:gap-16">
+      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 pt-24 sm:pt-28 lg:py-12 pb-8 gap-8 lg:gap-16">
         
         {/* Left Column: Info & Illustration */}
-        <div className="w-full lg:w-5/12 flex flex-col justify-center relative mt-12 lg:mt-0">
+        <div className="w-full lg:w-5/12 flex flex-col justify-center relative mt-4 lg:mt-0">
           
-          <div className="mb-10">
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-[#111827] mb-2 tracking-tight">
+          <div className="mb-6 lg:mb-10 text-center lg:text-left flex flex-col items-center lg:items-start">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#111827] mb-3 tracking-tight">
               Welcome to <br className="hidden lg:block" />
               <span className="text-[#1e9a58]">FluxFit</span>
             </h1>
-            <div className="h-1 w-12 bg-[#1e9a58] rounded-full mb-6"></div>
-            <p className="text-gray-500 font-medium text-lg max-w-sm">
+            <div className="h-1 w-12 bg-[#1e9a58] rounded-full mb-4 lg:mb-6"></div>
+            <p className="text-gray-500 font-medium text-lg sm:text-xl max-w-sm">
               Create your account and unlock a better shopping experience.
             </p>
           </div>
 
-          <div className="space-y-8 mb-12">
+          <div className="hidden lg:block space-y-8 mb-12">
             {/* Feature 1 */}
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-full border-2 border-dashed border-[#1e9a58] flex items-center justify-center shrink-0">
@@ -64,7 +64,7 @@ export default function AuthLayout({ children }) {
             </div>
           </div>
 
-          <div className="relative w-full max-w-[400px] h-[300px]">
+          <div className="hidden lg:block relative w-full max-w-[400px] h-[300px]">
             <Image 
               src="/auth-illustration.png" 
               alt="Auth Illustration" 

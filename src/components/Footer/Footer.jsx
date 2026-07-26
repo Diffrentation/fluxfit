@@ -88,9 +88,9 @@ const Footer = () => {
           <div className="flex flex-col gap-5 lg:col-span-1 border-b border-white/5 lg:border-none pb-6 lg:pb-0">
             <Link href="/" className="flex items-center gap-3 group w-max">
               <img
-                src="https://assets.aceternity.com/logo-dark.png"
+                src="/logo.png"
                 alt="FluxFit Logo"
-                className="w-10 h-10 lg:w-12 lg:h-12 object-contain group-hover:scale-105 transition-transform"
+                className="w-10 h-10 lg:w-12 lg:h-12 object-contain rounded-full group-hover:scale-105 transition-transform"
               />
               <span className="text-white text-xl lg:text-[22px] font-bold tracking-wide">FluxFit</span>
             </Link>
