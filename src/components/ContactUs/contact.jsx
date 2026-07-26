@@ -140,7 +140,7 @@ const ContactForm = ({
   );
 
   return (
-    <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 min-h-full">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 shadow-sm border border-gray-100 min-h-full">
       <h2 className="text-xl font-bold text-[#111827]">
         {title}
       </h2>
@@ -233,9 +233,9 @@ const ContactForm = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full md:w-[60%] lg:w-[50%] bg-[#1e9a58] hover:bg-green-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            className="w-full sm:w-auto min-w-[200px] bg-[#1e9a58] hover:bg-green-700 text-white font-bold py-2.5 sm:py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm sm:text-base"
           >
-            <IconSend className="w-5 h-5" />
+            <IconSend className="w-4 h-4 sm:w-5 sm:h-5" />
             {isSubmitting ? "Sending..." : "Send message to support"}
           </button>
           <div className="flex items-center gap-1.5 mt-3 text-xs text-[#1e9a58] font-semibold">

@@ -320,7 +320,7 @@ const About = () => {
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-[#f4fbf7] text-[#1e9a58] rounded-full mb-4">
                     <Icon className="w-8 h-8" stroke={1.5} />
                   </div>
-                  <div className="text-4xl md:text-5xl font-bold text-[#111827] mb-2 tracking-tight">
+                  <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#111827] mb-2 tracking-tight">
                     {stat.number}
                   </div>
                   <div className="text-sm md:text-base font-semibold text-gray-500 uppercase tracking-wider">
@@ -408,7 +408,7 @@ const About = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="bg-white p-10 lg:p-12 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden"
+              className="bg-white p-6 sm:p-10 lg:p-12 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden"
             >
               <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#f4fbf7] rounded-full blur-3xl"></div>
               <div className="relative z-10">
@@ -435,7 +435,7 @@ const About = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-[#1e9a58] text-white p-10 lg:p-12 rounded-3xl shadow-lg relative overflow-hidden"
+              className="bg-[#1e9a58] text-white p-6 sm:p-10 lg:p-12 rounded-3xl shadow-lg relative overflow-hidden"
             >
               <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
               <div className="relative z-10">
@@ -490,13 +490,13 @@ const About = () => {
             >
               <div className="relative h-72">
                 <Image
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80"
+                  src="/images/founders/founder_subhash.png"
                   alt="Subhash - Founder & CEO"
                   fill
                   className="object-cover"
                 />
               </div>
-              <div className="p-8 relative">
+              <div className="p-6 sm:p-8 relative">
                 <div className="absolute -top-6 right-8 w-12 h-12 bg-[#1e9a58] rounded-full flex items-center justify-center text-white border-4 border-[#fafcfb]">
                   <IconAward className="w-5 h-5" />
                 </div>
@@ -524,13 +524,13 @@ const About = () => {
             >
               <div className="relative h-72">
                 <Image
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=500&fit=crop&q=80"
+                  src="/images/founders/founder_mohan.png"
                   alt="Mohan - Co-Founder"
                   fill
                   className="object-cover"
                 />
               </div>
-              <div className="p-8 relative">
+              <div className="p-6 sm:p-8 relative">
                 <div className="absolute -top-6 right-8 w-12 h-12 bg-white text-[#1e9a58] rounded-full flex items-center justify-center border-4 border-[#fafcfb] shadow-sm">
                   <IconTrendingUp className="w-5 h-5" />
                 </div>
@@ -548,7 +548,7 @@ const About = () => {
               </div>
             </motion.div>
 
-            {/* Pankaj - Co-Founder */}
+            {/* Ashish - Co-Founder */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -558,24 +558,24 @@ const About = () => {
             >
               <div className="relative h-72">
                 <Image
-                  src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80"
-                  alt="Pankaj - Co-Founder"
+                  src="/images/founders/founder_ashish.png"
+                  alt="Ashish - Co-Founder"
                   fill
                   className="object-cover"
                 />
               </div>
-              <div className="p-8 relative">
+              <div className="p-6 sm:p-8 relative">
                 <div className="absolute -top-6 right-8 w-12 h-12 bg-[#111827] text-white rounded-full flex items-center justify-center border-4 border-[#fafcfb]">
                   <IconStar className="w-5 h-5" />
                 </div>
                 <h3 className="text-2xl font-bold text-[#111827] mb-1">
-                  Pankaj
+                  Ashish
                 </h3>
                 <p className="text-sm font-bold text-[#1e9a58] uppercase tracking-wider mb-4">
                   Co-Founder
                 </p>
                 <p className="text-gray-500 leading-relaxed">
-                  Pankaj drives the vision of worldwide
+                  Ashish drives the vision of worldwide
                   expansion through technological innovation. He leverages cutting-edge printing
                   technologies and sustainable practices.
                 </p>

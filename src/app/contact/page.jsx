@@ -14,8 +14,27 @@ import {
   IconHeartHandshake,
   IconSend
 } from "@tabler/icons-react";
+import { useState, useEffect } from "react";
 
 function ContactPage() {
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.website) {
+          setSettings(data.data.website);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const email = settings?.email || "fluxfit1@gmail.com";
+  const phone = settings?.phone || "+91 9958724005";
+  const fullAddress = settings?.address 
+    ? `${settings.address.line1}, ${settings.address.city}, ${settings.address.state}, ${settings.address.country}`
+    : "Behrampur, Ghaziabad, Uttar Pradesh, India";
   return (
     <div className="min-h-screen bg-[#fafcfb] pb-20">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 pt-8 sm:pt-12">
@@ -57,7 +76,7 @@ function ContactPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
           
           {/* Left Column: Contact Info Card */}
-          <div className="lg:col-span-4 bg-[#f4fbf7] rounded-3xl p-6 sm:p-8 border border-[#eaf5ef] shadow-sm relative overflow-hidden h-full flex flex-col justify-between">
+          <div className="lg:col-span-4 bg-[#f4fbf7] rounded-3xl p-4 sm:p-6 lg:p-8 border border-[#eaf5ef] shadow-sm relative overflow-hidden h-full flex flex-col justify-between">
             {/* Background decoration */}
             <div className="absolute -left-16 top-20 w-40 h-40 bg-white/40 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -84,8 +103,8 @@ function ContactPage() {
                 </div>
                 <div>
                   <h4 className="font-bold text-[#111827] text-sm mb-0.5">Email Us</h4>
-                  <a href="mailto:support@startup.com" className="text-sm text-gray-600 hover:text-[#1e9a58] transition">
-                    support@fluxfit.com
+                  <a href={`mailto:${email}`} className="text-sm text-gray-600 hover:text-[#1e9a58] transition">
+                    {email}
                   </a>
                 </div>
               </div>
@@ -98,7 +117,9 @@ function ContactPage() {
                 <div>
                   <h4 className="font-bold text-[#111827] text-sm mb-0.5">Call Us</h4>
                   <p className="text-sm text-gray-600">
-                    +91 98765 43210
+                    <a href={`tel:${phone.replace(/\s+/g, '')}`} className="hover:text-[#1e9a58] transition">
+                      {phone}
+                    </a>
                     <br />
                     <span className="text-xs text-gray-400 mt-1 block">(Mon - Sat, 9AM - 7PM)</span>
                   </p>
@@ -113,9 +134,7 @@ function ContactPage() {
                 <div>
                   <h4 className="font-bold text-[#111827] text-sm mb-0.5">Visit Us</h4>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    FluxFit HQ, 123 Fashion Street,
-                    <br />
-                    Mumbai, Maharashtra, India - 400001
+                    {fullAddress}
                   </p>
                 </div>
               </div>
@@ -143,7 +162,7 @@ function ContactPage() {
         </div>
 
         {/* Footer Trust Badges */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-8 mt-12 bg-white rounded-2xl shadow-sm border border-gray-100 px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 py-6 sm:py-8 mt-12 bg-white rounded-2xl shadow-sm border border-gray-100 px-4 sm:px-8">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-[#f4fbf7] flex items-center justify-center shrink-0">
               <IconMessageCircle className="w-5 h-5 text-[#1e9a58]" />

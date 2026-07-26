@@ -157,7 +157,7 @@ function CustomClothesPageContent() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0d1c2f] to-[#1e3c72] tracking-tight py-2"
+            className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0d1c2f] to-[#1e3c72] tracking-tight py-2"
           >
             Design Your Perfect Outfit
           </motion.h1>
@@ -174,7 +174,7 @@ function CustomClothesPageContent() {
 
         {/* Tab switcher */}
         <div className="flex justify-center mb-8">
-          <div className="flex bg-white border border-gray-200 rounded-2xl p-1 shadow-sm gap-1">
+          <div className="flex flex-wrap bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-1 shadow-sm gap-1">
             {[
               { key: "new-order", label: "New Order", icon: IconPencil },
               { key: "my-orders", label: "My Orders", icon: IconPackage },
@@ -185,14 +185,14 @@ function CustomClothesPageContent() {
                 type="button"
                 onClick={() => setActiveTab(key)}
                 className={[
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                  "flex items-center justify-center flex-1 sm:flex-none gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200",
                   activeTab === key
                     ? "bg-[#1e9a58] text-white shadow-md"
                     : "text-gray-600 hover:bg-gray-50",
                 ].join(" ")}
               >
-                <Icon size={15} />
-                {label}
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="whitespace-nowrap">{label}</span>
               </button>
             ))}
           </div>

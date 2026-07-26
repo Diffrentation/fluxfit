@@ -11,6 +11,12 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CustomDesignProvider } from "@/context/CustomDesignContext";
 import AppToasterShell from "@/components/providers/AppToasterShell";
 import RouteGuard from "@/components/RouteGuard";
+import { Outfit } from "next/font/google";
+
+const outfit = Outfit({ 
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+});
 
 export const metadata = {
   title: "Create Next App",
@@ -35,7 +41,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body
-        className="antialiased"
+        className={`${outfit.className} antialiased`}
         suppressHydrationWarning
       >
         <ConfigProvider

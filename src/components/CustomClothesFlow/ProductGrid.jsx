@@ -32,7 +32,7 @@ export default function ProductGrid({
         </button>
       </div>
 
-      <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <ul className="mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {products.map((product) => {
           const img = imageUrl(product);
           return (
@@ -40,7 +40,7 @@ export default function ProductGrid({
               <button
                 type="button"
                 onClick={() => onSelect(product)}
-                className="flex w-full flex-col rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
+                className="flex w-full flex-col rounded-xl border border-neutral-200 bg-white p-2 sm:p-3 text-left shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
               >
                 <div className="aspect-4/5 w-full overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800">
                   {img ? (
@@ -56,10 +56,10 @@ export default function ProductGrid({
                     </div>
                   )}
                 </div>
-                <p className="mt-3 line-clamp-2 text-sm font-semibold text-neutral-900 dark:text-white">
+                <p className="mt-2 sm:mt-3 line-clamp-2 text-xs sm:text-sm font-semibold text-neutral-900 dark:text-white">
                   {product.name}
                 </p>
-                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <p className="mt-1 text-[10px] sm:text-xs text-neutral-500 dark:text-neutral-400">
                   Tap to customize
                 </p>
               </button>

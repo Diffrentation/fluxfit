@@ -234,7 +234,7 @@ export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", pr
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 lg:p-8 shadow-sm space-y-6">
+          <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 lg:p-8 shadow-sm space-y-4 sm:space-y-6">
             {/* Cloth Type */}
             <div>
               <label className="flex items-center gap-2 text-sm font-semibold text-[#0d1c2f] mb-3">
@@ -248,7 +248,7 @@ export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", pr
                     type="button"
                     onClick={() => setClothType(type)}
                     className={[
-                      "px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 border",
+                      "px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-left transition-all duration-200 border",
                       clothType === type
                         ? "bg-[#1e9a58] text-white border-[#1e9a58] shadow-md"
                         : "bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-100",
@@ -274,7 +274,7 @@ export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", pr
                     title={color.label}
                     onClick={() => handleColorSelect(color)}
                     className={[
-                      "w-8 h-8 rounded-full transition-all duration-200 border-2 hover:scale-110 focus:outline-none",
+                      "w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200 border-2 hover:scale-110 focus:outline-none",
                       clothColor.hex === color.hex && !useCustomColor
                         ? "ring-2 ring-offset-2 ring-[#1e9a58] scale-110 border-white"
                         : "border-gray-200",
@@ -336,7 +336,7 @@ export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", pr
                     type="button"
                     onClick={() => setPrintPlacement(p.value)}
                     className={[
-                      "px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 border",
+                      "px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-left transition-all duration-200 border",
                       printPlacement === p.value
                         ? "bg-[#1e9a58] text-white border-[#1e9a58] shadow-md"
                         : "bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-100",
@@ -413,7 +413,7 @@ export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", pr
           className="space-y-4 lg:space-y-6"
         >
           {/* Admin Designs Card */}
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 lg:p-8 shadow-sm">
+          <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 lg:p-8 shadow-sm">
             <h3 className="text-sm font-bold text-[#0d1c2f] mb-1">
               Design Library
             </h3>
