@@ -12,14 +12,16 @@ export default function AppToasterShell() {
         toastOptions={{
           duration: 4500,
           style: {
-            maxWidth: "min(100vw - 24px, 420px)",
+            maxWidth: "min(100vw - 32px, 350px)",
             zIndex: 2147483647,
             background: "#1e9a58",
             color: "#ffffff",
-            borderRadius: "9999px",
-            padding: "12px 24px",
+            borderRadius: "12px",
+            padding: "10px 16px",
+            fontSize: "14px",
             fontWeight: "500",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            lineHeight: "1.4",
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
           },
           success: {
             iconTheme: {

@@ -294,14 +294,14 @@ const CartPage = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-4 sm:mb-6 flex items-center gap-4"
         >
-          <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex-shrink-0">
-            <IconShoppingCart className="w-8 h-8 text-[#1e9a58]" />
+          <div className="bg-white p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 flex-shrink-0">
+            <IconShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-[#1e9a58]" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0d1c2f] to-[#1e3c72] tracking-tight py-1">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0d1c2f] to-[#1e3c72] tracking-tight py-0.5 sm:py-1">
               Shopping Cart
             </h1>
-            <p className="text-gray-500 text-sm font-medium">Review your items, update quantities and proceed to checkout.</p>
+            <p className="text-gray-500 text-xs sm:text-sm font-medium">Review your items, update quantities and proceed to checkout.</p>
           </div>
         </motion.div>
 
@@ -329,34 +329,19 @@ const CartPage = () => {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="bg-white rounded-3xl shadow-sm p-4 sm:p-6 lg:p-8 border border-gray-200"
+                      className="bg-white rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 relative"
                     >
-                      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 relative">
-                        {/* Thumbnails (if any) */}
-                        <div className="hidden sm:flex flex-col gap-2">
-                          <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative cursor-pointer hover:border-[#1e9a58]">
-                            {item.customization?.previewDataUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={item.customization.previewDataUrl} alt="custom design thumb" className="w-full h-full object-contain" />
-                            ) : (
-                              <Image src={item.image || product?.images?.[0] || ""} alt="thumb" fill className="object-cover" />
-                            )}
-                          </div>
-                          {[1, 2, 3].map((_, i) => (
-                            <div key={i} className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative cursor-pointer hover:border-[#1e9a58]">
-                              <Image src={product?.images?.[i + 1] || product?.images?.[0] || item.image || ""} alt="thumb" fill className="object-cover" />
-                            </div>
-                          ))}
-                          <div className="w-12 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-200 text-xs font-semibold text-gray-600 cursor-pointer">
-                            +2
-                          </div>
-                        </div>
-
+                      <div className="grid grid-cols-[90px_1fr] sm:grid-cols-[120px_1fr] md:grid-cols-[140px_1fr] gap-4">
                         {/* Product Image */}
                         <div 
-                          className="relative w-full sm:w-48 md:w-56 h-48 sm:h-auto shrink-0 bg-gray-100 rounded-2xl overflow-hidden cursor-pointer"
+                          className="relative w-full aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden cursor-pointer shrink-0"
                           onClick={() => handleNavigateToProduct(item)}
                         >
+                          {/* Floating Top Right Mobile Remove */}
+                          <button onClick={() => handleDelete(item)} className="absolute top-1 right-1 z-10 p-1.5 bg-white/90 backdrop-blur rounded-full text-gray-500 hover:text-red-600 shadow-sm md:hidden">
+                            <IconX className="w-3.5 h-3.5" />
+                          </button>
+
                           {item.customization?.previewDataUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -375,122 +360,77 @@ const CartPage = () => {
                         </div>
 
                         {/* Product Details */}
-                        <div className="flex-1 flex flex-col relative pt-1">
-                          {/* Product Name and Description */}
-                          <div className="mb-2 sm:mb-3 pr-24">
+                        <div className="flex flex-col relative">
+                          {/* Desktop Top Right Icons */}
+                          <div className="hidden md:flex absolute top-0 right-0 gap-2 z-10">
+                            <button onClick={() => handleSaveForLater(item)} className="p-2 bg-white border border-gray-200 rounded-full text-[#1e9a58] hover:bg-green-50 shadow-sm transition-colors">
+                              <IconHeart className="w-4 h-4" stroke={1.5} />
+                            </button>
+                            <button onClick={() => handleDelete(item)} className="p-2 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors">
+                              <IconX className="w-4 h-4" stroke={1.5} />
+                            </button>
+                          </div>
+
+                          <div className="pr-0 md:pr-20 mb-2">
                             <h2 
-                              className="text-base sm:text-lg font-bold text-gray-900 mb-1 cursor-pointer hover:text-[#1e9a58] transition-colors"
+                              className="text-[15px] sm:text-base md:text-lg font-bold text-gray-900 mb-1 leading-tight line-clamp-2 cursor-pointer hover:text-[#1e9a58]"
                               onClick={() => handleNavigateToProduct(item)}
                             >
                               {item.name}
                             </h2>
                             {product?.description && (
-                              <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
+                              <p className="text-[12px] sm:text-[13px] text-gray-500 line-clamp-1 mb-2">
                                 {product.description}
                               </p>
                             )}
                           </div>
 
-                          <div className="absolute top-0 right-0 flex gap-2">
-                            <button onClick={() => handleSaveForLater(item)} className="p-2 bg-white border border-gray-200 rounded-full text-[#1e9a58] hover:bg-green-50 shadow-sm transition-colors">
-                              <IconHeart className="w-5 h-5" stroke={1.5} />
-                            </button>
-                            <button onClick={() => handleDelete(item)} className="p-2 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors">
-                              <IconX className="w-5 h-5" stroke={1.5} />
-                            </button>
-                          </div>
-
-                          {/* Best Seller Tag */}
-                          {product?.rating && product.rating >= 4.5 && (
-                            <div className="mb-3">
-                              <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded">
-                                #1 Best Seller
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Stock Status */}
-                          <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-2">
-                            <span className="text-xs sm:text-sm px-2 py-0.5 bg-green-50 text-[#1e9a58] font-semibold rounded">
+                          {/* Status Badges */}
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
+                            <span className="text-[10px] sm:text-[11px] px-2 py-0.5 bg-green-50 text-[#1e9a58] font-semibold rounded">
                               In stock
                             </span>
-                            <span className="text-xs px-2 py-0.5 bg-green-50 text-[#1e9a58] font-semibold rounded">
+                            <span className="text-[10px] sm:text-[11px] px-2 py-0.5 bg-green-50 text-[#1e9a58] font-semibold rounded">
                               Fulfilled
                             </span>
-                            {item.customization && (
-                              <span className="text-xs px-2.5 py-0.5 bg-purple-50 text-purple-700 font-bold rounded border border-purple-100 flex items-center gap-1 shadow-sm">
-                                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
-                                Customized
+                          </div>
+
+                          {/* Variations */}
+                          <div className="flex flex-wrap items-center gap-3 mb-2">
+                            {item.color && (
+                              <span className="text-[12px] sm:text-[13px] text-gray-600">
+                                <span className="font-medium text-gray-800">Color:</span> <span className="capitalize">{item.color}</span>
+                              </span>
+                            )}
+                            {item.size && item.size !== "One Size" && (
+                              <span className="text-[12px] sm:text-[13px] text-gray-600">
+                                <span className="font-medium text-gray-800">Size:</span> {item.size}
                               </span>
                             )}
                           </div>
 
-                          {/* Color */}
-                          {item.color && (
-                            <div className="mb-2 sm:mb-3">
-                              <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                <span className="font-medium">Colour:</span>{" "}
-                                <span className="capitalize">{item.color}</span>
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Size */}
-                          {item.size && item.size !== "One Size" && (
-                            <div className="mb-2 sm:mb-3">
-                              <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                <span className="font-medium">Size:</span>{" "}
-                                {item.size}
-                              </span>
-                            </div>
-                          )}
-
                           {/* Customization Details Block */}
                           {item.customization && (
-                            <div className="mt-2 mb-4 p-3 bg-purple-50/50 rounded-2xl border border-purple-100 max-w-md">
-                              <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider mb-2">Custom Design Configuration</p>
-                              <div className="flex gap-3 items-start">
+                            <div className="mt-1 mb-3 p-2.5 bg-purple-50/50 rounded-xl border border-purple-100">
+                              <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider mb-1.5">Custom Design</p>
+                              <div className="flex gap-2.5 items-start">
                                 {item.customization.previewDataUrl && (
-                                  <div className="relative w-16 h-16 bg-white rounded-xl border border-purple-200 overflow-hidden flex-shrink-0 shadow-sm">
+                                  <div className="relative w-12 h-12 bg-white rounded-lg border border-purple-200 overflow-hidden flex-shrink-0 shadow-sm">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img 
-                                      src={item.customization.previewDataUrl} 
-                                      alt="Design preview" 
-                                      className="w-full h-full object-contain" 
-                                    />
+                                    <img src={item.customization.previewDataUrl} alt="Design preview" className="w-full h-full object-contain" />
                                   </div>
                                 )}
-                                <div className="space-y-1 min-w-0 flex-1">
+                                <div className="space-y-0.5 min-w-0 flex-1">
                                   {item.customization.fabricId && (
-                                    <p className="text-[11px] text-gray-600">
-                                      <span className="font-semibold text-purple-700">Fabric/Color:</span>{" "}
-                                      <span className="capitalize">{item.customization.fabricId}</span>
-                                    </p>
+                                    <p className="text-[10px] sm:text-[11px] text-gray-600 line-clamp-1"><span className="font-semibold text-purple-700">Base:</span> <span className="capitalize">{item.customization.fabricId}</span></p>
                                   )}
-                                  {item.customization.mockupTemplateName && (
-                                    <p className="text-[11px] text-gray-600">
-                                      <span className="font-semibold text-purple-700">Garment Base:</span>{" "}
-                                      <span className="capitalize">{item.customization.mockupTemplateName}</span>
-                                    </p>
-                                  )}
-                                  {/* Print layers info */}
                                   {["front", "back"].map((view) => {
                                     const viewData = item.customization.views?.[view];
-                                    const activeLayers = (viewData?.layers ?? []).filter(
-                                      (l) => l.designId && l.designId !== "none"
-                                    );
+                                    const activeLayers = (viewData?.layers ?? []).filter(l => l.designId && l.designId !== "none");
                                     if (!activeLayers.length) return null;
                                     return (
-                                      <p key={view} className="text-[11px] text-gray-600 truncate">
-                                        <span className="font-semibold text-purple-700 capitalize">{view} prints:</span>{" "}
-                                        <span>
-                                          {activeLayers.map((l) => {
-                                            if (l.type === "text") {
-                                              return `Text ("${l.text || ''}")`;
-                                            }
-                                            return l.designId === "upload" ? "Custom upload" : l.designId;
-                                          }).join(", ")}
-                                        </span>
+                                      <p key={view} className="text-[10px] sm:text-[11px] text-gray-600 line-clamp-1">
+                                        <span className="font-semibold text-purple-700 capitalize">{view}:</span> {activeLayers.map(l => l.type === "text" ? "Text" : (l.designId === "upload" ? "Upload" : l.designId)).join(", ")}
                                       </p>
                                     );
                                   })}
@@ -499,119 +439,62 @@ const CartPage = () => {
                             </div>
                           )}
 
-                          {/* Price Section */}
-                          <div className="mt-auto">
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex-1">
-                                {discount && originalPrice && (
-                                  <div className="mb-2">
-                                    <span className="inline-block px-2 py-1 bg-red-100 text-red-600 text-xs font-semibold rounded mr-2">
-                                      {discount}% off
-                                    </span>
-                                    <span className="text-xs text-red-600 font-semibold">
-                                      Limited time deal
-                                    </span>
-                                  </div>
-                                )}
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                                    ₹{formatPrice(itemTotal)}
-                                  </span>
-                                  {originalPrice && (
-                                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-through">
-                                      M.R.P.: ₹{formatPrice(originalPrice)}
-                                    </span>
-                                  )}
-                                </div>
-                                {item.quantity > 1 && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    ₹{formatPrice(itemPrice)} per item
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Quantity Selector */}
-                            <div className="flex items-center gap-4 mb-4">
-                              <div className="flex items-center border border-green-200 bg-white rounded-xl overflow-hidden shadow-sm">
-                                {item.quantity === 1 ? (
-                                  <motion.button
-                                    type="button"
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={() => handleDelete(item)}
-                                    className="p-2 hover:bg-red-50 transition-colors text-red-600"
-                                    aria-label="Delete item"
-                                  >
-                                    <IconTrash className="w-5 h-5" />
-                                  </motion.button>
-                                ) : (
-                                  <motion.button
-                                    type="button"
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={() =>
-                                      handleQuantityChange(
-                                        item,
-                                        parseInt(item.quantity, 10) - 1
-                                      )
-                                    }
-                                    className="p-2 hover:bg-green-50 transition-colors text-[#1e9a58]"
-                                    aria-label="Decrease quantity"
-                                  >
-                                    <IconMinus className="w-5 h-5" />
-                                  </motion.button>
-                                )}
-                                <span className="px-4 py-2 font-bold text-gray-900 border-x border-green-100 bg-white min-w-[60px] text-center">
-                                  {item.quantity}
+                          {/* Pricing & Quantity */}
+                          <div className="mt-auto pt-2">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-2.5">
+                              <div className="flex items-baseline gap-1.5 sm:gap-2">
+                                <span className="text-lg sm:text-xl font-bold text-gray-900">
+                                  ₹{formatPrice(itemTotal)}
                                 </span>
-                                <motion.button
-                                  type="button"
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  onClick={() =>
-                                    handleQuantityChange(
-                                      item,
-                                      parseInt(item.quantity, 10) + 1
-                                    )
-                                  }
-                                  className="p-2 hover:bg-green-50 transition-colors text-[#1e9a58]"
-                                  aria-label="Increase quantity"
-                                >
-                                  <IconPlus className="w-5 h-5" />
-                                </motion.button>
+                                {originalPrice && (
+                                  <span className="text-[11px] sm:text-[13px] text-gray-500 line-through">
+                                    ₹{formatPrice(originalPrice)}
+                                  </span>
+                                )}
                               </div>
+                              {discount && originalPrice && (
+                                <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 bg-red-50 text-red-600 font-bold rounded border border-red-100">
+                                  {discount}% OFF
+                                </span>
+                              )}
                             </div>
-
-                            {/* Action Links */}
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2">
-                              <button
-                                onClick={() => handleDelete(item)}
-                                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold border border-red-100 hover:bg-red-600 hover:text-white transition-colors shadow-sm flex items-center gap-1.5"
-                              >
-                                <IconTrash className="w-4 h-4" /> Delete
-                              </button>
-                              <button
-                                onClick={() => handleSaveForLater(item)}
-                                className="px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg text-xs font-semibold border border-gray-200 hover:border-[#1e9a58] hover:text-[#1e9a58] transition-colors shadow-sm flex items-center gap-1.5"
-                              >
-                                <IconHeart className="w-4 h-4" /> Save for later
-                              </button>
-                              <button
-                                onClick={() => handleNavigateToProduct(item)}
-                                className="px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg text-xs font-semibold border border-gray-200 hover:border-[#1e9a58] hover:text-[#1e9a58] transition-colors shadow-sm flex items-center gap-1.5"
-                              >
-                                <IconEye className="w-4 h-4" /> View details
-                              </button>
-                              <button
-                                onClick={() => handleShare(item)}
-                                className="px-3 py-1.5 bg-green-50 text-[#1e9a58] rounded-lg text-xs font-semibold border border-green-100 hover:bg-[#1e9a58] hover:text-white transition-colors shadow-sm flex items-center gap-1.5"
-                              >
-                                <IconShare className="w-4 h-4" /> Share
+                            
+                            {/* Quantity Selector */}
+                            <div className="inline-flex items-center border border-gray-200 bg-white rounded-lg shadow-sm h-[32px] sm:h-[36px]">
+                              {item.quantity === 1 ? (
+                                <button type="button" onClick={() => handleDelete(item)} className="w-8 sm:w-10 h-full flex items-center justify-center hover:bg-red-50 text-red-500 transition-colors">
+                                  <IconTrash className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]" />
+                                </button>
+                              ) : (
+                                <button type="button" onClick={() => handleQuantityChange(item, parseInt(item.quantity, 10) - 1)} className="w-8 sm:w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-700 transition-colors">
+                                  <IconMinus className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]" />
+                                </button>
+                              )}
+                              <span className="w-10 sm:w-12 h-full flex items-center justify-center font-semibold text-[13px] sm:text-sm text-gray-900 border-x border-gray-100 bg-gray-50/50">
+                                {item.quantity}
+                              </span>
+                              <button type="button" onClick={() => handleQuantityChange(item, parseInt(item.quantity, 10) + 1)} className="w-8 sm:w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-700 transition-colors">
+                                <IconPlus className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]" />
                               </button>
                             </div>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Action Buttons Grid */}
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 border-t border-gray-100 pt-4">
+                        <button onClick={() => handleDelete(item)} className="h-[40px] sm:h-[44px] flex items-center justify-center gap-2 bg-red-50 text-red-600 rounded-xl text-[13px] sm:text-[14px] font-semibold border border-red-100 hover:bg-red-600 hover:text-white transition-colors shadow-sm">
+                          <IconTrash className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px]" /> <span className="truncate">Delete</span>
+                        </button>
+                        <button onClick={() => handleSaveForLater(item)} className="h-[40px] sm:h-[44px] flex items-center justify-center gap-2 bg-white text-gray-700 rounded-xl text-[13px] sm:text-[14px] font-semibold border border-gray-200 hover:border-[#1e9a58] hover:text-[#1e9a58] transition-colors shadow-sm">
+                          <IconHeart className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px]" /> <span className="truncate">Save for later</span>
+                        </button>
+                        <button onClick={() => handleNavigateToProduct(item)} className="h-[40px] sm:h-[44px] flex items-center justify-center gap-2 bg-white text-gray-700 rounded-xl text-[13px] sm:text-[14px] font-semibold border border-gray-200 hover:border-[#1e9a58] hover:text-[#1e9a58] transition-colors shadow-sm">
+                          <IconEye className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px]" /> <span className="truncate">View details</span>
+                        </button>
+                        <button onClick={() => handleShare(item)} className="h-[40px] sm:h-[44px] flex items-center justify-center gap-2 bg-[#f4fbf7] text-[#1e9a58] rounded-xl text-[13px] sm:text-[14px] font-semibold border border-green-100 hover:bg-[#1e9a58] hover:text-white transition-colors shadow-sm">
+                          <IconShare className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px]" /> <span className="truncate">Share</span>
+                        </button>
                       </div>
                     </motion.div>
                   );
