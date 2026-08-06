@@ -287,7 +287,7 @@ function CustomClothesPageContent() {
               className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start"
             >
               {/* Left Sidebar: Categories */}
-              <div className="lg:col-span-1">
+              <div className="relative z-20 lg:col-span-1">
                 {categoriesError ? (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                     {categoriesError}
@@ -311,7 +311,7 @@ function CustomClothesPageContent() {
               </div>
 
               {/* Right Content: Products */}
-              <div className="lg:col-span-3">
+              <div className="relative z-10 lg:col-span-3">
                 {currentCategory ? (
                   <>
                     <div className="flex items-center gap-2 mb-6">

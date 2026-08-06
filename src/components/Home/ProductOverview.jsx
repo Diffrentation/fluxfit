@@ -210,7 +210,7 @@ function ProductOverview() {
           </h1>
 
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 lg:gap-6 border-b border-gray-200/60 pb-3">
-            <div className="w-full lg:flex-1 flex items-center min-w-0 overflow-hidden max-w-full">
+            <div className="w-full lg:flex-1 flex items-center min-w-0 overflow-visible max-w-full">
               <CategoryNav
                 activeCategory={activeCategory}
                 onCategoryChange={setActiveCategory}

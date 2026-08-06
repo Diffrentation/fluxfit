@@ -72,8 +72,8 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
       setSubmenuLeft(0);
     };
 
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
   }, []);
 
   const {
@@ -192,9 +192,8 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
   const selectedId = selectedCategoryId;
 
   return (
-    <div className="relative w-full max-w-full">
+    <div ref={wrapperRef} className="relative w-full max-w-full">
       <div
-        ref={wrapperRef}
         className="flex items-center gap-4 sm:gap-6 overflow-x-auto w-full [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
       >
@@ -234,8 +233,23 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
           return (
             <button
               key={rootId}
-              onClick={() => handleSelect(rootId)}
+              onClick={(e) => {
+                if (hasChildren(rootId)) {
+                  const wrapperEl = wrapperRef.current;
+                  if (wrapperEl) {
+                    const w = wrapperEl.getBoundingClientRect();
+                    const r = e.currentTarget.getBoundingClientRect();
+                    setSubmenuLeft(Math.max(0, r.left - w.left));
+                  }
+                  setOpenPath(openThisRoot ? [] : [rootId]);
+                } else {
+                  handleSelect(rootId);
+                }
+              }}
               onMouseEnter={(e) => {
+                if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                  return;
+                }
                 if (!hasChildren(rootId)) {
                   setOpenPath([]);
                   return;
@@ -256,6 +270,7 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
                   : "text-gray-500 hover:text-gray-700"
               }`}
               aria-haspopup={hasChildren(rootId) ? "menu" : undefined}
+              aria-expanded={hasChildren(rootId) ? openThisRoot : undefined}
               suppressHydrationWarning
             >
               {cat.name}
@@ -295,9 +310,12 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.15 }}
-            style={{ left: submenuLeft }}
-            className="absolute top-full z-50 mt-[-8px] -translate-y-1"
+            style={{ "--submenu-left": `${submenuLeft}px` }}
+            className="absolute left-0 sm:left-[var(--submenu-left)] top-full z-50 mt-[-8px] -translate-y-1 max-w-[calc(100vw-2rem)] overflow-x-auto overscroll-contain"
             onMouseLeave={() => {
+              if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                return;
+              }
               setOpenPath([]);
               setSubmenuLeft(0);
             }}
@@ -325,8 +343,19 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
                           return (
                             <button
                               key={childId}
-                              onClick={() => handleSelect(childId)}
+                              onClick={() => {
+                                if (hasSub) {
+                                  const next = openPath.slice(0, level + 1);
+                                  next[level + 1] = childId;
+                                  setOpenPath(next.filter(Boolean));
+                                } else {
+                                  handleSelect(childId);
+                                }
+                              }}
                               onMouseEnter={() => {
+                                if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                                  return;
+                                }
                                 const next = openPath.slice(0, level + 1);
                                 next[level + 1] = childId;
                                 setOpenPath(next.filter(Boolean));
@@ -336,6 +365,8 @@ const CategoryNav = ({ activeCategory, onCategoryChange }) => {
                                   ? "bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-white"
                                   : "hover:bg-gray-50 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-200"
                               }`}
+                              aria-haspopup={hasSub ? "menu" : undefined}
+                              aria-expanded={hasSub ? openPath[level + 1] === childId : undefined}
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <span className="text-sm truncate">{child.name}</span>
