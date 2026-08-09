@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  IconChevronLeft, 
-  IconChevronRight, 
+import {
+  IconChevronLeft,
+  IconChevronRight,
   IconBolt,
   IconArrowRight,
   IconUsers,
@@ -30,45 +30,10 @@ const canUseNextImage = (src) => {
   }
 };
 
-const FALLBACK_SLIDES = [
-  {
-    _id: "fallback-1",
-    badge: "Et aut velit veniam",
-    subtitle: "SUNT NESCIUNT NAM T",
-    title: "Duis consequat cor",
-    description: "Commodo sit id corr",
-    buttonText: "Excepturi et proiden",
-    buttonLink: "/product-list",
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=1000&fit=crop&q=80",
-  },
-];
-
-function Herobanner() {
-  const [slides, setSlides] = useState(FALLBACK_SLIDES);
+function Herobanner({ initialSlides = [], initialPageData = null }) {
+  const [slides] = useState(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [pageData, setPageData] = useState(null);
-
-  useEffect(() => {
-    fetch("/api/hero-banners")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success && data.data?.banners?.length > 0) {
-          setSlides(data.data.banners);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-
-    fetch("/api/pages/home")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success && data.data?.data) {
-          setPageData(data.data.data);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const [pageData] = useState(initialPageData);
 
   const slideVariants = {
     enter: { opacity: 0, x: 20 },
@@ -81,11 +46,33 @@ function Herobanner() {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   useEffect(() => {
+    if (slides.length < 2) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 10000);
     return () => clearInterval(interval);
   }, [slides.length]);
+
+  // No active banners in the database — show a stable skeleton instead of
+  // fabricated placeholder copy, keeping the layout height unchanged.
+  if (slides.length === 0) {
+    return (
+      <div className="relative w-full min-h-[calc(100vh-80px)] bg-transparent overflow-hidden flex items-center pt-6 sm:pt-10 pb-10 sm:pb-20">
+        <div className="container mx-auto px-4 sm:px-6 md:px-8 xl:px-12 relative z-10 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-8 items-center animate-pulse">
+            <div className="flex flex-col items-start gap-4 w-full order-2 lg:order-1">
+              <div className="h-7 w-40 bg-gray-200 dark:bg-gray-700 rounded-full" />
+              <div className="h-4 w-56 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-14 w-full max-w-md bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-5 w-72 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-12 w-40 bg-gray-200 dark:bg-gray-700 rounded-xl mt-2" />
+            </div>
+            <div className="relative w-full h-[320px] sm:h-[420px] md:h-[520px] lg:h-[650px] xl:h-[700px] rounded-[1.5rem] sm:rounded-[2.5rem] lg:rounded-[4rem] bg-gray-200 dark:bg-gray-700 order-1 lg:order-2 mb-2 lg:mb-0" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const slide = slides[currentSlide] || {};
 
@@ -130,22 +117,22 @@ function Herobanner() {
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 bg-green-50 border border-green-100/50 text-green-700 rounded-full text-xs sm:text-sm font-semibold mb-5 sm:mb-8 shadow-sm">
                   <IconBolt size={14} className="text-green-600 shrink-0" />
-                  <span className="truncate max-w-[200px] sm:max-w-none">{slide.badge || "Et aut velit veniam"}</span>
+                  <span className="truncate max-w-[200px] sm:max-w-none">{slide.badge}</span>
                 </div>
 
                 {/* Subtitle */}
                 <h3 className="text-green-600 font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-xs sm:text-sm mb-3 sm:mb-4">
-                  {slide.subtitle || "SUNT NESCIUNT NAM T"}
+                  {slide.subtitle}
                 </h3>
 
                 {/* Title — responsive clamp from 2rem on tiny mobile up to 5rem on XL */}
                 <h1 className="text-[clamp(1.75rem,6vw,5rem)] font-extrabold text-[#0d1c2f] leading-[1.1] mb-4 sm:mb-6 tracking-tight">
-                  {slide.title || "Duis consequat cor"}
+                  {slide.title}
                 </h1>
 
                 {/* Description */}
                 <p className="text-gray-500 text-base sm:text-lg md:text-xl mb-6 sm:mb-10 max-w-lg font-medium">
-                  {slide.description || "Commodo sit id corr"}
+                  {slide.description}
                 </p>
 
                 {/* Buttons — stack on very small screens, wrap on medium */}
@@ -154,7 +141,7 @@ function Herobanner() {
                     href={slide.buttonLink || "/product-list"}
                     className="w-full md:w-auto group flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 bg-[#1e9a58] hover:bg-[#188149] text-white rounded-xl font-bold text-sm sm:text-base transition-all duration-300 shadow-[0_8px_20px_rgba(30,154,88,0.3)] hover:shadow-[0_12px_25px_rgba(30,154,88,0.4)] hover:-translate-y-0.5"
                   >
-                    {slide.buttonText || "Excepturi et proiden"}
+                    {slide.buttonText || "SHOP NOW"}
                     <IconArrowRight size={18} className="transition-transform group-hover:translate-x-1 shrink-0" />
                   </Link>
                   <Link
