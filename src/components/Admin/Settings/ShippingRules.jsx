@@ -14,135 +14,150 @@ import {
   Switch,
   message,
   Divider,
+  Spin,
+  Popconfirm,
 } from "antd";
-import { IconPlus, IconTrash, IconDeviceFloppy, IconEdit } from "@tabler/icons-react";
+import { IconPlus, IconTrash, IconEdit } from "@tabler/icons-react";
+import axios from "axios";
 import { formatPrice } from "@/lib/formatPrice";
 
 const { Option } = Select;
-const { TextArea } = Input;
 
-const defaultShippingRules = [
-  {
-    id: 1,
-    name: "Free Shipping",
-    minOrder: 2000,
-    maxOrder: null,
-    cost: 0,
-    estimatedDays: "5-7",
-    applicableRegions: ["All"],
-    isActive: true,
-  },
-  {
-    id: 2,
-    name: "Standard Shipping",
-    minOrder: 0,
-    maxOrder: 2000,
-    cost: 50,
-    estimatedDays: "3-5",
-    applicableRegions: ["All"],
-    isActive: true,
-  },
-  {
-    id: 3,
-    name: "Express Shipping",
-    minOrder: 0,
-    maxOrder: null,
-    cost: 150,
-    estimatedDays: "1-2",
-    applicableRegions: ["Metro Cities"],
-    isActive: true,
-  },
-];
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
 
 const ShippingRules = ({ onSave }) => {
-  const [form] = Form.useForm();
   const [shippingRules, setShippingRules] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isRuleModalVisible, setIsRuleModalVisible] = useState(false);
   const [selectedRule, setSelectedRule] = useState(null);
   const [ruleForm] = Form.useForm();
+  const [saving, setSaving] = useState(false);
+  const ruleType = Form.useWatch("type", ruleForm);
 
-  // Load settings from localStorage
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get("/api/admin/settings/shipping-rules", {
+        params: { sort: "sortOrder" },
+        headers: authHeaders(),
+      });
+      setShippingRules(data?.data?.shippingRules || []);
+    } catch (e) {
+      message.error(e.response?.data?.message || "Failed to load shipping rules");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("adminShippingSettings");
-      if (stored) {
-        const settings = JSON.parse(stored);
-        setShippingRules(settings.shippingRules || defaultShippingRules);
-        form.setFieldsValue(settings);
-      } else {
-        setShippingRules(defaultShippingRules);
-        form.setFieldsValue({
-          defaultShippingMethod: "standard",
-          enableFreeShipping: true,
-          freeShippingThreshold: 2000,
-          enableInternationalShipping: false,
-        });
-      }
-    } catch (error) {
-      console.error("Error loading shipping settings:", error);
-      setShippingRules(defaultShippingRules);
-    }
-  }, [form]);
-
-  // Save to localStorage whenever state changes
-  useEffect(() => {
-    try {
-      const formValues = form.getFieldsValue();
-      const settings = {
-        ...formValues,
-        shippingRules,
-      };
-      localStorage.setItem("adminShippingSettings", JSON.stringify(settings));
-    } catch (error) {
-      console.error("Error saving shipping settings:", error);
-    }
-  }, [shippingRules, form]);
-
-  const handleSubmit = useCallback((values) => {
-    const settings = {
-      ...values,
-      shippingRules,
-    };
-    try {
-      localStorage.setItem("adminShippingSettings", JSON.stringify(settings));
-      message.success("Shipping rules saved successfully");
-      onSave();
-    } catch (error) {
-      message.error("Failed to save settings");
-      console.error("Error saving shipping settings:", error);
-    }
-  }, [shippingRules, onSave]);
+    load();
+  }, [load]);
 
   const handleAddRule = () => {
     setSelectedRule(null);
     ruleForm.resetFields();
+    ruleForm.setFieldsValue({
+      type: "flat",
+      isActive: true,
+      sortOrder: 0,
+      estimatedMin: 3,
+      estimatedMax: 7,
+      zones: [],
+      rules: [],
+    });
     setIsRuleModalVisible(true);
   };
 
   const handleEditRule = (rule) => {
     setSelectedRule(rule);
-    ruleForm.setFieldsValue(rule);
+    ruleForm.setFieldsValue({
+      name: rule.name,
+      description: rule.description || "",
+      type: rule.type,
+      basePrice: rule.basePrice,
+      freeShippingThreshold: rule.freeShippingThreshold,
+      estimatedMin: rule.estimatedDays?.min || 3,
+      estimatedMax: rule.estimatedDays?.max || 7,
+      isActive: rule.isActive,
+      sortOrder: rule.sortOrder || 0,
+      zones: (rule.zones || []).map((z) => ({
+        name: z.name,
+        states: z.states || [],
+        cities: z.cities || [],
+        pincodes: z.pincodes || [],
+      })),
+      rules: (rule.rules || []).map((r) => ({ min: r.min, max: r.max, price: r.price })),
+    });
     setIsRuleModalVisible(true);
   };
 
-  const handleDeleteRule = (id) => {
-    setShippingRules(shippingRules.filter((r) => r.id !== id));
-    message.success("Shipping rule deleted successfully");
+  const handleDeleteRule = async (id) => {
+    try {
+      await axios.delete(`/api/admin/settings/shipping-rules/${id}`, {
+        headers: authHeaders(),
+      });
+      message.success("Shipping rule deleted successfully");
+      load();
+    } catch (e) {
+      message.error(e.response?.data?.message || "Failed to delete shipping rule");
+    }
   };
 
-  const handleSaveRule = useCallback((values) => {
-    if (selectedRule) {
-      setShippingRules(
-        shippingRules.map((r) => (r.id === selectedRule.id ? { ...values, id: selectedRule.id } : r))
-      );
-      message.success("Shipping rule updated successfully");
-    } else {
-      setShippingRules([...shippingRules, { ...values, id: Date.now() }]);
-      message.success("Shipping rule added successfully");
-    }
-    setIsRuleModalVisible(false);
-    ruleForm.resetFields();
-  }, [selectedRule, shippingRules, ruleForm]);
+  const handleSaveRule = useCallback(
+    async (values) => {
+      setSaving(true);
+      try {
+        const payload = {
+          name: values.name,
+          description: values.description || "",
+          type: values.type,
+          basePrice: values.basePrice,
+          freeShippingThreshold:
+            values.freeShippingThreshold !== undefined && values.freeShippingThreshold !== null
+              ? values.freeShippingThreshold
+              : null,
+          estimatedDays: { min: values.estimatedMin || 3, max: values.estimatedMax || 7 },
+          isActive: values.isActive !== undefined ? values.isActive : true,
+          sortOrder: values.sortOrder || 0,
+          zones: (values.zones || []).map((z) => ({
+            name: z.name,
+            states: z.states || [],
+            cities: z.cities || [],
+            pincodes: z.pincodes || [],
+          })),
+          rules: (values.rules || []).map((r) => ({
+            min: r.min ?? 0,
+            max: r.max ?? null,
+            price: r.price,
+          })),
+        };
+
+        if (selectedRule) {
+          await axios.put(`/api/admin/settings/shipping-rules/${selectedRule.id}`, payload, {
+            headers: authHeaders(),
+          });
+          message.success("Shipping rule updated successfully");
+        } else {
+          await axios.post("/api/admin/settings/shipping-rules", payload, {
+            headers: authHeaders(),
+          });
+          message.success("Shipping rule added successfully");
+        }
+        setIsRuleModalVisible(false);
+        ruleForm.resetFields();
+        load();
+        onSave?.();
+      } catch (e) {
+        message.error(e.response?.data?.message || "Failed to save shipping rule");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [selectedRule, ruleForm, load, onSave]
+  );
 
   const ruleColumns = [
     {
@@ -151,19 +166,11 @@ const ShippingRules = ({ onSave }) => {
       key: "name",
       render: (name) => <span className="font-semibold">{name}</span>,
     },
+    { title: "Type", dataIndex: "type", key: "type", render: (t) => <Tag>{t}</Tag> },
     {
-      title: "Order Range",
-      key: "range",
-      render: (_, record) => (
-        <span>
-          ₹{formatPrice(record.minOrder || 0)} - {record.maxOrder ? `₹${formatPrice(record.maxOrder)}` : "∞"}
-        </span>
-      ),
-    },
-    {
-      title: "Cost",
-      dataIndex: "cost",
-      key: "cost",
+      title: "Base Price",
+      dataIndex: "basePrice",
+      key: "basePrice",
       render: (cost) => (
         <span className="font-semibold">
           {cost === 0 ? <Tag color="green">Free</Tag> : `₹${formatPrice(cost)}`}
@@ -171,9 +178,21 @@ const ShippingRules = ({ onSave }) => {
       ),
     },
     {
-      title: "Estimated Days",
-      dataIndex: "estimatedDays",
+      title: "Free Above",
+      dataIndex: "freeShippingThreshold",
+      key: "freeShippingThreshold",
+      render: (v) => (v != null ? `₹${formatPrice(v)}` : "—"),
+    },
+    {
+      title: "Zones",
+      dataIndex: "zones",
+      key: "zones",
+      render: (zones) => (zones?.length ? zones.map((z) => z.name).join(", ") : "All destinations"),
+    },
+    {
+      title: "Est. Days",
       key: "estimatedDays",
+      render: (_, r) => `${r.estimatedDays?.min ?? 3}-${r.estimatedDays?.max ?? 7}`,
     },
     {
       title: "Status",
@@ -193,16 +212,21 @@ const ShippingRules = ({ onSave }) => {
             icon={<IconEdit className="w-4 h-4" />}
             onClick={() => handleEditRule(record)}
           />
-          <Button
-            type="text"
-            danger
-            icon={<IconTrash className="w-4 h-4" />}
-            onClick={() => handleDeleteRule(record.id)}
-          />
+          <Popconfirm title="Delete this shipping rule?" onConfirm={() => handleDeleteRule(record.id)}>
+            <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} />
+          </Popconfirm>
         </div>
       ),
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -210,84 +234,37 @@ const ShippingRules = ({ onSave }) => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-3 sm:space-y-4"
     >
-      <Form form={form} layout="vertical" onFinish={handleSubmit}>
-        <Card title="General Shipping Settings" className="mb-3 sm:mb-4 w-full min-w-0">
-          <div className="space-y-4">
-            <Form.Item
-              name="defaultShippingMethod"
-              label="Default Shipping Method"
-            >
-              <Select>
-                <Option value="standard">Standard Shipping</Option>
-                <Option value="express">Express Shipping</Option>
-                <Option value="free">Free Shipping</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="enableFreeShipping"
-              label="Enable Free Shipping"
-              valuePropName="checked"
-            >
-              <Switch />
-            </Form.Item>
-
-            <Form.Item
-              name="freeShippingThreshold"
-              label="Free Shipping Threshold (₹)"
-              rules={[{ required: true, message: "Please enter free shipping threshold" }]}
-            >
-              <InputNumber min={0} style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="enableInternationalShipping"
-              label="Enable International Shipping"
-              valuePropName="checked"
-            >
-              <Switch />
-            </Form.Item>
-          </div>
-        </Card>
-
-        <Card
-          title="Shipping Rules"
-          extra={
-            <Button
-              type="primary"
-              icon={<IconPlus className="w-4 h-4" />}
-              onClick={handleAddRule}
-              className="w-full sm:w-auto"
-              size="small sm:default"
-            >
-              <span className="hidden sm:inline">Add Shipping Rule</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
-          }
-          className="mb-3 sm:mb-4 w-full min-w-0"
-        >
-          <div className="overflow-x-auto">
-            <Table
-              dataSource={shippingRules.map((r) => ({ ...r, key: r.id }))}
-              columns={ruleColumns}
-              pagination={false}
-              scroll={{ x: 800 }}
-            />
-          </div>
-        </Card>
-
-        <div className="flex justify-end">
+      <Card
+        title="Shipping Rules"
+        extra={
           <Button
             type="primary"
-            htmlType="submit"
-            icon={<IconDeviceFloppy className="w-4 h-4" />}
-            size="large"
+            icon={<IconPlus className="w-4 h-4" />}
+            onClick={handleAddRule}
             className="w-full sm:w-auto"
+            size="small sm:default"
           >
-            Save Settings
+            <span className="hidden sm:inline">Add Shipping Rule</span>
+            <span className="sm:hidden">Add</span>
           </Button>
+        }
+        className="mb-3 sm:mb-4 w-full min-w-0"
+      >
+        <p className="text-xs text-gray-500 mb-3">
+          Checkout picks the first active rule whose zone matches the order&apos;s shipping state/city/pincode
+          (by sort order), or the first rule with no zones configured at all. If nothing matches, a flat
+          ₹50 default applies.
+        </p>
+        <div className="overflow-x-auto">
+          <Table
+            dataSource={shippingRules.map((r) => ({ ...r, key: r.id }))}
+            columns={ruleColumns}
+            pagination={false}
+            scroll={{ x: 900 }}
+            locale={{ emptyText: "No shipping rules yet — orders will use the ₹50 flat-rate fallback." }}
+          />
         </div>
-      </Form>
+      </Card>
 
       <Modal
         title={selectedRule ? "Edit Shipping Rule" : "Add Shipping Rule"}
@@ -298,89 +275,183 @@ const ShippingRules = ({ onSave }) => {
         }}
         footer={null}
         width="95%"
-        style={{ maxWidth: 850 }}
+        style={{ maxWidth: 900 }}
         className="!bg-zinc-950"
         centered
       >
         <Form form={ruleForm} layout="vertical" onFinish={handleSaveRule} className="mt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column */}
             <div className="space-y-4">
               <Form.Item
                 name="name"
                 label="Rule Name"
                 rules={[{ required: true, message: "Please enter rule name" }]}
               >
-                <Input placeholder="Free Shipping" />
+                <Input placeholder="Standard Shipping" />
+              </Form.Item>
+
+              <Form.Item name="description" label="Description">
+                <Input placeholder="Optional" />
               </Form.Item>
 
               <div className="grid grid-cols-2 gap-4">
                 <Form.Item
-                  name="minOrder"
-                  label="Minimum Order (₹)"
-                  rules={[{ required: true, message: "Please enter minimum order" }]}
+                  name="basePrice"
+                  label="Base Price (₹)"
+                  rules={[{ required: true, message: "Please enter base price" }]}
                   className="mb-0"
                 >
                   <InputNumber min={0} style={{ width: "100%" }} />
                 </Form.Item>
 
                 <Form.Item
-                  name="maxOrder"
-                  label="Maximum Order (₹)"
-                  tooltip="Leave empty for no maximum"
+                  name="freeShippingThreshold"
+                  label="Free Above (₹)"
+                  tooltip="Leave empty for no free-shipping threshold"
                   className="mb-0"
                 >
                   <InputNumber min={0} style={{ width: "100%" }} />
                 </Form.Item>
               </div>
-
-              <Form.Item
-                name="cost"
-                label="Shipping Cost (₹)"
-                rules={[{ required: true, message: "Please enter shipping cost" }]}
-              >
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
             </div>
 
-            {/* Right Column */}
             <div className="space-y-4">
               <Form.Item
-                name="estimatedDays"
-                label="Estimated Delivery Days"
-                rules={[{ required: true, message: "Please enter estimated days" }]}
+                name="type"
+                label="Type"
+                rules={[{ required: true, message: "Please select type" }]}
+                tooltip="Only Flat and Order Value currently affect checkout — Weight/Distance tiers aren't evaluated yet since checkout doesn't compute package weight or distance."
               >
-                <Input placeholder="3-5" />
-              </Form.Item>
-
-              <Form.Item
-                name="applicableRegions"
-                label="Applicable Regions"
-                initialValue={["All"]}
-              >
-                <Select mode="tags" placeholder="Select or add regions">
-                  <Option value="All">All</Option>
-                  <Option value="Metro Cities">Metro Cities</Option>
-                  <Option value="Tier 1 Cities">Tier 1 Cities</Option>
-                  <Option value="Tier 2 Cities">Tier 2 Cities</Option>
+                <Select>
+                  <Option value="flat">Flat rate</Option>
+                  <Option value="price">Tiered by order value</Option>
+                  <Option value="weight">Tiered by weight (not yet evaluated at checkout)</Option>
+                  <Option value="distance">Tiered by distance (not yet evaluated at checkout)</Option>
                 </Select>
               </Form.Item>
 
-              <Form.Item
-                name="isActive"
-                label="Active"
-                valuePropName="checked"
-                initialValue={true}
-                className="mb-0"
-              >
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item name="estimatedMin" label="Est. Days (min)" className="mb-0">
+                  <InputNumber min={1} style={{ width: "100%" }} />
+                </Form.Item>
+                <Form.Item name="estimatedMax" label="Est. Days (max)" className="mb-0">
+                  <InputNumber min={1} style={{ width: "100%" }} />
+                </Form.Item>
+              </div>
+
+              <Form.Item name="sortOrder" label="Priority (lower checked first)">
+                <InputNumber min={0} style={{ width: "100%" }} />
+              </Form.Item>
+
+              <Form.Item name="isActive" label="Active" valuePropName="checked">
                 <Switch />
               </Form.Item>
             </div>
           </div>
 
+          {ruleType && ruleType !== "flat" && (
+            <>
+              <Divider>Tiers</Divider>
+              <Form.List name="rules">
+                {(fields, { add, remove }) => (
+                  <div className="space-y-3">
+                    {fields.map((field) => (
+                      <div key={field.key} className="flex gap-3 items-start">
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "min"]}
+                          label="Min"
+                          className="mb-0 flex-1"
+                        >
+                          <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
+                        </Form.Item>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "max"]}
+                          label="Max"
+                          className="mb-0 flex-1"
+                          tooltip="Leave empty for no upper bound"
+                        >
+                          <InputNumber min={0} style={{ width: "100%" }} />
+                        </Form.Item>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "price"]}
+                          label="Price (₹)"
+                          rules={[{ required: true, message: "Required" }]}
+                          className="mb-0 flex-1"
+                        >
+                          <InputNumber min={0} style={{ width: "100%" }} />
+                        </Form.Item>
+                        <Button
+                          type="text"
+                          danger
+                          icon={<IconTrash className="w-4 h-4" />}
+                          onClick={() => remove(field.name)}
+                          className="mt-6"
+                        />
+                      </div>
+                    ))}
+                    <Button icon={<IconPlus className="w-4 h-4" />} onClick={() => add({ min: 0 })} block>
+                      Add Tier
+                    </Button>
+                  </div>
+                )}
+              </Form.List>
+            </>
+          )}
+
+          <Divider>Zones (optional — leave empty to apply everywhere)</Divider>
+          <Form.List name="zones">
+            {(fields, { add, remove }) => (
+              <div className="space-y-4">
+                {fields.map((field) => (
+                  <Card key={field.key} size="small" className="!bg-zinc-900">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 space-y-3">
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "name"]}
+                          label="Zone Name"
+                          rules={[{ required: true, message: "Zone name is required" }]}
+                          className="mb-0"
+                        >
+                          <Input placeholder="Metro Cities" />
+                        </Form.Item>
+                        <Form.Item {...field} name={[field.name, "states"]} label="States" className="mb-0">
+                          <Select mode="tags" placeholder="e.g. Maharashtra, Karnataka" />
+                        </Form.Item>
+                        <Form.Item {...field} name={[field.name, "cities"]} label="Cities" className="mb-0">
+                          <Select mode="tags" placeholder="e.g. Mumbai, Bengaluru" />
+                        </Form.Item>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "pincodes"]}
+                          label="Pincodes"
+                          className="mb-0"
+                        >
+                          <Select mode="tags" placeholder="e.g. 400001" />
+                        </Form.Item>
+                      </div>
+                      <Button
+                        type="text"
+                        danger
+                        icon={<IconTrash className="w-4 h-4" />}
+                        onClick={() => remove(field.name)}
+                      />
+                    </div>
+                  </Card>
+                ))}
+                <Button icon={<IconPlus className="w-4 h-4" />} onClick={() => add({})} block>
+                  Add Zone
+                </Button>
+              </div>
+            )}
+          </Form.List>
+
           <div className="flex justify-end gap-2 mt-6 border-t border-zinc-800 pt-4">
             <Button onClick={() => setIsRuleModalVisible(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" loading={saving}>
               {selectedRule ? "Update" : "Add"} Rule
             </Button>
           </div>
@@ -391,4 +462,3 @@ const ShippingRules = ({ onSave }) => {
 };
 
 export default ShippingRules;
-

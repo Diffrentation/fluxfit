@@ -21,6 +21,7 @@ const smsTemplateSchema = new mongoose.Schema(
         "order-confirmation",
         "order-shipped",
         "order-delivered",
+        "order-status-update",
         "payment-success",
         "payment-failed",
         "custom",

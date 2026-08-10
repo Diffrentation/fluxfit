@@ -48,6 +48,13 @@ const apiKeySchema = new mongoose.Schema(
       count: { type: Number, default: 0 },
       lastUsed: { type: Date, default: null },
     },
+    // Current rate-limit window — tracked in Mongo (not in-process memory) so
+    // the limit is enforced correctly even across multiple serverless
+    // instances, since they all share the same database.
+    rateLimitWindow: {
+      windowStart: { type: Date, default: null },
+      count: { type: Number, default: 0 },
+    },
     // Validity
     expiresAt: {
       type: Date,
@@ -116,11 +123,59 @@ apiKeySchema.methods.incrementUsage = function () {
   return this.save();
 };
 
-// Method to check rate limit
-apiKeySchema.methods.checkRateLimit = function () {
-  // This would typically be checked against Redis or similar
-  // For now, just return true
-  return true;
+const RATE_LIMIT_PERIOD_MS = { minute: 60 * 1000, hour: 60 * 60 * 1000, day: 24 * 60 * 60 * 1000 };
+
+// Atomically consume one request against this key's configured rate limit,
+// using conditional findOneAndUpdate calls so concurrent requests (including
+// across separate serverless instances) can't both slip past the limit.
+apiKeySchema.methods.consumeRateLimit = async function () {
+  const periodMs = RATE_LIMIT_PERIOD_MS[this.rateLimit.period] || RATE_LIMIT_PERIOD_MS.minute;
+  const limit = this.rateLimit.requests;
+  const now = new Date();
+  const windowFloor = new Date(now.getTime() - periodMs);
+
+  // First, try to increment within an existing, still-valid window.
+  const incremented = await this.constructor.findOneAndUpdate(
+    {
+      _id: this._id,
+      "rateLimitWindow.windowStart": { $gte: windowFloor },
+      "rateLimitWindow.count": { $lt: limit },
+    },
+    { $inc: { "rateLimitWindow.count": 1 } },
+    { new: true }
+  );
+  if (incremented) {
+    return {
+      allowed: true,
+      remaining: Math.max(0, limit - incremented.rateLimitWindow.count),
+      resetAt: new Date(incremented.rateLimitWindow.windowStart.getTime() + periodMs),
+    };
+  }
+
+  // No existing valid window matched — either this is the first request ever,
+  // the previous window expired, or the window is full. Try starting a fresh
+  // window (only succeeds if the window is genuinely missing/expired).
+  const started = await this.constructor.findOneAndUpdate(
+    {
+      _id: this._id,
+      $or: [
+        { "rateLimitWindow.windowStart": null },
+        { "rateLimitWindow.windowStart": { $lt: windowFloor } },
+      ],
+    },
+    { $set: { "rateLimitWindow.windowStart": now, "rateLimitWindow.count": 1 } },
+    { new: true }
+  );
+  if (started) {
+    return { allowed: true, remaining: limit - 1, resetAt: new Date(now.getTime() + periodMs) };
+  }
+
+  // Window is valid but full (or a concurrent request just filled it).
+  const current = await this.constructor.findById(this._id).select("rateLimitWindow");
+  const resetAt = current?.rateLimitWindow?.windowStart
+    ? new Date(current.rateLimitWindow.windowStart.getTime() + periodMs)
+    : new Date(now.getTime() + periodMs);
+  return { allowed: false, remaining: 0, resetAt };
 };
 
 // Method to validate IP

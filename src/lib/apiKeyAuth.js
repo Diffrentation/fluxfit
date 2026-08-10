@@ -83,6 +83,28 @@ export async function authenticateApiKey(request, { permission } = {}) {
       };
     }
 
+    const rateLimit = await apiKey.consumeRateLimit();
+    if (!rateLimit.allowed) {
+      return {
+        error: NextResponse.json(
+          {
+            success: false,
+            message: `Rate limit exceeded (${apiKey.rateLimit.requests} requests per ${apiKey.rateLimit.period})`,
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(Math.max(1, Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000))),
+              "X-RateLimit-Limit": String(apiKey.rateLimit.requests),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": rateLimit.resetAt.toISOString(),
+            },
+          }
+        ),
+        apiKey: null,
+      };
+    }
+
     if (permission && !apiKey.permissions.includes(permission) && !apiKey.permissions.includes("admin")) {
       return {
         error: NextResponse.json(

@@ -14,76 +14,67 @@ import {
   Space,
   Tooltip,
   Select,
+  InputNumber,
+  Switch,
+  DatePicker,
+  Spin,
+  Popconfirm,
 } from "antd";
-import { IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconEdit,
+  IconTrash,
+  IconCopy,
+  IconRefresh,
+} from "@tabler/icons-react";
+import axios from "axios";
+import dayjs from "dayjs";
 
 const { Option } = Select;
 
-const defaultApiKeys = [
-  {
-    id: 1,
-    name: "Stripe Payment",
-    key: "sk_live_51H...",
-    type: "payment",
-    status: "active",
-    createdAt: "2024-01-15",
-    lastUsed: "2024-05-20",
-  },
-  {
-    id: 2,
-    name: "Cloudinary Upload",
-    key: "cloudinary://123...",
-    type: "storage",
-    status: "active",
-    createdAt: "2024-02-01",
-    lastUsed: "2024-05-19",
-  },
-  {
-    id: 3,
-    name: "SMS Gateway",
-    key: "sms_api_key_...",
-    type: "sms",
-    status: "inactive",
-    createdAt: "2024-03-10",
-    lastUsed: "2024-04-15",
-  },
-];
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
+
+const PERMISSIONS = ["read", "write", "delete", "admin", "products", "orders", "payments", "users"];
 
 const APIKeysManagement = ({ onSave }) => {
   const [apiKeys, setApiKeys] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedKey, setSelectedKey] = useState(null);
   const [form] = Form.useForm();
-  const [visibleKeys, setVisibleKeys] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [revealedCredential, setRevealedCredential] = useState(null);
 
-  // Load API keys from localStorage
-  useEffect(() => {
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const stored = localStorage.getItem("adminAPIKeys");
-      if (stored) {
-        const keys = JSON.parse(stored);
-        setApiKeys(keys);
-      } else {
-        setApiKeys(defaultApiKeys);
-      }
-    } catch (error) {
-      console.error("Error loading API keys:", error);
-      setApiKeys(defaultApiKeys);
+      const { data } = await axios.get("/api/admin/settings/api-keys", {
+        headers: authHeaders(),
+      });
+      setApiKeys(data?.data?.apiKeys || []);
+    } catch (e) {
+      message.error(e.response?.data?.message || "Failed to load API keys");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Save to localStorage whenever apiKeys changes
   useEffect(() => {
-    try {
-      localStorage.setItem("adminAPIKeys", JSON.stringify(apiKeys));
-    } catch (error) {
-      console.error("Error saving API keys:", error);
-    }
-  }, [apiKeys]);
+    load();
+  }, [load]);
 
   const handleAdd = () => {
     setSelectedKey(null);
     form.resetFields();
+    form.setFieldsValue({
+      type: "public",
+      isActive: true,
+      rateLimitRequests: 100,
+      rateLimitPeriod: "minute",
+    });
     setIsModalVisible(true);
   };
 
@@ -91,61 +82,105 @@ const APIKeysManagement = ({ onSave }) => {
     setSelectedKey(key);
     form.setFieldsValue({
       name: key.name,
-      key: key.key,
       type: key.type,
-      status: key.status,
+      permissions: key.permissions || [],
+      rateLimitRequests: key.rateLimit?.requests ?? 100,
+      rateLimitPeriod: key.rateLimit?.period || "minute",
+      expiresAt: key.expiresAt ? dayjs(key.expiresAt) : null,
+      allowedIPs: key.allowedIPs || [],
+      webhookUrl: key.webhookUrl || "",
+      isActive: key.isActive,
     });
     setIsModalVisible(true);
   };
 
-  const handleDelete = (id) => {
-    setApiKeys(apiKeys.filter((k) => k.id !== id));
-    message.success("API key deleted successfully");
-  };
-
-  const handleSave = useCallback((values) => {
-    if (selectedKey) {
-      setApiKeys(
-        apiKeys.map((k) => (k.id === selectedKey.id ? { ...values, id: selectedKey.id, createdAt: selectedKey.createdAt } : k))
-      );
-      message.success("API key updated successfully");
-    } else {
-      setApiKeys([
-        ...apiKeys,
-        {
-          ...values,
-          id: Date.now(),
-          createdAt: new Date().toISOString().split('T')[0],
-          lastUsed: new Date().toISOString().split('T')[0],
-        },
-      ]);
-      message.success("API key added successfully");
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`/api/admin/settings/api-keys/${id}`, {
+        headers: authHeaders(),
+      });
+      message.success("API key deleted successfully");
+      load();
+    } catch (e) {
+      message.error(e.response?.data?.message || "Failed to delete API key");
     }
-    setIsModalVisible(false);
-    form.resetFields();
-    onSave();
-  }, [selectedKey, apiKeys, form, onSave]);
-
-  const toggleVisibility = (id) => {
-    setVisibleKeys((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
   };
+
+  const handleRegenerate = async (id) => {
+    try {
+      const { data } = await axios.post(
+        `/api/admin/settings/api-keys/${id}/regenerate`,
+        {},
+        { headers: authHeaders() }
+      );
+      setRevealedCredential({
+        name: data.data.apiKey.name,
+        key: data.data.apiKey.key,
+        secret: data.data.apiKey.secret,
+        regenerated: true,
+      });
+      load();
+    } catch (e) {
+      message.error(e.response?.data?.message || "Failed to regenerate API key");
+    }
+  };
+
+  const handleSave = useCallback(
+    async (values) => {
+      setSaving(true);
+      try {
+        const payload = {
+          name: values.name,
+          type: values.type,
+          permissions: values.permissions || [],
+          rateLimit: {
+            requests: values.rateLimitRequests,
+            period: values.rateLimitPeriod,
+          },
+          expiresAt: values.expiresAt ? values.expiresAt.toISOString() : null,
+          allowedIPs: values.allowedIPs || [],
+          webhookUrl: values.webhookUrl || null,
+          isActive: values.isActive !== undefined ? values.isActive : true,
+        };
+
+        if (selectedKey) {
+          await axios.put(`/api/admin/settings/api-keys/${selectedKey.id}`, payload, {
+            headers: authHeaders(),
+          });
+          message.success("API key updated successfully");
+          setIsModalVisible(false);
+          form.resetFields();
+        } else {
+          const { data } = await axios.post("/api/admin/settings/api-keys", payload, {
+            headers: authHeaders(),
+          });
+          setIsModalVisible(false);
+          form.resetFields();
+          setRevealedCredential({
+            name: data.data.apiKey.name,
+            key: data.data.apiKey.key,
+            secret: data.data.apiKey.secret,
+            regenerated: false,
+          });
+        }
+        load();
+        onSave?.();
+      } catch (e) {
+        message.error(e.response?.data?.message || "Failed to save API key");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [selectedKey, form, load, onSave]
+  );
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    message.success("API key copied to clipboard");
+    message.success("Copied to clipboard");
   };
 
   const getTypeColor = (type) => {
-    const colors = {
-      payment: "red",
-      storage: "blue",
-      sms: "green",
-      email: "purple",
-      analytics: "orange",
-    };
+    const colors = { public: "blue", private: "purple", webhook: "orange" };
     return colors[type] || "default";
   };
 
@@ -157,32 +192,10 @@ const APIKeysManagement = ({ onSave }) => {
       render: (name) => <span className="font-semibold">{name}</span>,
     },
     {
-      title: "API Key",
+      title: "Key",
       dataIndex: "key",
       key: "key",
-      render: (key, record) => (
-        <div className="flex items-center gap-2">
-          <code className="text-sm">
-            {visibleKeys[record.id] ? key : `${key.substring(0, 15)}...`}
-          </code>
-          <Tooltip title={visibleKeys[record.id] ? "Hide" : "Show"}>
-            <Button
-              type="text"
-              size="small"
-              icon={visibleKeys[record.id] ? <IconEyeOff className="w-3 h-3" /> : <IconEye className="w-3 h-3" />}
-              onClick={() => toggleVisibility(record.id)}
-            />
-          </Tooltip>
-          <Tooltip title="Copy">
-            <Button
-              type="text"
-              size="small"
-              icon={<IconCopy className="w-3 h-3" />}
-              onClick={() => copyToClipboard(key)}
-            />
-          </Tooltip>
-        </div>
-      ),
+      render: (key) => <code className="text-xs">{key}</code>,
     },
     {
       title: "Type",
@@ -191,41 +204,61 @@ const APIKeysManagement = ({ onSave }) => {
       render: (type) => <Tag color={getTypeColor(type)} className="capitalize">{type}</Tag>,
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"} className="capitalize">
-          {status}
-        </Tag>
-      ),
+      title: "Permissions",
+      dataIndex: "permissions",
+      key: "permissions",
+      render: (perms) => (perms?.length ? perms.join(", ") : "—"),
     },
     {
-      title: "Last Used",
-      dataIndex: "lastUsed",
-      key: "lastUsed",
-      render: (date) => new Date(date).toLocaleDateString(),
+      title: "Rate Limit",
+      key: "rateLimit",
+      render: (_, record) => `${record.rateLimit?.requests ?? 100}/${record.rateLimit?.period ?? "minute"}`,
+    },
+    {
+      title: "Usage",
+      key: "usage",
+      render: (_, record) => record.usage?.count ?? 0,
+    },
+    {
+      title: "Status",
+      dataIndex: "isValid",
+      key: "isValid",
+      render: (isValid) => (
+        <Tag color={isValid ? "green" : "red"}>{isValid ? "Active" : "Inactive/Expired"}</Tag>
+      ),
     },
     {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button
-            type="text"
-            icon={<IconEdit className="w-4 h-4" />}
-            onClick={() => handleEdit(record)}
-          />
-          <Button
-            type="text"
-            danger
-            icon={<IconTrash className="w-4 h-4" />}
-            onClick={() => handleDelete(record.id)}
-          />
+          <Tooltip title="Edit">
+            <Button type="text" icon={<IconEdit className="w-4 h-4" />} onClick={() => handleEdit(record)} />
+          </Tooltip>
+          <Popconfirm
+            title="Regenerate key & secret?"
+            description="The old key/secret stop working immediately."
+            onConfirm={() => handleRegenerate(record.id)}
+          >
+            <Tooltip title="Regenerate">
+              <Button type="text" icon={<IconRefresh className="w-4 h-4" />} />
+            </Tooltip>
+          </Popconfirm>
+          <Popconfirm title="Delete this API key?" onConfirm={() => handleDelete(record.id)}>
+            <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} />
+          </Popconfirm>
         </Space>
       ),
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -235,7 +268,7 @@ const APIKeysManagement = ({ onSave }) => {
     >
       <Alert
         message="Security Warning"
-        description="Keep your API keys secure. Never share them publicly or commit them to version control."
+        description="Keep your API keys secure. Never share them publicly or commit them to version control. The full key/secret is shown only once, right after creating or regenerating."
         type="warning"
         showIcon
         className="mb-3 sm:mb-4"
@@ -262,7 +295,7 @@ const APIKeysManagement = ({ onSave }) => {
             dataSource={apiKeys.map((k) => ({ ...k, key: k.id }))}
             columns={columns}
             pagination={false}
-            scroll={{ x: 800 }}
+            scroll={{ x: 900 }}
           />
         </div>
       </Card>
@@ -282,65 +315,152 @@ const APIKeysManagement = ({ onSave }) => {
       >
         <Form form={form} layout="vertical" onFinish={handleSave} className="mt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column */}
             <div className="space-y-4">
               <Form.Item
                 name="name"
                 label="API Key Name"
                 rules={[{ required: true, message: "Please enter API key name" }]}
               >
-                <Input placeholder="Stripe Payment" />
+                <Input placeholder="Mobile App" />
               </Form.Item>
 
-              <Form.Item
-                name="key"
-                label="API Key"
-                rules={[{ required: true, message: "Please enter API key" }]}
-              >
-                <Input.Password placeholder="Enter API key" />
-              </Form.Item>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-4">
               <Form.Item
                 name="type"
                 label="Type"
                 rules={[{ required: true, message: "Please select type" }]}
+                tooltip="Public keys authenticate with just the key. Private/webhook keys also require the matching secret."
               >
                 <Select>
-                  <Option value="payment">Payment</Option>
-                  <Option value="storage">Storage</Option>
-                  <Option value="sms">SMS</Option>
-                  <Option value="email">Email</Option>
-                  <Option value="analytics">Analytics</Option>
+                  <Option value="public">Public</Option>
+                  <Option value="private">Private</Option>
+                  <Option value="webhook">Webhook</Option>
                 </Select>
               </Form.Item>
 
               <Form.Item
-                name="status"
-                label="Status"
-                initialValue="active"
+                noStyle
+                shouldUpdate={(prev, cur) => prev.type !== cur.type}
               >
-                <Select>
-                  <Option value="active">Active</Option>
-                  <Option value="inactive">Inactive</Option>
+                {({ getFieldValue }) =>
+                  getFieldValue("type") === "webhook" && (
+                    <Form.Item
+                      name="webhookUrl"
+                      label="Webhook URL"
+                      rules={[{ required: true, message: "Required for webhook type" }]}
+                    >
+                      <Input placeholder="https://example.com/webhook" />
+                    </Form.Item>
+                  )
+                }
+              </Form.Item>
+
+              <Form.Item name="permissions" label="Permissions">
+                <Select mode="multiple" placeholder="Select permissions">
+                  {PERMISSIONS.map((p) => (
+                    <Option key={p} value={p}>{p}</Option>
+                  ))}
                 </Select>
+              </Form.Item>
+
+              <Form.Item name="isActive" label="Active" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item
+                  name="rateLimitRequests"
+                  label="Rate Limit (requests)"
+                  rules={[{ required: true, message: "Required" }]}
+                  className="mb-0"
+                >
+                  <InputNumber min={1} style={{ width: "100%" }} />
+                </Form.Item>
+                <Form.Item name="rateLimitPeriod" label="Per" className="mb-0">
+                  <Select>
+                    <Option value="minute">Minute</Option>
+                    <Option value="hour">Hour</Option>
+                    <Option value="day">Day</Option>
+                  </Select>
+                </Form.Item>
+              </div>
+
+              <Form.Item name="expiresAt" label="Expires At" tooltip="Leave empty for a key that never expires">
+                <DatePicker showTime style={{ width: "100%" }} />
+              </Form.Item>
+
+              <Form.Item
+                name="allowedIPs"
+                label="IP Allowlist"
+                tooltip="Leave empty to allow requests from any IP"
+              >
+                <Select mode="tags" placeholder="e.g. 203.0.113.10" />
               </Form.Item>
             </div>
           </div>
 
           <div className="flex justify-end gap-2 mt-6 border-t border-zinc-800 pt-4">
             <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" loading={saving}>
               {selectedKey ? "Update" : "Add"} API Key
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      <Modal
+        title={revealedCredential?.regenerated ? "API Key Regenerated" : "API Key Created"}
+        open={!!revealedCredential}
+        onCancel={() => setRevealedCredential(null)}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setRevealedCredential(null)}>
+            I&apos;ve saved these credentials
+          </Button>,
+        ]}
+        closable={false}
+        maskClosable={false}
+        centered
+      >
+        <Alert
+          type="warning"
+          showIcon
+          className="mb-4"
+          message="This is the only time the full key and secret will be shown."
+        />
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs text-gray-500 mb-1">Name</div>
+            <div className="font-semibold">{revealedCredential?.name}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">API Key</div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs break-all">{revealedCredential?.key}</code>
+              <Button
+                type="text"
+                size="small"
+                icon={<IconCopy className="w-3 h-3" />}
+                onClick={() => copyToClipboard(revealedCredential?.key)}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">Secret</div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs break-all">{revealedCredential?.secret}</code>
+              <Button
+                type="text"
+                size="small"
+                icon={<IconCopy className="w-3 h-3" />}
+                onClick={() => copyToClipboard(revealedCredential?.secret)}
+              />
+            </div>
+          </div>
+        </div>
       </Modal>
     </motion.div>
   );
 };
 
 export default APIKeysManagement;
-

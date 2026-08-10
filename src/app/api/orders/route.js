@@ -696,6 +696,17 @@ export async function POST(request) {
         cost: shippingCostNum,
         estimatedDays: shippingMethod === "express" ? 1 : 3,
       },
+      delivery: {
+        // Set a real estimate up front from shipping.estimatedDays, instead
+        // of leaving it null until an admin manually assigns a delivery
+        // partner later — that's what forced the order-detail UI to fall
+        // back to a client-side orderDate+3..+5 guess for most of an
+        // order's life. assign-delivery still overwrites this with a
+        // partner-specific date once one is assigned.
+        estimatedDelivery: new Date(
+          Date.now() + (shippingMethod === "express" ? 1 : 3) * 24 * 60 * 60 * 1000,
+        ),
+      },
       payment: {
         // paymentMethod is validated against ACTIVE_PAYMENT_METHODS above,
         // so this is always "cod" today — the status/paidAt branch is kept

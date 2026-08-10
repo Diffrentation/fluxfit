@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/order.model";
 import { authenticateAdmin } from "@/lib/auth";
+import { sendOrderStatusUpdateEmail } from "@/lib/email";
+import { sendOrderStatusUpdateSMS } from "@/lib/sms";
 import mongoose from "mongoose";
 
 /**
@@ -134,15 +136,15 @@ export async function PUT(request, { params }) {
     }
 
     // If status is confirmed or processing, update to shipped when delivery is assigned
+    const deliveryNote = `Delivery assigned to ${partner.trim()}${trackingNumber ? ` (Tracking: ${trackingNumber.trim()})` : ""}`;
     if (order.status === "confirmed" || order.status === "processing") {
-      const statusNote = `Delivery assigned to ${partner.trim()}${trackingNumber ? ` (Tracking: ${trackingNumber.trim()})` : ""}`;
-      order.updateStatus("shipped", statusNote, user._id);
+      order.updateStatus("shipped", deliveryNote, user._id);
     } else {
       // Just add a note to status history
       order.statusHistory.push({
         status: order.status,
         timestamp: new Date(),
-        note: `Delivery assigned to ${partner.trim()}${trackingNumber ? ` (Tracking: ${trackingNumber.trim()})` : ""}`,
+        note: deliveryNote,
         updatedBy: user._id,
       });
     }
@@ -214,6 +216,31 @@ export async function PUT(request, { params }) {
         status: item.status,
       };
     });
+
+    // Notify the customer by email/SMS (best-effort, does not block the response)
+    if (order.user?.email || order.user?.phone) {
+      if (order.user?.email) {
+        sendOrderStatusUpdateEmail(order.user.email, {
+          orderId: order.orderNumber,
+          status: order.status,
+          customerName: order.user.firstname
+            ? `${order.user.firstname} ${order.user.lastname || ""}`.trim()
+            : undefined,
+          note: deliveryNote,
+        }).catch((err) =>
+          console.error("Failed to send assign-delivery email:", err)
+        );
+      }
+      if (order.user?.phone) {
+        sendOrderStatusUpdateSMS(order.user.phone, {
+          orderId: order.orderNumber,
+          status: order.status,
+          note: deliveryNote,
+        }).catch((err) =>
+          console.error("Failed to send assign-delivery SMS:", err)
+        );
+      }
+    }
 
     // Return response
     return NextResponse.json(

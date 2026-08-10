@@ -3,6 +3,8 @@ import connectDB from "@/lib/db";
 import Order from "@/models/order.model";
 import Product from "@/models/product.model";
 import { authenticateAdmin } from "@/lib/auth";
+import { sendOrderStatusUpdateEmail } from "@/lib/email";
+import { sendOrderStatusUpdateSMS } from "@/lib/sms";
 import mongoose from "mongoose";
 
 /**
@@ -214,6 +216,32 @@ export async function POST(request, { params }) {
         status: item.status,
       };
     });
+
+    // Notify the customer by email/SMS (best-effort, does not block the response)
+    if (order.user?.email || order.user?.phone) {
+      const note_ = `Order cancelled by admin. Reason: ${reason.trim()}`;
+      if (order.user?.email) {
+        sendOrderStatusUpdateEmail(order.user.email, {
+          orderId: order.orderNumber,
+          status: order.status,
+          customerName: order.user.firstname
+            ? `${order.user.firstname} ${order.user.lastname || ""}`.trim()
+            : undefined,
+          note: note_,
+        }).catch((err) =>
+          console.error("Failed to send admin-cancel email:", err)
+        );
+      }
+      if (order.user?.phone) {
+        sendOrderStatusUpdateSMS(order.user.phone, {
+          orderId: order.orderNumber,
+          status: order.status,
+          note: note_,
+        }).catch((err) =>
+          console.error("Failed to send admin-cancel SMS:", err)
+        );
+      }
+    }
 
     // Return response
     return NextResponse.json(

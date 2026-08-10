@@ -149,9 +149,45 @@ export const sendOTPSMS = async (phoneNumber, otp, type = "password-reset") => {
   return await sendSMS(phoneNumber, message);
 };
 
+const ORDER_STATUS_SMS_TEMPLATE_TYPE = {
+  shipped: "order-shipped",
+  delivered: "order-delivered",
+};
+
+/**
+ * Send an order status-change SMS (return approved/rejected, refund processed,
+ * partial cancel, etc). Mirrors sendOrderStatusUpdateEmail's template lookup:
+ * prefers an admin-edited SMSTemplate for the mapped type, falls back to a
+ * short hardcoded message so delivery never breaks over a missing template.
+ * @param {string} phoneNumber - Recipient phone number
+ * @param {Object} orderData
+ * @param {string} orderData.orderId - Order number shown to the customer
+ * @param {string} orderData.status - New order status
+ * @param {string} [orderData.note] - Optional extra detail
+ * @returns {Promise<Object>} - Result object
+ */
+export const sendOrderStatusUpdateSMS = async (phoneNumber, orderData) => {
+  const { orderId, status, note } = orderData;
+  const templateType = ORDER_STATUS_SMS_TEMPLATE_TYPE[status] || "order-status-update";
+
+  let message = `FluxFit: Your order #${orderId} is now "${status}".${note ? ` ${note}` : ""}`;
+  try {
+    await connectDB();
+    const template = await SMSTemplate.findOne({ type: templateType, isActive: true });
+    if (template) {
+      message = template.render({ orderId, status, note: note || "" });
+    }
+  } catch (err) {
+    console.error("Failed to load order-status SMS template, using default copy:", err);
+  }
+
+  return await sendSMS(phoneNumber, message);
+};
+
 const smsService = {
   sendSMS,
   sendOTPSMS,
+  sendOrderStatusUpdateSMS,
 };
 
 export default smsService;

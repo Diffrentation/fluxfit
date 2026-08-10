@@ -1,75 +1,82 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import {
-  Card,
-  Form,
-  Switch,
-  Input,
-  Button,
-  Alert,
-  message,
-  Divider,
-} from "antd";
+import { Card, Form, Switch, Input, Button, Alert, message, Divider, Spin } from "antd";
 import { IconDeviceFloppy, IconAlertTriangle } from "@tabler/icons-react";
+import axios from "axios";
 
 const { TextArea } = Input;
+
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
 
 const MaintenanceMode = ({ onSave }) => {
   const [form] = Form.useForm();
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Load settings from localStorage
-  useEffect(() => {
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const stored = localStorage.getItem("adminMaintenanceSettings");
-      if (stored) {
-        const settings = JSON.parse(stored);
-        setIsMaintenanceMode(settings.isMaintenanceMode || false);
-        form.setFieldsValue(settings);
-      } else {
-        // Set default values
-        form.setFieldsValue({
-          isMaintenanceMode: false,
-          maintenanceTitle: "We'll be back soon!",
-          maintenanceMessage: "We're currently performing scheduled maintenance. We'll be back online shortly. Thank you for your patience.",
-          allowAdminAccess: true,
-          estimatedDuration: "2 hours",
-        });
-      }
-    } catch (error) {
-      console.error("Error loading maintenance settings:", error);
+      const { data } = await axios.get("/api/settings");
+      const maintenance = data?.data?.maintenance || {};
+      setIsMaintenanceMode(!!maintenance.enabled);
+      form.setFieldsValue({
+        isMaintenanceMode: !!maintenance.enabled,
+        maintenanceMessage:
+          maintenance.message ||
+          "We are currently under maintenance. Please check back later.",
+      });
+    } catch (e) {
+      message.error(e.response?.data?.message || "Failed to load maintenance settings");
+    } finally {
+      setLoading(false);
     }
   }, [form]);
 
-  // Save to localStorage whenever state changes
   useEffect(() => {
-    try {
-      const formValues = form.getFieldsValue();
-      const settings = {
-        ...formValues,
-        isMaintenanceMode,
-      };
-      localStorage.setItem("adminMaintenanceSettings", JSON.stringify(settings));
-    } catch (error) {
-      console.error("Error saving maintenance settings:", error);
-    }
-  }, [isMaintenanceMode, form]);
+    load();
+  }, [load]);
 
-  const handleSubmit = useCallback((values) => {
-    const settings = {
-      ...values,
-      isMaintenanceMode,
-    };
-    try {
-      localStorage.setItem("adminMaintenanceSettings", JSON.stringify(settings));
-      message.success("Maintenance mode settings saved successfully");
-      onSave();
-    } catch (error) {
-      message.error("Failed to save settings");
-      console.error("Error saving maintenance settings:", error);
-    }
-  }, [isMaintenanceMode, onSave]);
+  const handleSubmit = useCallback(
+    async (values) => {
+      setSaving(true);
+      try {
+        await axios.put(
+          "/api/settings",
+          {
+            maintenance: {
+              enabled: !!values.isMaintenanceMode,
+              message: values.maintenanceMessage,
+            },
+          },
+          { headers: authHeaders() }
+        );
+        message.success(
+          values.isMaintenanceMode
+            ? "Maintenance mode is now ON — the storefront is blocked for non-admins."
+            : "Maintenance mode settings saved."
+        );
+        onSave();
+      } catch (e) {
+        message.error(e.response?.data?.message || "Failed to save settings");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [onSave]
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -106,55 +113,16 @@ const MaintenanceMode = ({ onSave }) => {
           {isMaintenanceMode && (
             <>
               <Divider />
-
-              <Form.Item
-                name="maintenanceTitle"
-                label="Maintenance Title"
-                rules={[{ required: true, message: "Please enter maintenance title" }]}
-              >
-                <Input placeholder="We'll be back soon!" />
-              </Form.Item>
-
               <Form.Item
                 name="maintenanceMessage"
                 label="Maintenance Message"
                 rules={[{ required: true, message: "Please enter maintenance message" }]}
+                help="Shown to visitors on the maintenance page. Admins (logged in with an admin session) can still browse the site normally."
               >
-                <TextArea
-                  rows={4}
-                  placeholder="Enter maintenance message for users..."
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="estimatedDuration"
-                label="Estimated Duration"
-                rules={[{ required: true, message: "Please enter estimated duration" }]}
-              >
-                <Input placeholder="2 hours" />
-              </Form.Item>
-
-              <Form.Item
-                name="allowAdminAccess"
-                label="Allow Admin Access"
-                valuePropName="checked"
-                help="Administrators can still access the admin panel during maintenance"
-              >
-                <Switch />
+                <TextArea rows={4} placeholder="Enter maintenance message for users..." />
               </Form.Item>
             </>
           )}
-        </Card>
-
-        <Card title="Scheduled Maintenance" className="mb-3 sm:mb-4 w-full min-w-0">
-          <div className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4">
-            Schedule maintenance windows to minimize disruption to your users.
-          </div>
-          <div className="bg-gray-50 !bg-zinc-950 p-3 sm:p-4 rounded-lg">
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-              <strong>Note:</strong> Scheduled maintenance feature coming soon. For now, you can manually enable/disable maintenance mode.
-            </p>
-          </div>
         </Card>
 
         <div className="flex justify-end">
@@ -164,6 +132,7 @@ const MaintenanceMode = ({ onSave }) => {
             icon={<IconDeviceFloppy className="w-4 h-4" />}
             size="large"
             danger={isMaintenanceMode}
+            loading={saving}
             className="w-full sm:w-auto"
           >
             {isMaintenanceMode ? "Save & Activate Maintenance Mode" : "Save Settings"}
@@ -175,4 +144,3 @@ const MaintenanceMode = ({ onSave }) => {
 };
 
 export default MaintenanceMode;
-

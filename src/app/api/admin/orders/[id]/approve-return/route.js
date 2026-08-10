@@ -4,6 +4,7 @@ import Order from "@/models/order.model";
 import Product from "@/models/product.model";
 import { authenticateAdmin } from "@/lib/auth";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
+import { sendOrderStatusUpdateSMS } from "@/lib/sms";
 import mongoose from "mongoose";
 
 /**
@@ -267,21 +268,33 @@ export async function POST(request, { params }) {
       };
     });
 
-    // Notify the customer by email (best-effort, does not block the response)
-    if (order.user?.email) {
+    // Notify the customer by email/SMS (best-effort, does not block the response)
+    if (order.user?.email || order.user?.phone) {
       const approvedItemNames = approvedItems
         .map((item) => item.productName)
         .join(", ");
-      sendOrderStatusUpdateEmail(order.user.email, {
-        orderId: order.orderNumber,
-        status: order.status,
-        customerName: order.user.firstname
-          ? `${order.user.firstname} ${order.user.lastname || ""}`.trim()
-          : undefined,
-        note: `Return approved for ${approvedItems.length} item(s) (${approvedItemNames})${note ? `: ${note.trim()}` : ""}`,
-      }).catch((err) =>
-        console.error("Failed to send approve-return email:", err)
-      );
+      const note_ = `Return approved for ${approvedItems.length} item(s) (${approvedItemNames})${note ? `: ${note.trim()}` : ""}`;
+      if (order.user?.email) {
+        sendOrderStatusUpdateEmail(order.user.email, {
+          orderId: order.orderNumber,
+          status: order.status,
+          customerName: order.user.firstname
+            ? `${order.user.firstname} ${order.user.lastname || ""}`.trim()
+            : undefined,
+          note: note_,
+        }).catch((err) =>
+          console.error("Failed to send approve-return email:", err)
+        );
+      }
+      if (order.user?.phone) {
+        sendOrderStatusUpdateSMS(order.user.phone, {
+          orderId: order.orderNumber,
+          status: order.status,
+          note: note_,
+        }).catch((err) =>
+          console.error("Failed to send approve-return SMS:", err)
+        );
+      }
     }
 
     // Return response

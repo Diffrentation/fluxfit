@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import Order from "@/models/order.model";
 import { authenticateAdmin } from "@/lib/auth";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
+import { sendOrderStatusUpdateSMS } from "@/lib/sms";
 import mongoose from "mongoose";
 
 /**
@@ -334,18 +335,30 @@ export async function POST(request, { params }) {
       };
     });
 
-    // Notify the customer by email (best-effort, does not block the response)
-    if (order.user?.email) {
-      sendOrderStatusUpdateEmail(order.user.email, {
-        orderId: order.orderNumber,
-        status: order.status,
-        customerName: order.user.firstname
-          ? `${order.user.firstname} ${order.user.lastname || ""}`.trim()
-          : undefined,
-        note: `Refund of ₹${totalRefundAmount} processed for ${refundedItems.length} item(s).`,
-      }).catch((err) =>
-        console.error("Failed to send process-refund email:", err)
-      );
+    // Notify the customer by email/SMS (best-effort, does not block the response)
+    if (order.user?.email || order.user?.phone) {
+      const note_ = `Refund of ₹${totalRefundAmount} processed for ${refundedItems.length} item(s).`;
+      if (order.user?.email) {
+        sendOrderStatusUpdateEmail(order.user.email, {
+          orderId: order.orderNumber,
+          status: order.status,
+          customerName: order.user.firstname
+            ? `${order.user.firstname} ${order.user.lastname || ""}`.trim()
+            : undefined,
+          note: note_,
+        }).catch((err) =>
+          console.error("Failed to send process-refund email:", err)
+        );
+      }
+      if (order.user?.phone) {
+        sendOrderStatusUpdateSMS(order.user.phone, {
+          orderId: order.orderNumber,
+          status: order.status,
+          note: note_,
+        }).catch((err) =>
+          console.error("Failed to send process-refund SMS:", err)
+        );
+      }
     }
 
     // Return response

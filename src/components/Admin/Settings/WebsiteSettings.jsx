@@ -1,85 +1,90 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import {
-  Card,
-  Form,
-  Input,
-  Switch,
-  Button,
-  Upload,
-  Select,
-  InputNumber,
-  Divider,
-  message,
-} from "antd";
+import { Card, Form, Input, Button, Upload, Divider, message, Spin } from "antd";
 import { IconUpload, IconDeviceFloppy } from "@tabler/icons-react";
+import axios from "axios";
 import { uploadImage } from "@/lib/upload-client";
 
-const { TextArea } = Input;
-const { Option } = Select;
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
 
 const WebsiteSettings = ({ onSave }) => {
   const [form] = Form.useForm();
   const [logo, setLogo] = useState("");
   const [favicon, setFavicon] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Load settings from localStorage
-  useEffect(() => {
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const stored = localStorage.getItem("adminWebsiteSettings");
-      if (stored) {
-        const settings = JSON.parse(stored);
-        setLogo(settings.logo || "");
-        setFavicon(settings.favicon || "");
-        form.setFieldsValue(settings);
-      } else {
-        form.setFieldsValue({
-          siteName: "FluxFit",
-          siteDescription: "Your one-stop fashion destination",
-          siteUrl: "https://fluxfit.com",
-          contactEmail: "support@fluxfit.com",
-          contactPhone: "+91 1234567890",
-          enableRegistration: true,
-          enableReviews: true,
-          enableWishlist: true,
-          itemsPerPage: 20,
-        });
-      }
-    } catch (error) {
-      console.error("Error loading website settings:", error);
+      const { data } = await axios.get("/api/settings");
+      const website = data?.data?.website || {};
+      setLogo(website.logo || "");
+      setFavicon(website.favicon || "");
+      form.setFieldsValue({
+        name: website.name || "FluxFit",
+        email: website.email || "",
+        phone: website.phone || "",
+        addressLine1: website.address?.line1 || "",
+        addressLine2: website.address?.line2 || "",
+        city: website.address?.city || "",
+        state: website.address?.state || "",
+        country: website.address?.country || "India",
+        pincode: website.address?.pincode || "",
+        facebook: website.socialMedia?.facebook || "",
+        twitter: website.socialMedia?.twitter || "",
+        instagram: website.socialMedia?.instagram || "",
+        linkedin: website.socialMedia?.linkedin || "",
+        youtube: website.socialMedia?.youtube || "",
+      });
+    } catch (e) {
+      message.error(e.response?.data?.message || "Failed to load website settings");
+    } finally {
+      setLoading(false);
     }
   }, [form]);
 
-  // Save to localStorage whenever state changes
   useEffect(() => {
-    try {
-      const formValues = form.getFieldsValue();
-      const settings = {
-        ...formValues,
-        logo,
-        favicon,
-      };
-      localStorage.setItem("adminWebsiteSettings", JSON.stringify(settings));
-    } catch (error) {
-      console.error("Error saving website settings:", error);
-    }
-  }, [logo, favicon, form]);
+    load();
+  }, [load]);
 
   const handleSubmit = useCallback(
-    (values) => {
-      const settings = {
-        ...values,
-        logo,
-        favicon,
-      };
+    async (values) => {
+      setSaving(true);
       try {
-        localStorage.setItem("adminWebsiteSettings", JSON.stringify(settings));
+        const website = {
+          name: values.name,
+          logo: logo || null,
+          favicon: favicon || null,
+          email: values.email,
+          phone: values.phone,
+          address: {
+            line1: values.addressLine1 || "",
+            line2: values.addressLine2 || "",
+            city: values.city || "",
+            state: values.state || "",
+            country: values.country || "India",
+            pincode: values.pincode || "",
+          },
+          socialMedia: {
+            facebook: values.facebook || "",
+            twitter: values.twitter || "",
+            instagram: values.instagram || "",
+            linkedin: values.linkedin || "",
+            youtube: values.youtube || "",
+          },
+        };
+        await axios.put("/api/settings", { website }, { headers: authHeaders() });
         message.success("Website settings saved successfully");
         onSave();
-      } catch (error) {
-        message.error("Failed to save settings");
-        console.error("Error saving website settings:", error);
+      } catch (e) {
+        message.error(e.response?.data?.message || "Failed to save settings");
+      } finally {
+        setSaving(false);
       }
     },
     [logo, favicon, onSave]
@@ -92,7 +97,7 @@ const WebsiteSettings = ({ onSave }) => {
         const file = info.file.originFileObj || info.file;
         const result = await uploadImage(file, { folder: "fluxfit/settings" });
         setLogo(result.url);
-        message.success("Logo uploaded successfully");
+        message.success("Logo uploaded — click Save Settings to apply it");
       } catch (error) {
         message.error("Failed to upload logo");
       }
@@ -106,12 +111,20 @@ const WebsiteSettings = ({ onSave }) => {
         const file = info.file.originFileObj || info.file;
         const result = await uploadImage(file, { folder: "fluxfit/settings" });
         setFavicon(result.url);
-        message.success("Favicon uploaded successfully");
+        message.success("Favicon uploaded — click Save Settings to apply it");
       } catch (error) {
         message.error("Failed to upload favicon");
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -121,57 +134,68 @@ const WebsiteSettings = ({ onSave }) => {
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Card title="General Settings" className="mb-3 sm:mb-4 w-full min-w-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <Form.Item
-              name="siteName"
-              label="Site Name"
-              rules={[{ required: true, message: "Please enter site name" }]}
-            >
-              <Input placeholder="FluxFit" />
-            </Form.Item>
-
-            <Form.Item
-              name="siteUrl"
-              label="Site URL"
-              rules={[
-                { required: true, message: "Please enter site URL" },
-                { type: "url", message: "Please enter a valid URL" },
-              ]}
-            >
-              <Input placeholder="https://fluxfit.com" />
-            </Form.Item>
-          </div>
-
           <Form.Item
-            name="siteDescription"
-            label="Site Description"
-            rules={[
-              { required: true, message: "Please enter site description" },
-            ]}
+            name="name"
+            label="Site Name"
+            rules={[{ required: true, message: "Please enter site name" }]}
           >
-            <TextArea rows={3} placeholder="Enter site description for SEO" />
+            <Input placeholder="FluxFit" />
           </Form.Item>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Form.Item
-              name="contactEmail"
+              name="email"
               label="Contact Email"
-              rules={[
-                { required: true, message: "Please enter contact email" },
-                { type: "email", message: "Please enter a valid email" },
-              ]}
+              rules={[{ type: "email", message: "Please enter a valid email" }]}
             >
               <Input placeholder="support@fluxfit.com" />
             </Form.Item>
 
-            <Form.Item
-              name="contactPhone"
-              label="Contact Phone"
-              rules={[
-                { required: true, message: "Please enter contact phone" },
-              ]}
-            >
+            <Form.Item name="phone" label="Contact Phone">
               <Input placeholder="+91 1234567890" />
+            </Form.Item>
+          </div>
+        </Card>
+
+        <Card title="Address" className="mb-3 sm:mb-4 w-full min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <Form.Item name="addressLine1" label="Address Line 1">
+              <Input placeholder="Street address" />
+            </Form.Item>
+            <Form.Item name="addressLine2" label="Address Line 2">
+              <Input placeholder="Apartment, suite, etc. (optional)" />
+            </Form.Item>
+            <Form.Item name="city" label="City">
+              <Input placeholder="City" />
+            </Form.Item>
+            <Form.Item name="state" label="State">
+              <Input placeholder="State" />
+            </Form.Item>
+            <Form.Item name="country" label="Country">
+              <Input placeholder="India" />
+            </Form.Item>
+            <Form.Item name="pincode" label="Pincode">
+              <Input placeholder="Pincode" />
+            </Form.Item>
+          </div>
+        </Card>
+
+        <Card title="Social Media" className="mb-3 sm:mb-4 w-full min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <Form.Item name="facebook" label="Facebook URL">
+              <Input placeholder="https://facebook.com/..." />
+            </Form.Item>
+            <Form.Item name="twitter" label="Twitter / X URL">
+              <Input placeholder="https://x.com/..." />
+            </Form.Item>
+            <Form.Item name="instagram" label="Instagram URL">
+              <Input placeholder="https://instagram.com/..." />
+            </Form.Item>
+            <Form.Item name="linkedin" label="LinkedIn URL">
+              <Input placeholder="https://linkedin.com/..." />
+            </Form.Item>
+            <Form.Item name="youtube" label="YouTube URL">
+              <Input placeholder="https://youtube.com/..." />
             </Form.Item>
           </div>
         </Card>
@@ -179,24 +203,18 @@ const WebsiteSettings = ({ onSave }) => {
         <Card title="Branding" className="mb-3 sm:mb-4 w-full min-w-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Site Logo
               </label>
               <Upload
                 listType="picture-card"
                 fileList={
                   logo
-                    ? [
-                        {
-                          uid: "1",
-                          name: "logo.png",
-                          status: "done",
-                          url: logo,
-                        },
-                      ]
+                    ? [{ uid: "1", name: "logo.png", status: "done", url: logo }]
                     : []
                 }
                 onChange={handleLogoUpload}
+                onRemove={() => setLogo("")}
                 accept="image/*"
                 maxCount={1}
               >
@@ -213,24 +231,18 @@ const WebsiteSettings = ({ onSave }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Favicon
               </label>
               <Upload
                 listType="picture-card"
                 fileList={
                   favicon
-                    ? [
-                        {
-                          uid: "1",
-                          name: "favicon.ico",
-                          status: "done",
-                          url: favicon,
-                        },
-                      ]
+                    ? [{ uid: "1", name: "favicon.ico", status: "done", url: favicon }]
                     : []
                 }
                 onChange={handleFaviconUpload}
+                onRemove={() => setFavicon("")}
                 accept="image/*"
                 maxCount={1}
               >
@@ -248,67 +260,7 @@ const WebsiteSettings = ({ onSave }) => {
           </div>
         </Card>
 
-        <Card title="Features" className="mb-3 sm:mb-4 w-full min-w-0">
-          <div className="space-y-3 sm:space-y-4">
-            <Form.Item
-              name="enableRegistration"
-              label="User Registration"
-              valuePropName="checked"
-            >
-              <Switch />
-            </Form.Item>
-
-            <Form.Item
-              name="enableReviews"
-              label="Product Reviews"
-              valuePropName="checked"
-            >
-              <Switch />
-            </Form.Item>
-
-            <Form.Item
-              name="enableWishlist"
-              label="Wishlist Feature"
-              valuePropName="checked"
-            >
-              <Switch />
-            </Form.Item>
-          </div>
-        </Card>
-
-        <Card title="Display Settings" className="mb-3 sm:mb-4 w-full min-w-0">
-          <Form.Item
-            name="itemsPerPage"
-            label="Items Per Page"
-            rules={[{ required: true, message: "Please enter items per page" }]}
-          >
-            <InputNumber min={10} max={100} style={{ width: "100%" }} />
-          </Form.Item>
-
-          <Form.Item
-            name="defaultLanguage"
-            label="Default Language"
-            initialValue="en"
-          >
-            <Select>
-              <Option value="en">English</Option>
-              <Option value="hi">Hindi</Option>
-              <Option value="ta">Tamil</Option>
-              <Option value="te">Telugu</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="timezone"
-            label="Timezone"
-            initialValue="Asia/Kolkata"
-          >
-            <Select>
-              <Option value="Asia/Kolkata">Asia/Kolkata (IST)</Option>
-              <Option value="UTC">UTC</Option>
-            </Select>
-          </Form.Item>
-        </Card>
+        <Divider className="!my-3" />
 
         <div className="flex justify-end">
           <Button
@@ -316,6 +268,7 @@ const WebsiteSettings = ({ onSave }) => {
             htmlType="submit"
             icon={<IconDeviceFloppy className="w-4 h-4" />}
             size="large"
+            loading={saving}
             className="w-full sm:w-auto"
           >
             Save Settings
