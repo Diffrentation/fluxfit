@@ -65,7 +65,7 @@ export async function GET(request) {
 
     // Sort products by viewedAt (most recent first)
     const sortedProducts = recentlyViewed.products
-      .filter((item) => item.product && !item.product.isdeleted) // Filter out deleted products
+      .filter((item) => item.product && !item.product.isDeleted) // Filter out deleted products
       .sort((a, b) => new Date(b.viewedAt) - new Date(a.viewedAt));
 
     // Paginate
@@ -187,7 +187,7 @@ export async function POST(request) {
     // Check if product exists and is not deleted
     const product = await Product.findOne({
       _id: productId,
-      isdeleted: false,
+      isDeleted: false,
     });
 
     if (!product) {

@@ -324,6 +324,15 @@ export function AuthProvider({ children }) {
         if (original._retry) {
           return Promise.reject(error);
         }
+
+        // A request that never carried a token was never authenticated to
+        // begin with (e.g. a guest hitting an account-only endpoint like
+        // recently-viewed or wishlist-check). There's no session to refresh
+        // or expire, so let it fail silently instead of forcing every guest
+        // who triggers a background 401 into a logout + /auth/login redirect.
+        if (!original.headers?.Authorization) {
+          return Promise.reject(error);
+        }
         original._retry = true;
         try {
           await refreshRef.current();

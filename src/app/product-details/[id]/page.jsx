@@ -113,7 +113,16 @@ function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const [canHoverZoom, setCanHoverZoom] = useState(false);
+  const imageContainerRef = useRef(null);
   const infoSectionRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    setCanHoverZoom(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+  }, []);
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
@@ -601,6 +610,33 @@ function ProductDetails() {
     return typeof candidate === "string" ? candidate : "";
   };
 
+  const variantImageUrl = product ? getVariantImage(selectedVariant) : "";
+  const displayImages = useMemo(() => {
+    const base = product?.images || [];
+    if (variantImageUrl && !base.includes(variantImageUrl)) {
+      return [variantImageUrl, ...base];
+    }
+    return base;
+  }, [variantImageUrl, product?.images]);
+
+  // Jump back to the variant's own image (or the first shot) whenever the
+  // selected variant changes, so the gallery doesn't keep showing an image
+  // for a color/size the shopper is no longer looking at.
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [selectedVariant?._id, selectedVariant?.sku]);
+
+  const handleImageMouseMove = (e) => {
+    if (!imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPos({
+      x: Math.min(100, Math.max(0, x)),
+      y: Math.min(100, Math.max(0, y)),
+    });
+  };
+
   const handleAddCustomDesign = () => {
     if (!product) return;
 
@@ -717,20 +753,21 @@ function ProductDetails() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="flex items-center gap-2 text-sm text-gray-600 mb-4"
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-gray-600 mb-4 max-w-full"
         >
           <motion.button
             onClick={() => router.push("/")}
             whileHover={{ x: -2 }}
-            className="hover:text-gray-900 transition-colors"
+            className="hover:text-gray-900 transition-colors shrink-0"
           >
             Home
           </motion.button>
-          <span>/</span>
-          <span className="text-gray-900">{product.category || "—"}</span>
-          <span>/</span>
-          <span className="text-gray-900">{product.name}</span>
-        </motion.div>        {/* Main Product Section */}
+          <span className="shrink-0">/</span>
+          <span className="text-gray-900 shrink-0">{product.category || "—"}</span>
+          <span className="shrink-0">/</span>
+          <span className="text-gray-900 break-words">{product.name}</span>
+        </motion.div>
+        {/* Main Product Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -738,50 +775,79 @@ function ProductDetails() {
           className="bg-white rounded-3xl shadow-md p-6 lg:p-8 mb-8"
         >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 relative items-start">
-            {/* Left Column (Image) */}
+            {/* Left Column (Image Gallery) */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
-              className="lg:col-span-6 relative bg-[#fafcfb] rounded-2xl p-4 sm:p-6 lg:p-10 flex flex-col items-center justify-center h-[300px] sm:h-[400px] lg:h-[500px] lg:sticky lg:top-24"
+              className="lg:col-span-6 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 lg:sticky lg:top-24"
             >
-              {displayPricing.discountPercent > 0 && (
-                <div className="absolute top-6 left-6 z-10 bg-[#1e9a58] text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                  -{displayPricing.discountPercent}%
-                </div>
-              )}
-              
-              <motion.div
-                key={selectedImage}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
-                className="relative w-full h-full"
-              >
-                <Image
-                  src={product.images[selectedImage]}
-                  alt={product.name}
-                  fill
-                  className="object-contain drop-shadow-2xl"
-                  priority
-                />
-              </motion.div>
-
-              {/* Pagination Dots */}
-              {product.images.length > 1 && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
-                  {product.images.map((_, idx) => (
+              {/* Thumbnail rail: below main image on mobile, left of it from sm+ */}
+              {displayImages.length > 1 && (
+                <div className="flex sm:flex-col gap-2 sm:gap-3 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto sm:max-h-[440px] lg:max-h-[540px] pb-1 sm:pb-0 sm:pr-1">
+                  {displayImages.map((img, idx) => (
                     <button
-                      key={idx}
+                      key={img + idx}
+                      type="button"
                       onClick={() => setSelectedImage(idx)}
-                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                        selectedImage === idx ? "bg-[#1e9a58] scale-110" : "bg-gray-300 hover:bg-gray-400"
+                      className={`relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg border-2 overflow-hidden bg-[#fafcfb] transition-all ${
+                        selectedImage === idx
+                          ? "border-[#1e9a58] ring-1 ring-[#1e9a58]"
+                          : "border-gray-200 hover:border-gray-300"
                       }`}
                       aria-label={`View image ${idx + 1}`}
-                    />
+                      aria-pressed={selectedImage === idx}
+                    >
+                      <Image src={img} alt="" fill className="object-contain" />
+                    </button>
                   ))}
                 </div>
               )}
+
+              {/* Main image with zoom */}
+              <div
+                ref={imageContainerRef}
+                data-testid="pdp-main-image"
+                onMouseEnter={() => canHoverZoom && setIsZooming(true)}
+                onMouseLeave={() => setIsZooming(false)}
+                onMouseMove={canHoverZoom ? handleImageMouseMove : undefined}
+                className="relative w-full sm:flex-1 bg-[#fafcfb] rounded-2xl p-4 sm:p-6 lg:p-10 flex flex-col items-center justify-center h-[320px] sm:h-[420px] lg:h-[540px] overflow-hidden shrink-0"
+              >
+                {displayPricing.discountPercent > 0 && (
+                  <div className="absolute top-6 left-6 z-10 bg-[#1e9a58] text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                    -{displayPricing.discountPercent}%
+                  </div>
+                )}
+
+                <motion.div
+                  key={selectedImage}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative w-full h-full"
+                >
+                  <Image
+                    src={displayImages[selectedImage] || displayImages[0]}
+                    alt={product.name}
+                    fill
+                    className="object-contain drop-shadow-2xl"
+                    priority
+                  />
+                </motion.div>
+
+                {/* Amazon-style hover magnifier — desktop/tablet with a mouse only */}
+                {canHoverZoom && isZooming && (
+                  <div
+                    data-testid="pdp-zoom-overlay"
+                    className="hidden sm:block absolute inset-0 pointer-events-none bg-no-repeat rounded-2xl"
+                    style={{
+                      backgroundImage: `url(${displayImages[selectedImage] || displayImages[0]})`,
+                      backgroundSize: "220%",
+                      backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                    }}
+                  />
+                )}
+              </div>
             </motion.div>
 
             {/* Right Column (Info) */}
@@ -817,7 +883,7 @@ function ProductDetails() {
 
               {/* Title & Subtitle */}
               <div>
-                <h1 className="text-3xl lg:text-4xl font-extrabold text-[#0d1c2f] mb-2 leading-tight">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#0d1c2f] mb-2 leading-tight break-words">
                   {product.name}
                 </h1>
                 <p className="text-gray-500 text-base">
@@ -893,8 +959,8 @@ function ProductDetails() {
                 </div>
               )}
 
-              {/* Size Selector if colors absent but sizes present, or we can just omit it as mockup didn't show size */}
-              {product.sizes && product.sizes.length > 0 && product.sizes[0] !== "One Size" && product.colors.length === 0 && (
+              {/* Size Selector */}
+              {product.sizes && product.sizes.length > 0 && product.sizes[0] !== "One Size" && (
                 <div className="py-2">
                   <div className="flex items-center justify-between mb-3">
                     <label className="text-sm font-bold text-[#0d1c2f]">Size</label>

@@ -444,6 +444,17 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         const editingId = product?._id || product?.id;
         const isEdit = !!editingId;
 
+        const derivedColors = [
+          ...new Set(
+            variants.map((v) => v.color).filter(Boolean).map((c) => String(c).trim())
+          ),
+        ];
+        const derivedSizes = [
+          ...new Set(
+            variants.map((v) => v.size).filter(Boolean).map((s) => String(s).trim())
+          ),
+        ];
+
         const payload = {
           name: values.name,
           description: values.description,
@@ -453,6 +464,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           originalPrice: values.originalPrice,
           images: imageList.map((url, i) => ({ url, isPrimary: i === 0 })),
           variants,
+          colors: derivedColors,
+          sizes: derivedSizes,
           details: values.details,
           keyHighlights: values.keyHighlights,
           specifications: values.specifications,
