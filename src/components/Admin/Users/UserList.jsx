@@ -1,10 +1,26 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Table, Tag, Avatar, Button, Dropdown, Badge, Card, Pagination } from "antd";
+import { Tag, Avatar, Button, Dropdown, Badge, Card, Pagination } from "antd";
 import { IconDots, IconEye, IconBan, IconCheck } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const UserList = ({
   users,
@@ -19,6 +35,8 @@ const UserList = ({
   const currentPage = pagination?.page ?? 1;
   const pageSize = pagination?.limit ?? 10;
   const total = pagination?.total ?? users.length;
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
   const getRoleColor = (role) => {
     const colors = {
       user: "blue",
@@ -27,119 +45,108 @@ const UserList = ({
     return colors[role] || "default";
   };
 
-  const columns = [
-    {
-      title: "User",
-      key: "user",
-      width: 250,
-      render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <Avatar size={40} className="bg-blue-500">
-            {record.name?.[0]?.toUpperCase() || "U"}
-          </Avatar>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-white">
-              {record.name}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {record.email}
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "User",
+        flex: 1,
+        minWidth: 250,
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center gap-3">
+            <Avatar size={32} className="bg-blue-500 shrink-0">
+              {p.data.name?.[0]?.toUpperCase() || "U"}
+            </Avatar>
+            <div className="min-w-0">
+              <div className="font-medium text-gray-900 dark:text-white truncate">
+                {p.data.name}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {p.data.email}
+              </div>
             </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      title: "Role",
-      dataIndex: "role",
-      key: "role",
-      width: 120,
-      render: (role) => (
-        <Tag color={getRoleColor(role)} className="capitalize">
-          {role}
-        </Tag>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 100,
-      render: (status) => (
-        <Badge
-          status={status === "active" ? "success" : "error"}
-          text={status === "active" ? "Active" : "Blocked"}
-        />
-      ),
-    },
-    {
-      title: "Created",
-      dataIndex: "registeredAt",
-      key: "createdAt",
-      width: 140,
-      render: (registeredAt) => {
-        if (!registeredAt) return <span>-</span>;
-        const d = new Date(registeredAt);
-        return <span className="text-gray-600 dark:text-gray-300">{format(d, "MMM dd, yyyy")}</span>;
+        ),
       },
-    },
-    {
-      title: "Total Spent",
-      dataIndex: "totalSpent",
-      key: "spent",
-      width: 120,
-      render: (spent) => (
-        <span className="font-semibold text-gray-900 dark:text-white">
-          ₹{formatPrice(spent || 0)}
-        </span>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 100,
-      fixed: "right",
-      render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "view",
-                label: "View Details",
-                icon: <IconEye className="w-4 h-4" />,
-                onClick: () => onSelect(record),
-              },
-              {
-                type: "divider",
-              },
-              record.status === "active"
-                ? {
-                    key: "block",
-                    label: "Block User",
-                    icon: <IconBan className="w-4 h-4" />,
-                    danger: true,
-                    disabled: !!isMutating,
-                    onClick: () => onBlock(record.id),
-                  }
-                : {
-                    key: "unblock",
-                    label: "Unblock User",
-                    icon: <IconCheck className="w-4 h-4" />,
-                    disabled: !!isMutating,
-                    onClick: () => onUnblock(record.id),
-                  },
-            ],
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            type="text"
-            icon={<IconDots className="w-4 h-4" />}
-            className="flex items-center justify-center"
+      {
+        headerName: "Role",
+        field: "role",
+        width: 120,
+        cellRenderer: (p) => (
+          <Tag color={getRoleColor(p.value)} className="capitalize">
+            {p.value}
+          </Tag>
+        ),
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 130,
+        cellRenderer: (p) => (
+          <Badge
+            status={p.value === "active" ? "success" : "error"}
+            text={p.value === "active" ? "Active" : "Blocked"}
           />
-        </Dropdown>
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        headerName: "Created",
+        field: "registeredAt",
+        width: 140,
+        valueFormatter: (p) => (p.value ? format(new Date(p.value), "MMM dd, yyyy") : "-"),
+      },
+      {
+        headerName: "Total Spent",
+        field: "totalSpent",
+        width: 130,
+        cellRenderer: (p) => (
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ₹{formatPrice(p.value || 0)}
+          </span>
+        ),
+      },
+      {
+        headerName: "Actions",
+        width: 90,
+        pinned: "right",
+        cellRenderer: (p) => (
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "view",
+                  label: "View Details",
+                  icon: <IconEye className="w-4 h-4" />,
+                  onClick: () => onSelect(p.data),
+                },
+                { type: "divider" },
+                p.data.status === "active"
+                  ? {
+                      key: "block",
+                      label: "Block User",
+                      icon: <IconBan className="w-4 h-4" />,
+                      danger: true,
+                      disabled: !!isMutating,
+                      onClick: () => onBlock(p.data.id),
+                    }
+                  : {
+                      key: "unblock",
+                      label: "Unblock User",
+                      icon: <IconCheck className="w-4 h-4" />,
+                      disabled: !!isMutating,
+                      onClick: () => onUnblock(p.data.id),
+                    },
+              ],
+            }}
+            trigger={["click"]}
+          >
+            <Button type="text" icon={<IconDots className="w-4 h-4" />} />
+          </Dropdown>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [users, isMutating]
+  );
 
   const renderUserCard = (user) => (
     <motion.div
@@ -257,31 +264,46 @@ const UserList = ({
       animate={{ opacity: 1, y: 0 }}
       className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden"
     >
-      {/* Desktop Table View */}
-      <div className="hidden lg:block">
-        <Table
-          dataSource={users.map((u) => ({ ...u, key: u.id }))}
-          columns={columns}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showTotal: (t) => `Total ${t} users`,
-            responsive: true,
-            onChange: (page, size) => {
-              onPageChange?.(page, size);
-            },
-          }}
-          scroll={{ x: 1000 }}
-          onRow={(record) => ({
-            onClick: () => onSelect(record),
-            className:
-              selectedUserId === record.id
-                ? "bg-blue-50 dark:bg-blue-900/20"
-                : "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50",
-          })}
-        />
+      {/* Desktop Table View — server-paginated (fetched one page at a time
+          by the parent), so ag-grid's own client-side pagination is off
+          and this instead drives the same onPageChange the parent already
+          uses to refetch. */}
+      <div className="hidden lg:block p-2">
+        {isClient ? (
+          <div style={{ width: "100%", height: 520 }}>
+            <AgGridReact
+              theme={myDarkTheme}
+              modules={[AllCommunityModule]}
+              rowData={users}
+              columnDefs={columnDefs}
+              defaultColDef={{ sortable: true, resizable: true }}
+              getRowId={(p) => p.data.id}
+              animateRows
+              rowHeight={56}
+              headerHeight={44}
+              overlayNoRowsTemplate="No users found"
+              suppressCellFocus
+              onRowClicked={(p) => onSelect(p.data)}
+              rowClassRules={{
+                "!bg-blue-900/20": (p) => selectedUserId === p.data.id,
+              }}
+            />
+          </div>
+        ) : (
+          <div className="h-[520px]" />
+        )}
+        {total > pageSize && (
+          <div className="flex justify-end pt-3">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={total}
+              onChange={(page, size) => onPageChange?.(page, size)}
+              showSizeChanger
+              showTotal={(t) => `Total ${t} users`}
+            />
+          </div>
+        )}
       </div>
 
       {/* Mobile/Tablet Grid View */}

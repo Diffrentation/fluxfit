@@ -134,6 +134,7 @@ export async function PUT(request, { params }) {
         "order-delivered",
         "order-cancelled",
         "password-reset",
+        "admin-password-reset",
         "email-verification",
         "payment-success",
         "payment-failed",
@@ -260,6 +261,50 @@ export async function PUT(request, { params }) {
       {
         success: false,
         message: error.message || "Failed to update email template. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/admin/settings/email-templates/:id
+ */
+export async function DELETE(request, { params }) {
+  try {
+    const { error } = await authenticateAdmin(request);
+    if (error) {
+      return error;
+    }
+
+    await connectDB();
+
+    const { id } = await params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid email template ID" },
+        { status: 400 }
+      );
+    }
+
+    const deleted = await EmailTemplate.findByIdAndDelete(id);
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, message: "Email template not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, message: "Email template deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Delete email template error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message || "Failed to delete email template. Please try again.",
       },
       { status: 500 }
     );

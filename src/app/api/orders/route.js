@@ -5,11 +5,18 @@ import "@/models/category.model";
 import "@/models/brand.model";
 import { authenticateUser } from "@/lib/auth";
 import { isStrictMongoObjectIdString } from "@/lib/mongoose-id";
+import { ACTIVE_PAYMENT_METHODS } from "@/lib/paymentMethods";
+import { resolveShippingCost, resolveTaxRatePercent } from "@/lib/pricing";
 
 /**
  * Same rules as Order.calculateTotals — computed on the server from line items + cart coupon + shipping.
  */
-function computeOrderPricingFromLineItems(orderItems, cartCoupon, shippingCost) {
+function computeOrderPricingFromLineItems(
+  orderItems,
+  cartCoupon,
+  shippingCost,
+  taxRatePercent,
+) {
   const subtotal = orderItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
@@ -28,13 +35,13 @@ function computeOrderPricingFromLineItems(orderItems, cartCoupon, shippingCost) 
   if (discount > subtotal) discount = subtotal;
 
   const taxableAmount = subtotal - discount;
-  const gst = (taxableAmount * 18) / 100;
+  const gst = (taxableAmount * taxRatePercent) / 100;
   const total = taxableAmount + gst + shippingCost;
 
   return {
     subtotal,
     discount,
-    tax: { gst, total: gst },
+    tax: { gst, total: gst, ratePercent: taxRatePercent },
     total,
   };
 }
@@ -357,24 +364,16 @@ export async function POST(request) {
       });
     }
 
-    const validPaymentMethods = [
-      "card",
-      "upi",
-      "netbanking",
-      "cod",
-      "razorpay",
-      "stripe",
-      "paypal",
-    ];
     if (!paymentMethod) {
       errors.push({
         field: "paymentMethod",
         message: "Payment method is required",
       });
-    } else if (!validPaymentMethods.includes(paymentMethod)) {
+    } else if (!ACTIVE_PAYMENT_METHODS.includes(paymentMethod)) {
       errors.push({
         field: "paymentMethod",
-        message: "Invalid payment method",
+        message:
+          "Only Cash on Delivery is currently available. Other payment methods are coming soon.",
       });
     }
 
@@ -469,7 +468,9 @@ export async function POST(request) {
       }
     }
 
-    const shippingCostNum = Math.max(0, Number(shippingCostRaw) || 0);
+    // shippingCostRaw is accepted from the client only as a display hint —
+    // the authoritative cost is always recomputed here from ShippingRule.
+    void shippingCostRaw;
 
     // Validate cart items and prepare order items
     const orderItems = [];
@@ -646,10 +647,23 @@ export async function POST(request) {
           }
         : null;
 
+    // Resolve the two numbers the client is never trusted for: shipping
+    // (from active ShippingRule zones matching the destination) and tax
+    // (from active TaxRate documents applicable to the destination state).
+    const preDiscountSubtotal = orderItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const [shippingCostNum, taxRatePercent] = await Promise.all([
+      resolveShippingCost(shippingAddr, preDiscountSubtotal),
+      resolveTaxRatePercent(shippingAddr.state),
+    ]);
+
     const pricing = computeOrderPricingFromLineItems(
       orderItems,
       cartCoupon,
       shippingCostNum,
+      taxRatePercent,
     );
 
     const orderNumber = Order.generateOrderNumber();
@@ -661,6 +675,7 @@ export async function POST(request) {
       subtotal: pricing.subtotal,
       discount: pricing.discount,
       shippingCost: shippingCostNum,
+      taxRatePercent,
       tax: pricing.tax.total,
       total: pricing.total,
       orderNumber,
@@ -682,6 +697,10 @@ export async function POST(request) {
         estimatedDays: shippingMethod === "express" ? 1 : 3,
       },
       payment: {
+        // paymentMethod is validated against ACTIVE_PAYMENT_METHODS above,
+        // so this is always "cod" today — the status/paidAt branch is kept
+        // so re-enabling other methods later only means restoring them to
+        // ACTIVE_PAYMENT_METHODS, not touching this logic again.
         method: paymentMethod,
         status: paymentMethod === "cod" ? "pending" : "processing",
         transactionId: transactionId || null,
@@ -724,6 +743,23 @@ export async function POST(request) {
     if (clearCart) {
       await cart.clear();
     }
+
+    // Best-effort order confirmation email — never fail order creation
+    // because the customer's mailbox/SMTP hiccups.
+    sendOrderConfirmationEmail(user.email, {
+      customerName: `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Customer",
+      orderId: newOrder.orderNumber,
+      orderDate: newOrder.createdAt?.toLocaleDateString?.() || new Date().toLocaleDateString(),
+      totalAmount: newOrder.total,
+    })
+      .then((result) => {
+        if (!result?.success) {
+          console.error("[api/orders] Order confirmation email failed:", result?.error);
+        }
+      })
+      .catch((err) => {
+        console.error("[api/orders] Failed to send order confirmation email:", err);
+      });
 
     // Populate order for response
     await newOrder.populate({

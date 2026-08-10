@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "@/components/ui/ProductCard";
 import CategoryNav from "@/components/ui/CategoryNav";
@@ -8,6 +8,10 @@ import SortByFilter from "@/components/ui/SortByFilter";
 import PriceFilter from "@/components/ui/PriceFilter";
 import ColorFilter from "@/components/ui/ColorFilter";
 import TagsFilter from "@/components/ui/TagsFilter";
+import SizeFilter from "@/components/ui/SizeFilter";
+import BrandFilter from "@/components/ui/BrandFilter";
+import RatingFilter from "@/components/ui/RatingFilter";
+import InStockFilter from "@/components/ui/InStockFilter";
 import {
   IconX,
   IconSearch,
@@ -15,8 +19,9 @@ import {
   IconRefresh,
   IconShoppingCart
 } from "@tabler/icons-react";
-import { Button, Spin } from "antd";
+import { Button, Spin, Pagination } from "antd";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import { usePublicProducts } from "@/hooks/usePublicProducts";
 import { getProductDetailPath } from "@/lib/publicProductsApi";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -49,13 +54,44 @@ function ProductOverview() {
   const [priceFilter, setPriceFilter] = useState("all");
   const [colorFilter, setColorFilter] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [sizeFilter, setSizeFilter] = useState(null);
+  const [brandFilter, setBrandFilter] = useState(null);
+  const [minRating, setMinRating] = useState(null);
+  const [inStockOnly, setInStockOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const productGridRef = useRef(null);
+
+  // Sizes/brands come from the live catalog (not a hardcoded list like
+  // colors/tags above) since which sizes/brands actually exist varies as
+  // products are added — a fixed list would drift out of sync.
+  const [availableSizes, setAvailableSizes] = useState([]);
+  const [availableBrands, setAvailableBrands] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get("/api/products/filters")
+      .then(({ data }) => {
+        if (cancelled || !data?.success) return;
+        setAvailableSizes((data.data.sizes || []).map((s) => s.name));
+        setAvailableBrands(
+          (data.data.brands || [])
+            .filter((b) => b.productCount > 0)
+            .map((b) => ({ id: b.id, name: b.name, productCount: b.productCount }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const debouncedSearch = useDebounce(searchQuery.trim(), 400);
 
   const { products, pagination, loading } = usePublicProducts({
-    page: 1,
+    page,
     limit: 24,
     category: activeCategory,
     debouncedSearch,
@@ -63,6 +99,10 @@ function ProductOverview() {
     priceFilter,
     colorFilter,
     selectedTags,
+    sizeFilter,
+    brandFilter,
+    minRating,
+    inStockOnly,
   });
 
   const handleQuickView = useCallback(
@@ -79,10 +119,85 @@ function ProductOverview() {
     setPriceFilter("all");
     setColorFilter(null);
     setSelectedTags([]);
+    setSizeFilter(null);
+    setBrandFilter(null);
+    setMinRating(null);
+    setInStockOnly(false);
     setSearchQuery("");
+    setPage(1);
   }, []);
 
-  const hasFilters = sortBy !== "newness" || priceFilter !== "all" || colorFilter !== null || selectedTags.length > 0;
+  // Any filter/sort/search change must reset pagination back to page 1,
+  // otherwise a stale page number can combine with a narrower filter and
+  // land on an out-of-range, empty page.
+  const handleCategoryChange = useCallback((value) => {
+    setActiveCategory(value);
+    setPage(1);
+  }, []);
+
+  const handleSortChange = useCallback((value) => {
+    setSortBy(value);
+    setPage(1);
+  }, []);
+
+  const handlePriceFilterChange = useCallback((value) => {
+    setPriceFilter(value);
+    setPage(1);
+  }, []);
+
+  const handleColorFilterChange = useCallback((value) => {
+    setColorFilter(value);
+    setPage(1);
+  }, []);
+
+  const handleTagsChange = useCallback((value) => {
+    setSelectedTags(value);
+    setPage(1);
+  }, []);
+
+  const handleSizeFilterChange = useCallback((value) => {
+    setSizeFilter(value);
+    setPage(1);
+  }, []);
+
+  const handleBrandFilterChange = useCallback((value) => {
+    setBrandFilter(value);
+    setPage(1);
+  }, []);
+
+  const handleRatingChange = useCallback((value) => {
+    setMinRating(value);
+    setPage(1);
+  }, []);
+
+  const handleInStockChange = useCallback((value) => {
+    setInStockOnly(value);
+    setPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((e) => {
+    setSearchQuery(e.target.value);
+    setPage(1);
+  }, []);
+
+  const handlePageChange = useCallback((nextPage) => {
+    setPage(nextPage);
+    if (typeof window !== "undefined" && productGridRef.current) {
+      const top =
+        productGridRef.current.getBoundingClientRect().top + window.scrollY - 100;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+  }, []);
+
+  const hasFilters =
+    sortBy !== "newness" ||
+    priceFilter !== "all" ||
+    colorFilter !== null ||
+    selectedTags.length > 0 ||
+    sizeFilter !== null ||
+    brandFilter !== null ||
+    minRating !== null ||
+    inStockOnly;
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -126,10 +241,14 @@ function ProductOverview() {
       {/* Scrollable Filters */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="flex flex-col lg:grid lg:grid-cols-4 lg:gap-4 mt-2">
-          <SortByFilter value={sortBy} onChange={setSortBy} options={sortOptions} />
-          <PriceFilter value={priceFilter} onChange={setPriceFilter} options={priceOptions} />
-          <ColorFilter value={colorFilter} onChange={setColorFilter} colors={colors} />
-          <TagsFilter selectedTags={selectedTags} onChange={setSelectedTags} tags={tags} />
+          <SortByFilter value={sortBy} onChange={handleSortChange} options={sortOptions} />
+          <PriceFilter value={priceFilter} onChange={handlePriceFilterChange} options={priceOptions} />
+          <ColorFilter value={colorFilter} onChange={handleColorFilterChange} colors={colors} />
+          <TagsFilter selectedTags={selectedTags} onChange={handleTagsChange} tags={tags} />
+          <SizeFilter value={sizeFilter} onChange={handleSizeFilterChange} sizes={availableSizes} />
+          <BrandFilter value={brandFilter} onChange={handleBrandFilterChange} brands={availableBrands} />
+          <RatingFilter value={minRating} onChange={handleRatingChange} />
+          <InStockFilter value={inStockOnly} onChange={handleInStockChange} />
         </div>
       </div>
 
@@ -213,7 +332,7 @@ function ProductOverview() {
             <div className="w-full lg:flex-1 flex items-center min-w-0 overflow-visible max-w-full">
               <CategoryNav
                 activeCategory={activeCategory}
-                onCategoryChange={setActiveCategory}
+                onCategoryChange={handleCategoryChange}
               />
             </div>
             
@@ -261,7 +380,7 @@ function ProductOverview() {
                   type="search"
                   placeholder="Search products..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchChange}
                   className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 h-[44px] border border-gray-200 hover:border-green-300 rounded-xl text-sm focus:outline-none focus:border-green-500 transition-all bg-white text-gray-900 placeholder-gray-400 shadow-sm"
                 />
               </div>
@@ -272,7 +391,7 @@ function ProductOverview() {
         {/* Main Product Area */}
         <div className="w-full">
           {/* Product Grid Area */}
-          <div className="relative min-h-[400px]">
+          <div ref={productGridRef} className="relative min-h-[400px]">
             {loading && (
               <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-start pt-20 rounded-2xl">
                 <Spin size="large" />
@@ -322,7 +441,18 @@ function ProductOverview() {
               )}
             </AnimatePresence>
           </div>
-          
+
+          {!loading && pagination && pagination.totalPages > 1 && (
+            <div className="flex justify-center mt-8 sm:mt-12">
+              <Pagination
+                current={pagination.page}
+                pageSize={pagination.limit}
+                total={pagination.total}
+                onChange={handlePageChange}
+                showSizeChanger={false}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

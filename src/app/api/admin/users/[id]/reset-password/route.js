@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/user.model";
 import { authenticateAdmin } from "@/lib/auth";
+import { sendAdminPasswordResetEmail } from "@/lib/email";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 
@@ -111,6 +112,16 @@ export async function POST(request, { params }) {
     user.password = hashedPassword;
     user.token = null; // Invalidate existing tokens
     await user.save();
+
+    // Notify the user of their new password by email (best-effort)
+    if (user.email) {
+      sendAdminPasswordResetEmail(user.email, {
+        newPassword,
+        firstname: user.firstname,
+      }).catch((err) =>
+        console.error("Failed to send admin password reset email:", err)
+      );
+    }
 
     // Format user (without password)
     const formattedUser = {

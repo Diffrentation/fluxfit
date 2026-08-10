@@ -1,19 +1,18 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { 
-  Table, 
-  Tag, 
-  Button, 
-  Image, 
-  Dropdown, 
-  message, 
-  Card, 
-  Input, 
-  Select, 
-  Space, 
-  Spin, 
-  Empty, 
+import {
+  Tag,
+  Button,
+  Image,
+  Dropdown,
+  message,
+  Card,
+  Input,
+  Select,
+  Space,
+  Spin,
+  Empty,
   Pagination,
   Modal
 } from "antd";
@@ -35,6 +34,22 @@ import { formatPrice } from "@/lib/formatPrice";
 import { format, isValid, parseISO } from "date-fns";
 import axios from "axios";
 import safeFormatDate from "@/lib/dateFormatter";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { Search } = Input;
 const { Option } = Select;
@@ -62,6 +77,8 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
     totalPages: 1,
   });
   const [categories, setCategories] = useState([]);
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
   const searchTimeoutRef = useRef(null);
   const previousFiltersRef = useRef({});
   const filtersRef = useRef(filters);
@@ -386,179 +403,168 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
     }
   };
 
-  // Table columns
-  const columns = [
-    {
-      title: "Product",
-      key: "product",
-      width: 200,
-      responsive: ["xs", "sm", "md", "lg"],
-      render: (_, record) => (
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
-            <Image
-              src={record.primaryImage || record.images?.[0]?.url || ""}
-              alt={record.name}
-              width={48}
-              height={48}
-              className="object-cover"
-              fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23e5e7eb'/%3E%3C/svg%3E"
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">
-              {record.name}
+  // Grid columns
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Product",
+        flex: 1,
+        minWidth: 220,
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center gap-2 sm:gap-3">
+            <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
+              <Image
+                src={p.data.primaryImage || p.data.images?.[0]?.url || ""}
+                alt={p.data.name}
+                width={36}
+                height={36}
+                className="object-cover"
+                fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23e5e7eb'/%3E%3C/svg%3E"
+              />
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">ID: {record.id}</div>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">
+                {p.data.name}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">ID: {p.data.id}</div>
+            </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      title: "Category",
-      key: "category",
-      width: 120,
-      responsive: ["sm", "md", "lg"],
-      render: (_, record) => (
-        <Tag color="blue" className="font-medium">
-          {record.category?.name || "Uncategorized"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Price",
-      key: "price",
-      width: 100,
-      responsive: ["sm", "md", "lg"],
-      render: (_, record) => (
-        <div>
-          <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">
-            ₹{formatPrice(record.basePrice || 0)}
+        ),
+      },
+      {
+        headerName: "Category",
+        width: 150,
+        valueGetter: (p) => p.data.category?.name || "Uncategorized",
+        cellRenderer: (p) => (
+          <Tag color="blue" className="font-medium">
+            {p.value}
+          </Tag>
+        ),
+      },
+      {
+        headerName: "Price",
+        width: 130,
+        cellRenderer: (p) => (
+          <div>
+            <span className="font-semibold text-sm text-gray-900 dark:text-white">
+              ₹{formatPrice(p.data.basePrice || 0)}
+            </span>
+            {p.data.originalPrice > p.data.basePrice && (
+              <div className="text-xs text-gray-500 line-through">
+                ₹{formatPrice(p.data.originalPrice || 0)}
+              </div>
+            )}
+          </div>
+        ),
+      },
+      {
+        headerName: "Stock",
+        field: "stock",
+        width: 110,
+        cellRenderer: (p) => (
+          <span
+            className={`font-semibold text-sm ${
+              p.value > 10
+                ? "text-green-600 dark:text-green-400"
+                : p.value > 0
+                ? "text-orange-600 dark:text-orange-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {(p.value || 0)} units
           </span>
-          {record.originalPrice > record.basePrice && (
-            <div className="text-xs text-gray-500 line-through">
-              ₹{formatPrice(record.originalPrice || 0)}
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: "Stock",
-      key: "stock",
-      width: 90,
-      responsive: ["md", "lg"],
-      render: (_, record) => (
-        <span
-          className={`font-semibold text-sm sm:text-base ${
-            record.stock > 10
-              ? "text-green-600 dark:text-green-400"
-              : record.stock > 0
-              ? "text-orange-600 dark:text-orange-400"
-              : "text-red-600 dark:text-red-400"
-          }`}
-        >
-          {(record.stock || 0)} units
-        </span>
-      ),
-    },
-    {
-      title: "Status",
-      key: "status",
-      width: 100,
-      responsive: ["sm", "md", "lg"],
-      render: (_, record) => (
-        <Tag
-          color={getStatusColor(record.status)}
-          className="flex items-center gap-1 w-fit"
-        >
-          {getStatusIcon(record.status)}
-          <span className="capitalize">{record.status || "draft"}</span>
-        </Tag>
-      ),
-    },
-    {
-      title: "Created",
-      key: "createdAt",
-      width: 100,
-      responsive: ["lg"],
-      render: (_, record) => (
-        <div className="text-xs text-gray-500 flex items-center gap-1">
-          <IconCalendar className="w-3 h-3" />
-          {safeFormatDate(record.createdAt)}
-        </div>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 80,
-      fixed: "right",
-      responsive: ["xs", "sm", "md", "lg"],
-      render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "view",
-                label: "View Details",
-                icon: <IconEye className="w-4 h-4" />,
-                onClick: () => onView && onView(record),
-              },
-              {
-                key: "edit",
-                label: "Edit Product",
-                icon: <IconEdit className="w-4 h-4" />,
-                onClick: () => onEdit && onEdit(record),
-              },
-              {
-                key: "status",
-                label: "Change Status",
-                icon: <IconCheck className="w-4 h-4" />,
-                children: [
+        ),
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 130,
+        cellRenderer: (p) => (
+          <Tag color={getStatusColor(p.value)} className="flex items-center gap-1 w-fit">
+            {getStatusIcon(p.value)}
+            <span className="capitalize">{p.value || "draft"}</span>
+          </Tag>
+        ),
+      },
+      {
+        headerName: "Created",
+        field: "createdAt",
+        width: 140,
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center gap-1 text-xs text-gray-500">
+            <IconCalendar className="w-3 h-3" />
+            {safeFormatDate(p.value)}
+          </div>
+        ),
+      },
+      {
+        headerName: "Actions",
+        width: 90,
+        pinned: "right",
+        cellRenderer: (p) => {
+          const record = p.data;
+          return (
+            <Dropdown
+              menu={{
+                items: [
                   {
-                    key: "status-active",
-                    label: <span className="text-green-600 font-medium">Active</span>,
-                    disabled: record.status === "active",
-                    onClick: () => handleStatusChange(record.id, "active"),
+                    key: "view",
+                    label: "View Details",
+                    icon: <IconEye className="w-4 h-4" />,
+                    onClick: () => onView && onView(record),
                   },
                   {
-                    key: "status-draft",
-                    label: <span className="text-gray-500 font-medium">Draft</span>,
-                    disabled: record.status === "draft",
-                    onClick: () => handleStatusChange(record.id, "draft"),
+                    key: "edit",
+                    label: "Edit Product",
+                    icon: <IconEdit className="w-4 h-4" />,
+                    onClick: () => onEdit && onEdit(record),
                   },
                   {
-                    key: "status-inactive",
-                    label: <span className="text-orange-500 font-medium">Inactive</span>,
-                    disabled: record.status === "inactive",
-                    onClick: () => handleStatusChange(record.id, "inactive"),
+                    key: "status",
+                    label: "Change Status",
+                    icon: <IconCheck className="w-4 h-4" />,
+                    children: [
+                      {
+                        key: "status-active",
+                        label: <span className="text-green-600 font-medium">Active</span>,
+                        disabled: record.status === "active",
+                        onClick: () => handleStatusChange(record.id, "active"),
+                      },
+                      {
+                        key: "status-draft",
+                        label: <span className="text-gray-500 font-medium">Draft</span>,
+                        disabled: record.status === "draft",
+                        onClick: () => handleStatusChange(record.id, "draft"),
+                      },
+                      {
+                        key: "status-inactive",
+                        label: <span className="text-orange-500 font-medium">Inactive</span>,
+                        disabled: record.status === "inactive",
+                        onClick: () => handleStatusChange(record.id, "inactive"),
+                      },
+                    ],
+                  },
+                  { type: "divider" },
+                  {
+                    key: "delete",
+                    label: "Delete",
+                    icon: <IconTrash className="w-4 h-4" />,
+                    danger: true,
+                    onClick: () => showDeleteConfirm(record),
                   },
                 ],
-              },
-              {
-                type: "divider",
-              },
-              {
-                key: "delete",
-                label: "Delete",
-                icon: <IconTrash className="w-4 h-4" />,
-                danger: true,
-                onClick: () => showDeleteConfirm(record),
-              },
-            ],
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            type="text"
-            icon={<IconDots className="w-4 h-4" />}
-            className="flex items-center justify-center"
-          />
-        </Dropdown>
-      ),
-    },
-  ];
+              }}
+              trigger={["click"]}
+            >
+              <Button type="text" icon={<IconDots className="w-4 h-4" />} />
+            </Dropdown>
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [products, handleStatusChange]
+  );
 
   // Grid view for mobile and tablet
   const renderProductCard = (product) => {
@@ -903,25 +909,31 @@ const ProductList = ({ onEdit, onDelete, onView }) => {
             )}
           </div>
 
-          {/* Table Layout for Desktop */}
-          <div className="hidden lg:block !bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
-            <Table
-              dataSource={products.map((p) => ({ ...p, key: p.id || Math.random() }))}
-              columns={columns}
-              pagination={false}
-              loading={loading}
-              scroll={{ x: 800 }}
-              className="product-table"
-              size="small"
-              locale={{
-                emptyText: (
-                  <Empty
-                    description="No products found"
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  />
-                ),
-              }}
-            />
+          {/* Table Layout for Desktop — server-paginated (fetchProducts
+              already fetches one page at a time via `filters.page`), so
+              ag-grid pagination stays off and the existing Pagination
+              component below drives page changes as before. */}
+          <div className="hidden lg:block !bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden p-2">
+            {isClient ? (
+              <div style={{ width: "100%", height: 560 }}>
+                <AgGridReact
+                  theme={myDarkTheme}
+                  modules={[AllCommunityModule]}
+                  rowData={products}
+                  columnDefs={columnDefs}
+                  defaultColDef={{ sortable: true, resizable: true }}
+                  getRowId={(p) => String(p.data.id)}
+                  animateRows
+                  rowHeight={56}
+                  headerHeight={44}
+                  loading={loading}
+                  suppressCellFocus
+                  overlayNoRowsTemplate="No products found"
+                />
+              </div>
+            ) : (
+              <div className="h-[560px]" />
+            )}
           </div>
 
           {/* Pagination */}

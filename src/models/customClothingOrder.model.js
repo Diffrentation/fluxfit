@@ -106,6 +106,26 @@ const customClothingOrderSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Admin-set price quote — custom orders have no catalog price, so this
+    // is how the admin communicates cost before the customer commits to
+    // payment. Kept separate from the storefront Order/payment models since
+    // custom orders aren't paid through the cart/checkout flow yet.
+    quote: {
+      pricePerUnit: { type: Number, default: null, min: 0 },
+      totalAmount: { type: Number, default: null, min: 0 },
+      currency: { type: String, default: "INR" },
+      notes: { type: String, trim: true, maxlength: 500, default: "" },
+      quotedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      quotedAt: {
+        type: Date,
+        default: null,
+      },
+    },
+
     // Soft delete
     isDeleted: {
       type: Boolean,

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { productDatabase } from "@/lib/productDatabase";
+import { findMatchingProductVariant } from "@/lib/publicProductsApi";
 import {
   IconTrash,
   IconHeart,
@@ -49,7 +49,7 @@ const WishlistPageContent = () => {
     }
 
     setIsApplyingCoupon(true);
-    const result = applyCoupon(couponCode.trim());
+    const result = await applyCoupon(couponCode.trim());
 
     if (result.success) {
       message.success(result.message);
@@ -61,15 +61,25 @@ const WishlistPageContent = () => {
     setIsApplyingCoupon(false);
   };
 
-  const handleRemoveCoupon = () => {
-    removeCoupon();
+  const handleRemoveCoupon = async () => {
+    await removeCoupon();
     message.success("Coupon removed");
   };
 
   const handleAddToCart = (product, options = {}) => {
+    // There's no size/color picker on the wishlist listing itself, so pick
+    // a real variant from the product's own variants instead of guessing
+    // "One Size"/"default" — a guess that doesn't match any real variant
+    // would silently fail to sync to the server cart (see CartContext's
+    // addItemToServerCart error handling).
+    const variant = findMatchingProductVariant(
+      product.variants,
+      options.size,
+      options.color
+    );
     const success = addToCart(product, {
-      size: options.size || product.sizes?.[0] || "One Size",
-      color: options.color || product.color || product.colors?.[0] || "default",
+      size: options.size || variant?.size || "One Size",
+      color: options.color || variant?.color || "default",
       quantity: options.quantity || 1,
     });
     if (success !== false) {
@@ -78,22 +88,19 @@ const WishlistPageContent = () => {
   };
 
   const handleMoveToCart = (item) => {
-    const product = productDatabase[item.id];
-    if (product) {
-      const success = addToCart(product, {
-        size: item.size,
-        color: item.color,
-        quantity: item.quantity,
-      });
-      if (success !== false) {
-        removeFromSavedForLater(item.id, item.size, item.color);
-        message.success("Item moved to cart");
-      }
+    // `item` here is a saved-for-later entry, which is a full cart-item
+    // object (added via CartContext's real addToCart shape in cart/page.jsx's
+    // handleSaveForLater) — it already has everything addToCart needs
+    // directly, no separate product lookup required.
+    const success = addToCart(item, {
+      size: item.size,
+      color: item.color,
+      quantity: item.quantity,
+    });
+    if (success !== false) {
+      removeFromSavedForLater(item.id, item.size, item.color);
+      message.success("Item moved to cart");
     }
-  };
-
-  const getProductDetails = (item) => {
-    return productDatabase[item.id] || null;
   };
 
   const calculateWishlistTotal = () => {
@@ -224,7 +231,6 @@ const WishlistPageContent = () => {
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                   {wishlistItems.map((item, index) => {
-                    const product = getProductDetails(item);
                     const price = parseFloat(item.price);
                     const originalPrice = item.originalPrice
                       ? parseFloat(item.originalPrice)
@@ -241,7 +247,7 @@ const WishlistPageContent = () => {
                       >
                         <div className="relative w-full h-64 bg-gray-100">
                           <Image
-                            src={item.image || product?.images?.[0] || ""}
+                            src={item.image || ""}
                             alt={item.name}
                             fill
                             className="object-cover"
@@ -274,7 +280,7 @@ const WishlistPageContent = () => {
                             type="primary"
                             block
                             icon={<IconShoppingCart className="w-4 h-4" />}
-                            onClick={() => handleAddToCart(product || item)}
+                            onClick={() => handleAddToCart(item)}
                           >
                             Add to Cart
                           </Button>
@@ -292,7 +298,6 @@ const WishlistPageContent = () => {
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                   {savedForLaterItems.map((item, index) => {
-                    const product = getProductDetails(item);
                     const itemPrice = parseFloat(item.price);
                     const itemTotal = itemPrice * item.quantity;
 
@@ -308,7 +313,7 @@ const WishlistPageContent = () => {
                         <div className="flex gap-4">
                           <div className="relative w-24 h-24 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                             <Image
-                              src={item.image || product?.images?.[0] || ""}
+                              src={item.image || ""}
                               alt={item.name}
                               fill
                               className="object-cover"
@@ -429,9 +434,6 @@ const WishlistPageContent = () => {
                             Apply
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          Try: WELCOME10, SAVE20, FLAT50, SUMMER25
-                        </p>
                       </div>
                     )}
                   </div>
@@ -453,10 +455,7 @@ const WishlistPageContent = () => {
                   onClick={() => {
                     if (activeTab === "wishlist") {
                       wishlistItems.forEach((item) => {
-                        const product = getProductDetails(item);
-                        if (product) {
-                          handleAddToCart(product);
-                        }
+                        handleAddToCart(item);
                       });
                       message.success("All items added to cart!");
                     } else {

@@ -2,6 +2,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import axios from "axios";
 import {
   Card,
   Tag,
@@ -13,6 +14,7 @@ import {
   Divider,
   Avatar,
   Timeline,
+  Spin,
   message,
 } from "antd";
 import {
@@ -44,12 +46,44 @@ const UserDetails = ({
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
   const [roleForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   // Keep modal form value in sync when switching between users.
   useEffect(() => {
     if (!user?.role) return;
     roleForm.setFieldsValue({ role: user.role });
   }, [user?.role, roleForm]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOrderHistory([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingOrders(true);
+    axios
+      .get(`/api/admin/users/${user.id}/orders`, {
+        params: { limit: 5, sort: "newest" },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then(({ data }) => {
+        if (cancelled || !data?.success) return;
+        setOrderHistory(data.data.orders || []);
+      })
+      .catch(() => {
+        if (!cancelled) setOrderHistory([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingOrders(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const getRoleColor = (role) => {
     const colors = {
@@ -68,16 +102,10 @@ const UserDetails = ({
 
   const handlePasswordReset = (values) => {
     if (isMutating) return;
-    onResetPassword(user.id);
+    onResetPassword(user.id, values.newPassword);
     setIsPasswordModalVisible(false);
     passwordForm.resetFields();
   };
-
-  // Mock order history
-  const orderHistory = [
-    { id: 1, orderId: "ORD001", date: "2024-01-20", total: 5000, status: "delivered" },
-    { id: 2, orderId: "ORD002", date: "2024-02-15", total: 3000, status: "shipped" },
-  ];
 
   return (
     <motion.div
@@ -176,11 +204,15 @@ const UserDetails = ({
           <Divider />
 
           {/* Order History */}
-          {orderHistory.length > 0 && (
-            <div>
-              <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">
-                Recent Orders
+          <div>
+            <div className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2">
+              Recent Orders
+            </div>
+            {loadingOrders ? (
+              <div className="flex justify-center py-3">
+                <Spin size="small" />
               </div>
+            ) : orderHistory.length > 0 ? (
               <div className="space-y-2">
                 {orderHistory.map((order) => (
                   <div
@@ -189,21 +221,25 @@ const UserDetails = ({
                   >
                     <div className="flex justify-between items-center">
                       <span className="font-medium text-gray-900 dark:text-white">
-                        #{order.orderId}
+                        #{order.orderNumber}
                       </span>
-                      <Tag color="blue" className="text-xs sm:text-sm">
+                      <Tag color="blue" className="text-xs sm:text-sm capitalize">
                         {order.status}
                       </Tag>
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {format(new Date(order.date), "MMM dd, yyyy")} • ₹
+                      {format(new Date(order.createdAt), "MMM dd, yyyy")} • ₹
                       {formatPrice(order.total)}
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                No orders yet
+              </div>
+            )}
+          </div>
 
           <Divider />
 
@@ -335,20 +371,47 @@ const UserDetails = ({
             <div className="md:col-span-5">
               <div className="p-4 bg-yellow-950/20 border border-yellow-800/60 rounded-xl text-yellow-200 text-sm h-full flex flex-col justify-center">
                 <span className="font-bold block mb-1 text-yellow-300">Reset Confirmation</span>
-                You are about to trigger a password reset flow for this user.
+                Set a new password for this user. It will be emailed to them at
+                <strong className="block text-white text-sm font-mono mt-1 bg-zinc-900 border border-zinc-800/80 p-2 rounded-lg">{user.email}</strong>
               </div>
             </div>
-            <div className="md:col-span-7 flex flex-col justify-center">
-              <p className="text-sm text-zinc-300">
-                A password reset email containing secure reset instructions will be sent automatically to:
-                <strong className="block text-white text-base font-mono mt-1 bg-zinc-900 border border-zinc-800/80 p-3 rounded-lg">{user.email}</strong>
-              </p>
+            <div className="md:col-span-7 space-y-4">
+              <Form.Item
+                name="newPassword"
+                label="New Password"
+                rules={[
+                  { required: true, message: "Please enter a new password" },
+                  { min: 8, message: "Password must be at least 8 characters" },
+                ]}
+                className="mb-0"
+              >
+                <Input.Password placeholder="At least 8 characters" size="large" />
+              </Form.Item>
+              <Form.Item
+                name="confirmPassword"
+                label="Confirm Password"
+                dependencies={["newPassword"]}
+                rules={[
+                  { required: true, message: "Please confirm the password" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("newPassword") === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error("Passwords do not match"));
+                    },
+                  }),
+                ]}
+                className="mb-0"
+              >
+                <Input.Password placeholder="Re-enter the password" size="large" />
+              </Form.Item>
             </div>
           </div>
           <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-6">
             <Button onClick={() => setIsPasswordModalVisible(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit">
-              Send Reset Email
+            <Button type="primary" htmlType="submit" disabled={!!isMutating}>
+              Reset Password
             </Button>
           </div>
         </Form>

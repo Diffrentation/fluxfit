@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useCart } from "@/context/CartContext";
 import { isLoggedInForCheckout } from "@/lib/checkout-order";
@@ -31,6 +32,45 @@ const CheckoutPageContent = () => {
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [paymentDetails, setPaymentDetails] = useState({});
   const [orderData, setOrderData] = useState(null);
+  const [realEstimate, setRealEstimate] = useState(null);
+
+  // Replace the flat ₹50 + 18% GST guess below with the real
+  // ShippingRule/TaxRate-resolved numbers for whichever address the user
+  // actually selects — same server logic /api/orders uses at order
+  // creation, via the shared /api/orders/estimate endpoint. Depends on
+  // `cartItems`/`selectedAddress` (real state) rather than calling
+  // `getFinalTotal` in the dependency array, since that function isn't
+  // memoized in CartContext and would refire this effect every render.
+  useEffect(() => {
+    if (!selectedAddress?.id || cartItems.length === 0) {
+      setRealEstimate(null);
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const orderValue = getFinalTotal();
+    if (!(orderValue > 0)) return;
+
+    let cancelled = false;
+    axios
+      .post(
+        "/api/orders/estimate",
+        { addressId: selectedAddress.id, orderValue },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then(({ data }) => {
+        if (cancelled || !data?.success) return;
+        setRealEstimate(data.data);
+      })
+      .catch(() => {
+        if (!cancelled) setRealEstimate(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddress, cartItems]);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -123,12 +163,17 @@ const CheckoutPageContent = () => {
   const discount = getDiscountAmount().toFixed(2);
   const finalTotal = getFinalTotal().toFixed(2);
 
-  const shipping = 50; // Shipping cost in INR
-  const tax = (parseFloat(finalTotal) * 0.18).toFixed(2); // 18% GST on final total in INR
+  // Flat fallback (₹50 + 18% GST) used until the real ShippingRule/TaxRate
+  // estimate for the selected address comes back from /api/orders/estimate.
+  const shipping = realEstimate ? realEstimate.shippingCost : 50;
+  const taxRatePercent = realEstimate ? realEstimate.taxRatePercent : 18;
+  const tax = (
+    realEstimate ? realEstimate.taxAmount : parseFloat(finalTotal) * 0.18
+  ).toFixed(2);
   const grandTotal = (
-    parseFloat(finalTotal) +
-    parseFloat(shipping) +
-    parseFloat(tax)
+    realEstimate
+      ? realEstimate.total
+      : parseFloat(finalTotal) + parseFloat(shipping) + parseFloat(tax)
   ).toFixed(2);
 
   return (
@@ -310,13 +355,18 @@ const CheckoutPageContent = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
-                  <span>Shipping</span>
+                  <span>Shipping {realEstimate ? "(for selected address)" : "(estimated)"}</span>
                   <span>₹{shipping}</span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
-                  <span>Tax (GST 18%)</span>
+                  <span>Tax {realEstimate ? `(GST ${taxRatePercent}%)` : "(estimated, GST 18%)"}</span>
                   <span>₹{tax}</span>
                 </div>
+                <p className="text-[11px] text-gray-400 -mt-1">
+                  {realEstimate
+                    ? "Calculated for your selected delivery address."
+                    : "Select a delivery address to see the real shipping and tax for your order."}
+                </p>
                 <div className="border-t border-gray-100 pt-4 flex justify-between mt-4">
                   <span className="text-lg font-bold text-gray-900">
                     Total

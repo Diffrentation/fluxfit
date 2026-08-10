@@ -24,7 +24,7 @@ export async function GET(request) {
     // Populate product details
     await wishlist.populate({
       path: "items.product",
-      select: "name slug images basePrice originalPrice inStock stock category brand",
+      select: "name slug images basePrice originalPrice inStock stock category brand variants",
       populate: [
         {
           path: "category",
@@ -81,6 +81,14 @@ export async function GET(request) {
             : null,
           inStock: product.inStock,
           stock: product.stock,
+          // Needed so "Add to Cart" from the wishlist (no size/color picker
+          // shown there) can pick a real variant instead of guessing.
+          variants: (product.variants || []).map((v) => ({
+            size: v.size,
+            color: v.color,
+            stock: v.stock,
+            isActive: v.isActive,
+          })),
         },
         addedAt: item.addedAt,
       };

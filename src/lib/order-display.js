@@ -37,6 +37,7 @@ export function mapApiOrderToLegacyUi(apiOrder) {
     status: apiOrder.status,
     statusHistory,
     paymentMethod: apiOrder.payment?.method,
+    paymentStatus: apiOrder.payment?.status || null,
     paymentDetails: {},
     address: {
       name: addr.name,
@@ -52,6 +53,7 @@ export function mapApiOrderToLegacyUi(apiOrder) {
     },
     items: (apiOrder.items || []).map((line, idx) => ({
       lineItemId: line.id != null ? String(line.id) : null,
+      itemId: line.id != null ? String(line.id) : null,
       id:
         line.product?.id != null
           ? String(line.product.id)
@@ -63,6 +65,9 @@ export function mapApiOrderToLegacyUi(apiOrder) {
       quantity: line.quantity,
       price: line.price,
       customization: line.customization ?? null,
+      status: line.status || null,
+      returnRequested: line.returnRequested || false,
+      refundRequested: line.refundRequested || false,
     })),
     orderSummary: {
       subtotal: apiOrder.subtotal ?? 0,

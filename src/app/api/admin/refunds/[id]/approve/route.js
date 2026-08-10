@@ -4,6 +4,7 @@ import Payment from "@/models/payment.model";
 import Order from "@/models/order.model";
 import { authenticateAdmin } from "@/lib/auth";
 import { refundRazorpayPayment } from "@/lib/razorpay";
+import { sendOrderStatusUpdateEmail } from "@/lib/email";
 import mongoose from "mongoose";
 
 /**
@@ -144,6 +145,20 @@ export async function POST(request, { params }) {
 
     // Format response
     const processedRefund = updatedPayment.refunds[refundIndexToUse];
+
+    // Notify the customer by email (best-effort, does not block the response)
+    if (updatedPayment.user?.email) {
+      sendOrderStatusUpdateEmail(updatedPayment.user.email, {
+        orderId: updatedPayment.order?.orderNumber || "",
+        status: updatedPayment.order?.status || updatedPayment.status,
+        customerName: updatedPayment.user.firstname
+          ? `${updatedPayment.user.firstname} ${updatedPayment.user.lastname || ""}`.trim()
+          : undefined,
+        note: `Your refund of ₹${processedRefund.amount} has been approved and is being processed.`,
+      }).catch((err) =>
+        console.error("Failed to send refund-approved email:", err)
+      );
+    }
 
     return NextResponse.json(
       {

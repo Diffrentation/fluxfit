@@ -1,12 +1,16 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import axios from "axios";
 import { motion } from "framer-motion";
 import AdminContent from "@/components/Admin/AdminContent";
 import PaymentHistory from "@/components/Admin/Payments/PaymentHistory";
 import RefundManagement from "@/components/Admin/Payments/RefundManagement";
 import SettlementReports from "@/components/Admin/Payments/SettlementReports";
 import TaxManagement from "@/components/Admin/Payments/TaxManagement";
-import { Tabs, Card, Statistic, Row, Col } from "antd";
+import CommissionTracking from "@/components/Admin/Payments/CommissionTracking";
+import FraudDetection from "@/components/Admin/Payments/FraudDetection";
+import FinanceOverview from "@/components/Admin/Payments/FinanceOverview";
+import { Tabs, Card, Statistic, Row, Col, message } from "antd";
 import {
   IconCurrencyRupee,
   IconTrendingUp,
@@ -15,195 +19,136 @@ import {
 } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
+
+// PaymentHistory/RefundManagement/SettlementReports/TaxManagement were built
+// against mock field names — map the real API responses onto those same
+// names here so none of those presentational components need to change.
+function toDisplayPayment(p) {
+  return {
+    id: p.id,
+    orderId: p.order?.orderNumber || "",
+    transactionId: p.transactionId || p.paymentId || p.id,
+    amount: p.amount,
+    method: p.method,
+    status: p.status === "completed" ? "success" : p.status,
+    fraudFlag: false,
+    date: p.createdAt,
+    customer: p.user?.name || "",
+  };
+}
+
+function toDisplayRefund(r) {
+  return {
+    id: r.id,
+    paymentId: r.paymentId,
+    refundIndex: r.refundIndex,
+    orderId: r.payment?.order?.orderNumber || "",
+    amount: r.amount,
+    reason: r.reason,
+    status: r.status === "completed" ? "processed" : r.status,
+    requestedDate: r.createdAt,
+    processedDate: r.processedAt || null,
+    customer: r.payment?.user
+      ? `${r.payment.user.firstname || ""} ${r.payment.user.lastname || ""}`.trim()
+      : "",
+    // Razorpay refunds complete automatically via webhook; COD (and any
+    // other non-gateway) refunds need the manual "Mark as Refunded" action
+    // since there's nothing to auto-confirm them.
+    gateway: r.payment?.gateway || null,
+    method: r.payment?.method || null,
+  };
+}
+
+function toDisplaySettlement(s) {
+  const periodLabel =
+    s.period?.startDate && s.period?.endDate
+      ? `${new Date(s.period.startDate).toLocaleDateString()} – ${new Date(s.period.endDate).toLocaleDateString()}`
+      : "";
+  return {
+    id: s.id,
+    vendorId: s.vendor?.id || s.id,
+    vendorName: s.vendor?.name?.trim() || "FluxFit",
+    period: periodLabel,
+    totalSales: s.summary?.totalSales ?? 0,
+    commission: s.summary?.totalCommission ?? 0,
+    tax: s.summary?.tax ?? 0,
+    settlement: s.summary?.netAmount ?? 0,
+    status: s.status || "pending",
+    // No separate "due date" field on the model — the period's end date is
+    // the natural point a settlement becomes payable.
+    dueDate: s.period?.endDate || s.createdAt,
+    processedDate: s.settlement?.processedAt || null,
+  };
+}
+
 const PaymentManagementPage = () => {
-  const [activeTab, setActiveTab] = useState("history");
+  const [activeTab, setActiveTab] = useState("overview");
   const [payments, setPayments] = useState([]);
   const [refunds, setRefunds] = useState([]);
   const [settlements, setSettlements] = useState([]);
   const [taxData, setTaxData] = useState([]);
+  const [fraudAlertCount, setFraudAlertCount] = useState(0);
 
-  // Load data from localStorage on mount
-  useEffect(() => {
-    loadPaymentsData();
-  }, []);
-
-  const loadPaymentsData = useCallback(() => {
+  const loadPaymentsData = useCallback(async () => {
     try {
-      // Load payments
-      const storedPayments = localStorage.getItem("adminPayments");
-      if (storedPayments) {
-        const parsed = JSON.parse(storedPayments);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setPayments(parsed);
-        }
-      } else {
-        // Initialize with mock data
-        const mockPayments = [
-          {
-            id: 1,
-            orderId: "ORD001",
-            transactionId: "TXN123456",
-            amount: 5000,
-            method: "credit_card",
-            status: "success",
-            fraudFlag: false,
-            date: "2024-05-15",
-            customer: "John Doe",
-          },
-          {
-            id: 2,
-            orderId: "ORD002",
-            transactionId: "TXN123457",
-            amount: 3000,
-            method: "upi",
-            status: "success",
-            fraudFlag: true,
-            date: "2024-05-16",
-            customer: "Jane Smith",
-          },
-          {
-            id: 3,
-            orderId: "ORD003",
-            transactionId: "TXN123458",
-            amount: 8000,
-            method: "debit_card",
-            status: "failed",
-            fraudFlag: false,
-            date: "2024-05-17",
-            customer: "Bob Johnson",
-          },
-        ];
-        setPayments(mockPayments);
-        localStorage.setItem("adminPayments", JSON.stringify(mockPayments));
-      }
+      const [paymentsRes, refundsRes, settlementsRes, taxRatesRes, fraudRes] =
+        await Promise.allSettled([
+          axios.get("/api/admin/payments", { params: { limit: 100 }, headers: authHeaders() }),
+          axios.get("/api/admin/refunds", { params: { limit: 100 }, headers: authHeaders() }),
+          axios.get("/api/admin/finance/settlements", { params: { limit: 100 }, headers: authHeaders() }),
+          axios.get("/api/admin/settings/tax-rates", { headers: authHeaders() }),
+          axios.get("/api/admin/finance/fraud-detection", { params: { limit: 1, status: "pending" }, headers: authHeaders() }),
+        ]);
 
-      // Load refunds
-      const storedRefunds = localStorage.getItem("adminRefunds");
-      if (storedRefunds) {
-        const parsed = JSON.parse(storedRefunds);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setRefunds(parsed);
-        }
-      } else {
-        const mockRefunds = [
-          {
-            id: 1,
-            orderId: "ORD001",
-            amount: 5000,
-            reason: "Product damaged",
-            status: "pending",
-            requestedDate: "2024-05-15",
-            customer: "John Doe",
-          },
-          {
-            id: 2,
-            orderId: "ORD002",
-            amount: 3000,
-            reason: "Wrong item received",
-            status: "approved",
-            requestedDate: "2024-05-14",
-            processedDate: "2024-05-16",
-            customer: "Jane Smith",
-          },
-        ];
-        setRefunds(mockRefunds);
-        localStorage.setItem("adminRefunds", JSON.stringify(mockRefunds));
+      if (paymentsRes.status === "fulfilled" && paymentsRes.value.data?.success) {
+        setPayments((paymentsRes.value.data.data.payments || []).map(toDisplayPayment));
       }
-
-      // Load settlements
-      const storedSettlements = localStorage.getItem("adminSettlements");
-      if (storedSettlements) {
-        const parsed = JSON.parse(storedSettlements);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSettlements(parsed);
-        }
-      } else {
-        const mockSettlements = [
-          {
-            id: 1,
-            vendorId: "V001",
-            vendorName: "Vendor A",
-            period: "2024-05",
-            totalSales: 50000,
-            commission: 5000,
-            tax: 9000,
-            settlement: 36000,
-            status: "pending",
-            dueDate: "2024-06-05",
-          },
-        ];
-        setSettlements(mockSettlements);
-        localStorage.setItem(
-          "adminSettlements",
-          JSON.stringify(mockSettlements)
+      if (refundsRes.status === "fulfilled" && refundsRes.value.data?.success) {
+        setRefunds((refundsRes.value.data.data.refunds || []).map(toDisplayRefund));
+      }
+      if (settlementsRes.status === "fulfilled" && settlementsRes.value.data?.success) {
+        setSettlements(
+          (settlementsRes.value.data.data.settlements || []).map(toDisplaySettlement)
         );
       }
-
-      // Load tax data
-      const storedTaxData = localStorage.getItem("adminTaxData");
-      if (storedTaxData) {
-        const parsed = JSON.parse(storedTaxData);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTaxData(parsed);
-        }
-      } else {
-        const mockTaxData = [
-          {
-            id: 1,
-            orderId: "ORD001",
-            amount: 5000,
-            gstRate: 18,
-            cgst: 450,
-            sgst: 450,
-            igst: 0,
-            totalTax: 900,
-            date: "2024-05-15",
-            state: "Maharashtra",
-          },
-        ];
-        setTaxData(mockTaxData);
-        localStorage.setItem("adminTaxData", JSON.stringify(mockTaxData));
+      // Tax (GST) Management shows the real configured tax rates — there is
+      // no separate per-order tax ledger endpoint, so this tab is a rate
+      // configuration view rather than a collected-tax report.
+      if (taxRatesRes.status === "fulfilled" && taxRatesRes.value.data?.success) {
+        const rates = taxRatesRes.value.data.data?.taxRates || taxRatesRes.value.data.data || [];
+        setTaxData(
+          (Array.isArray(rates) ? rates : []).map((t) => ({
+            id: t.id || t._id,
+            orderId: t.code,
+            amount: null,
+            gstRate: t.rate,
+            cgst: null,
+            sgst: null,
+            igst: null,
+            totalTax: null,
+            date: t.updatedAt,
+            state: (t.states || []).join(", ") || "All states",
+          }))
+        );
+      }
+      if (fraudRes.status === "fulfilled" && fraudRes.value.data?.success) {
+        setFraudAlertCount(fraudRes.value.data.data.statistics?.total || 0);
       }
     } catch (error) {
       console.error("Error loading payments data:", error);
+      message.error("Failed to load some payment/finance data");
     }
   }, []);
 
-  // Save payments to localStorage whenever payments state changes
+  // Initial data load from multiple independent endpoints.
   useEffect(() => {
-    try {
-      localStorage.setItem("adminPayments", JSON.stringify(payments));
-    } catch (error) {
-      console.error("Error saving payments:", error);
-    }
-  }, [payments]);
-
-  // Save refunds to localStorage whenever refunds state changes
-  useEffect(() => {
-    try {
-      localStorage.setItem("adminRefunds", JSON.stringify(refunds));
-    } catch (error) {
-      console.error("Error saving refunds:", error);
-    }
-  }, [refunds]);
-
-  // Save settlements to localStorage whenever settlements state changes
-  useEffect(() => {
-    try {
-      localStorage.setItem("adminSettlements", JSON.stringify(settlements));
-    } catch (error) {
-      console.error("Error saving settlements:", error);
-    }
-  }, [settlements]);
-
-  // Save tax data to localStorage whenever taxData state changes
-  useEffect(() => {
-    try {
-      localStorage.setItem("adminTaxData", JSON.stringify(taxData));
-    } catch (error) {
-      console.error("Error saving tax data:", error);
-    }
-  }, [taxData]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadPaymentsData();
+  }, [loadPaymentsData]);
 
   // Calculate stats from data
   const stats = useMemo(() => {
@@ -215,34 +160,38 @@ const PaymentManagementPage = () => {
       .reduce((sum, r) => sum + r.amount, 0);
     const pendingSettlements = settlements
       .filter((s) => s.status === "pending")
-      .reduce((sum, s) => sum + s.settlement, 0);
-    const taxCollected = taxData.reduce((sum, t) => sum + t.totalTax, 0);
-    const fraudDetected = payments.filter((p) => p.fraudFlag).length;
+      .reduce((sum, s) => sum + (s.settlement || 0), 0);
+    // No per-order tax ledger endpoint exists — this tab shows configured
+    // GST rates, not collected tax, so the stat reflects that.
+    const activeTaxRates = taxData.length;
 
     return {
       totalRevenue,
       totalRefunds,
       pendingSettlements,
-      taxCollected,
-      fraudDetected,
+      activeTaxRates,
+      fraudDetected: fraudAlertCount,
     };
-  }, [payments, refunds, settlements, taxData]);
+  }, [payments, refunds, settlements, taxData, fraudAlertCount]);
 
-  const handleUpdatePayments = useCallback((updatedPayments) => {
-    setPayments(updatedPayments);
-  }, []);
+  // RefundManagement performs the real approve/reject API calls itself and
+  // just asks for a refresh afterward — same shape kept for the other tabs
+  // in case they ever need a real mutation too.
+  const handleUpdatePayments = useCallback(() => {
+    loadPaymentsData();
+  }, [loadPaymentsData]);
 
-  const handleUpdateRefunds = useCallback((updatedRefunds) => {
-    setRefunds(updatedRefunds);
-  }, []);
+  const handleUpdateRefunds = useCallback(() => {
+    loadPaymentsData();
+  }, [loadPaymentsData]);
 
-  const handleUpdateSettlements = useCallback((updatedSettlements) => {
-    setSettlements(updatedSettlements);
-  }, []);
+  const handleUpdateSettlements = useCallback(() => {
+    loadPaymentsData();
+  }, [loadPaymentsData]);
 
-  const handleUpdateTaxData = useCallback((updatedTaxData) => {
-    setTaxData(updatedTaxData);
-  }, []);
+  const handleUpdateTaxData = useCallback(() => {
+    loadPaymentsData();
+  }, [loadPaymentsData]);
 
   return (
     <div className="min-h-screen bg-transparent transition-colors duration-300">
@@ -296,10 +245,9 @@ const PaymentManagementPage = () => {
                 </Card>
                 <Card className="!bg-zinc-950 border-zinc-800 w-full min-w-0">
                   <Statistic
-                    title="Tax Collected (GST)"
-                    value={stats.taxCollected}
+                    title="Active Tax Rates (GST)"
+                    value={stats.activeTaxRates}
                     prefix={<IconTrendingUp className="w-4 h-4" />}
-                    formatter={(value) => `₹${formatPrice(value)}`}
                     valueStyle={{ color: "#722ed1" }}
                   />
                 </Card>
@@ -315,7 +263,7 @@ const PaymentManagementPage = () => {
                         {stats.fraudDetected} Potential Fraud Cases Detected
                       </div>
                       <div className="text-xs sm:text-sm text-orange-700 dark:text-orange-300">
-                        Review flagged transactions in Payment History
+                        Review flagged activity in the Fraud Detection tab
                       </div>
                     </div>
                   </div>
@@ -327,6 +275,19 @@ const PaymentManagementPage = () => {
                 onChange={setActiveTab}
                 className="payment-tabs"
                 items={[
+                  {
+                    key: "overview",
+                    label: (
+                      <span className="text-xs sm:text-sm md:text-base">
+                        Overview
+                      </span>
+                    ),
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <FinanceOverview />
+                      </div>
+                    ),
+                  },
                   {
                     key: "history",
                     label: (
@@ -388,6 +349,33 @@ const PaymentManagementPage = () => {
                           taxData={taxData}
                           onUpdateTaxData={handleUpdateTaxData}
                         />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "commissions",
+                    label: (
+                      <span className="text-xs sm:text-sm md:text-base">
+                        Commissions
+                      </span>
+                    ),
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <CommissionTracking />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "fraud",
+                    label: (
+                      <span className="text-xs sm:text-sm md:text-base">
+                        Fraud Detection
+                        {fraudAlertCount > 0 ? ` (${fraudAlertCount})` : ""}
+                      </span>
+                    ),
+                    children: (
+                      <div className="mt-2 sm:mt-3 md:mt-4">
+                        <FraudDetection />
                       </div>
                     ),
                   },

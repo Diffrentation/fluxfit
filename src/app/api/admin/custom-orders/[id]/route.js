@@ -68,6 +68,7 @@ export async function GET(request, { params }) {
           designImages: order.designImages,
           status: order.status,
           adminRemarks: order.adminRemarks,
+          quote: order.quote || null,
           reviewedBy: order.reviewedBy
             ? { id: order.reviewedBy._id.toString(), name: order.reviewedBy.name }
             : null,
@@ -107,13 +108,23 @@ export async function PATCH(request, { params }) {
     }
 
     const body = await request.json();
-    const { status, adminRemarks, estimatedDelivery } = body;
+    const { status, adminRemarks, estimatedDelivery, quote } = body;
 
     if (status && !VALID_STATUSES.includes(status)) {
       return NextResponse.json(
         { success: false, message: "Invalid status value" },
         { status: 400 }
       );
+    }
+
+    if (quote && quote.pricePerUnit != null) {
+      const pricePerUnit = Number(quote.pricePerUnit);
+      if (!Number.isFinite(pricePerUnit) || pricePerUnit < 0) {
+        return NextResponse.json(
+          { success: false, message: "Quoted price per unit must be a non-negative number" },
+          { status: 400 }
+        );
+      }
     }
 
     const order = await CustomClothingOrder.findOne({
@@ -135,6 +146,17 @@ export async function PATCH(request, { params }) {
         ? new Date(estimatedDelivery)
         : null;
     }
+    if (quote && quote.pricePerUnit != null) {
+      const pricePerUnit = Number(quote.pricePerUnit);
+      order.quote = {
+        pricePerUnit,
+        totalAmount: Math.round(pricePerUnit * order.quantity * 100) / 100,
+        currency: "INR",
+        notes: quote.notes || "",
+        quotedBy: admin._id,
+        quotedAt: new Date(),
+      };
+    }
 
     // Record reviewer info when reviewing
     if (
@@ -151,7 +173,7 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({
       success: true,
       message: "Order updated successfully",
-      data: { status: order.status },
+      data: { status: order.status, quote: order.quote || null },
     });
   } catch (error) {
     console.error("PATCH /api/admin/custom-orders/[id]:", error);

@@ -1,106 +1,21 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
-import { useDebounce } from "@/hooks/useDebounce";
+import React, { useState } from "react";
+import axios from "axios";
 import { motion } from "framer-motion";
 import ProductList from "@/components/Admin/Products/ProductList";
 import ProductForm from "@/components/Admin/Products/ProductForm";
 import ProductDetailsModal from "@/components/Admin/Products/ProductDetailsModal";
 import AdminContent from "@/components/Admin/AdminContent";
-import {
-  IconPlus,
-  IconUpload,
-  IconDownload,
-  IconSearch,
-  IconFilter,
-} from "@tabler/icons-react";
-import { Button, Input, Select, message, Modal } from "antd";
-import { productDatabase } from "@/lib/productDatabase";
+import { IconPlus, IconUpload, IconDownload } from "@tabler/icons-react";
+import { Button, message, Modal } from "antd";
 import { parseCSV, validateBulkProducts } from "@/lib/csvParser";
 
-const { Search } = Input;
-const { Option } = Select;
-
 const ProductManagementPage = () => {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
   const [isBulkUploadVisible, setIsBulkUploadVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [uploadKey, setUploadKey] = useState(0);
-
-  const loadProducts = useCallback(() => {
-    // Try to load from localStorage first, then fallback to productDatabase
-    try {
-      const savedProducts = localStorage.getItem("adminProducts");
-      if (savedProducts) {
-        const parsed = JSON.parse(savedProducts);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setProducts(parsed);
-          return;
-        }
-      }
-    } catch (error) {
-      console.error("Error loading products from localStorage:", error);
-    }
-
-    // Convert productDatabase object to array
-    const productsArray = Object.values(productDatabase).map((product) => ({
-      ...product,
-      status: product.status || "approved", // Default status
-      stock: product.stock || 0,
-      metaTitle: product.metaTitle || product.name,
-      slug: product.slug || product.name.toLowerCase().replace(/\s+/g, "-"),
-    }));
-    setProducts(productsArray);
-  }, []);
-
-  // Save products to localStorage whenever products state changes
-  useEffect(() => {
-    if (products.length > 0) {
-      try {
-        localStorage.setItem("adminProducts", JSON.stringify(products));
-      } catch (error) {
-        console.error("Error saving products to localStorage:", error);
-      }
-    }
-  }, [products]);
-
-  useEffect(() => {
-    loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    let filtered = [...products];
-
-    // Search filter
-    if (debouncedSearchQuery) {
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-          product.id.toString().includes(debouncedSearchQuery)
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((product) => product.status === statusFilter);
-    }
-
-    // Category filter
-    if (categoryFilter !== "all") {
-      filtered = filtered.filter(
-        (product) => product.category === categoryFilter
-      );
-    }
-
-    setFilteredProducts(filtered);
-  }, [products, debouncedSearchQuery, statusFilter, categoryFilter]);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -112,176 +27,212 @@ const ProductManagementPage = () => {
     setIsFormVisible(true);
   };
 
-  const handleDeleteProduct = (productId) => {
-    // Update state by removing the product
-    setProducts((prevProducts) =>
-      prevProducts.filter((product) => product.id !== productId)
-    );
-  };
+  // `ProductList` performs the real DELETE call itself and refetches its own
+  // data; this is just an optional notification hook, kept for API parity.
+  const handleDeleteProduct = () => {};
 
-  const handleSaveProduct = (productData) => {
-    try {
-      if (selectedProduct) {
-        // Update existing product
-        setProducts((prevProducts) => {
-          const updated = prevProducts.map((product) =>
-            product.id === selectedProduct.id
-              ? {
-                  ...productData,
-                  id: selectedProduct.id,
-                  createdAt: product.createdAt || new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                  // Preserve existing fields that might not be in productData
-                  images: productData.images || product.images || [],
-                  image: productData.images?.[0] || product.image || "",
-                  variants: productData.variants || product.variants || [],
-                  colors: productData.colors || product.colors || [],
-                  sizes: productData.sizes || product.sizes || [],
-                }
-              : product
-          );
-          return updated;
-        });
-        message.success("Product updated successfully");
-      } else {
-        // Add new product
-        const newProduct = {
-          ...productData,
-          id: Date.now(), // Generate unique ID
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          status: productData.status || "draft",
-          stock: productData.stock || 0,
-          inStock: productData.inStock !== false,
-          images: productData.images || [],
-          image: productData.images?.[0] || "",
-          variants: productData.variants || [],
-          colors: productData.colors || [],
-          sizes: productData.sizes || [],
-          rating: productData.rating || 0,
-          reviews: productData.reviews || 0,
-        };
-        setProducts((prevProducts) => [...prevProducts, newProduct]);
-        message.success("Product added successfully");
-      }
-      setIsFormVisible(false);
-      setSelectedProduct(null);
-    } catch (error) {
-      message.error("Failed to save product. Please try again.");
-      console.error("Error saving product:", error);
-    }
-  };
+  // `ProductForm` performs the real POST/PUT call itself, shows its own
+  // success/error messages, and dispatches "products:refresh" so `ProductList`
+  // reloads from the server. Nothing to do here beyond closing the modal,
+  // which `onClose` already handles.
+  const handleSaveProduct = () => {};
 
+  /**
+   * Bulk upload: parses the CSV client-side (existing `csvParser` helper),
+   * resolves each row's category name to a real category ObjectId (backend
+   * requires a valid ObjectId), then creates each product via the real
+   * POST /api/products endpoint. This replaces the previous version which
+   * only pushed parsed rows into local component state / localStorage.
+   */
   const handleBulkUpload = async (file) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => {
+      message.error("Failed to read file");
+    };
+
+    reader.onload = async (e) => {
+      let parsedProducts;
+      try {
+        parsedProducts = parseCSV(e.target.result);
+      } catch (error) {
+        message.error(`Failed to parse CSV: ${error.message}`);
+        return;
+      }
+
+      const validation = validateBulkProducts(parsedProducts);
+
+      if (validation.valid.length === 0) {
+        Modal.warning({
+          title: "No valid products found",
+          content: (
+            <div className="dark:text-gray-300">
+              <p className="text-sm sm:text-base">
+                All {validation.invalid.length} row(s) failed validation.
+              </p>
+              <ul className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                {validation.invalid.slice(0, 5).map((item, idx) => (
+                  <li key={idx} className="text-xs sm:text-sm">
+                    Row {item.index}: {item.errors.join(", ")}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ),
+        });
+        return;
+      }
+
+      const uploadValid = async () => {
+        await createProductsFromRows(validation.valid);
+        setIsBulkUploadVisible(false);
+        setUploadKey((prev) => prev + 1);
+      };
+
+      if (validation.invalid.length > 0) {
+        Modal.warning({
+          title: "Some products have errors",
+          content: (
+            <div className="dark:text-gray-300">
+              <p className="text-sm sm:text-base">
+                {validation.valid.length} products are valid,{" "}
+                {validation.invalid.length} have errors.
+              </p>
+              <ul className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                {validation.invalid.slice(0, 5).map((item, idx) => (
+                  <li key={idx} className="text-xs sm:text-sm">
+                    Row {item.index}: {item.errors.join(", ")}
+                  </li>
+                ))}
+              </ul>
+              {validation.invalid.length > 5 && (
+                <p className="text-xs sm:text-sm mt-2">
+                  ... and {validation.invalid.length - 5} more
+                </p>
+              )}
+            </div>
+          ),
+          okText: "Upload Valid Only",
+          onOk: uploadValid,
+        });
+      } else {
+        await uploadValid();
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  // Creates each parsed CSV row as a real product via POST /api/products.
+  const createProductsFromRows = async (rows) => {
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    };
+
+    const hide = message.loading("Uploading products...", 0);
+
     try {
-      message.loading("Processing bulk upload...", 0);
+      // Resolve category names -> ObjectIds (backend requires a valid category ObjectId).
+      let categories = [];
+      try {
+        const { data } = await axios.get(
+          "/api/categories?format=flat&includeInactive=true",
+          { headers }
+        );
+        if (data.success) categories = data.data.categories || [];
+      } catch (error) {
+        console.error("Failed to load categories for bulk upload:", error);
+      }
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
+      const categoryIdByName = new Map(
+        categories.map((cat) => [
+          String(cat.name || "").trim().toLowerCase(),
+          cat._id || cat.id,
+        ])
+      );
+
+      let successCount = 0;
+      const failures = [];
+
+      for (const row of rows) {
+        const categoryId = categoryIdByName.get(
+          String(row.category || "").trim().toLowerCase()
+        );
+
+        if (!categoryId) {
+          failures.push(`${row.name}: category "${row.category}" not found`);
+          continue;
+        }
+
+        const description = (row.description || row.name || "")
+          .trim()
+          .slice(0, 200);
+
+        const payload = {
+          name: row.name,
+          description: description || row.name,
+          category: categoryId,
+          basePrice: row.price,
+          originalPrice: row.originalPrice,
+          images: row.image ? [{ url: row.image, isPrimary: true }] : [],
+          variants:
+            row.size || row.color || row.stock
+              ? [
+                  {
+                    size: row.size || "One Size",
+                    color: row.color || "Default",
+                    price: row.price,
+                    stock: row.stock || 0,
+                  },
+                ]
+              : [],
+          metaTitle: row.metaTitle,
+          slug: row.slug,
+          status: row.status || "draft",
+        };
+
         try {
-          const csvText = e.target.result;
-          const parsedProducts = parseCSV(csvText);
-          const validation = validateBulkProducts(parsedProducts);
-
-          if (validation.invalid.length > 0) {
-            message.destroy();
-            Modal.warning({
-              title: "Some products have errors",
-              content: (
-                <div className="dark:text-gray-300">
-                  <p className="text-sm sm:text-base">
-                    {validation.valid.length} products are valid,{" "}
-                    {validation.invalid.length} have errors.
-                  </p>
-                  <ul className="mt-2 max-h-40 overflow-y-auto space-y-1">
-                    {validation.invalid.slice(0, 5).map((item, idx) => (
-                      <li key={idx} className="text-xs sm:text-sm">
-                        Row {item.index}: {item.errors.join(", ")}
-                      </li>
-                    ))}
-                  </ul>
-                  {validation.invalid.length > 5 && (
-                    <p className="text-xs sm:text-sm mt-2">
-                      ... and {validation.invalid.length - 5} more
-                    </p>
-                  )}
-                </div>
-              ),
-              okText:
-                validation.valid.length > 0 ? "Upload Valid Only" : "Cancel",
-              onOk: () => {
-                if (validation.valid.length > 0) {
-                  // Add valid products to state
-                  const newProducts = validation.valid.map(
-                    (product, index) => ({
-                      ...product,
-                      id: Date.now() + index, // Generate unique IDs
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                      status: product.status || "draft",
-                      stock: product.stock || 0,
-                      inStock: product.inStock !== false,
-                      images: product.image ? [product.image] : [],
-                      image: product.image || "",
-                      metaTitle: product.metaTitle || product.name,
-                      slug:
-                        product.slug ||
-                        product.name.toLowerCase().replace(/\s+/g, "-"),
-                    })
-                  );
-                  setProducts((prevProducts) => [
-                    ...prevProducts,
-                    ...newProducts,
-                  ]);
-                  message.success(
-                    `${validation.valid.length} products uploaded successfully`
-                  );
-                  setIsBulkUploadVisible(false);
-                  setUploadKey((prev) => prev + 1); // Reset file input
-                }
-              },
-            });
+          const { data } = await axios.post("/api/products", payload, {
+            headers,
+          });
+          if (data.success) {
+            successCount += 1;
           } else {
-            message.destroy();
-            // Add all valid products to state
-            const newProducts = validation.valid.map((product, index) => ({
-              ...product,
-              id: Date.now() + index, // Generate unique IDs
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              status: product.status || "draft",
-              stock: product.stock || 0,
-              inStock: product.inStock !== false,
-              images: product.image ? [product.image] : [],
-              image: product.image || "",
-              metaTitle: product.metaTitle || product.name,
-              slug:
-                product.slug || product.name.toLowerCase().replace(/\s+/g, "-"),
-            }));
-            setProducts((prevProducts) => [...prevProducts, ...newProducts]);
-            message.success(
-              `${validation.valid.length} products uploaded successfully`
-            );
-            setIsBulkUploadVisible(false);
-            setUploadKey((prev) => prev + 1); // Reset file input
+            failures.push(`${row.name}: ${data.message || "Failed"}`);
           }
         } catch (error) {
-          message.destroy();
-          message.error(`Failed to parse CSV: ${error.message}`);
+          failures.push(
+            `${row.name}: ${
+              error.response?.data?.message || "Failed to create"
+            }`
+          );
         }
-      };
-      reader.onerror = () => {
-        message.destroy();
-        message.error("Failed to read file");
-      };
-      reader.readAsText(file);
-    } catch (error) {
-      message.destroy();
-      message.error("Failed to process file");
+      }
+
+      if (successCount > 0) {
+        message.success(`${successCount} product(s) uploaded successfully`);
+        window.dispatchEvent(new Event("products:refresh"));
+      }
+
+      if (failures.length > 0) {
+        Modal.warning({
+          title: `${failures.length} product(s) failed to upload`,
+          content: (
+            <ul className="mt-2 max-h-40 overflow-y-auto space-y-1">
+              {failures.slice(0, 10).map((msg, idx) => (
+                <li key={idx} className="text-xs sm:text-sm">
+                  {msg}
+                </li>
+              ))}
+            </ul>
+          ),
+        });
+      }
+    } finally {
+      hide();
     }
   };
-
-  const categories = ["All", "Women", "Men", "Bag", "Shoes", "Watches"];
 
   return (
     <div className="min-h-screen bg-transparent transition-colors duration-300">
@@ -324,13 +275,10 @@ const ProductManagementPage = () => {
                   </Button>
                 </div>
               </div>
-
-              {/* Filters */}
             </motion.div>
 
             {/* Product List */}
             <ProductList
-              products={filteredProducts}
               onEdit={handleEditProduct}
               onDelete={handleDeleteProduct}
               onView={(product) => {
@@ -400,7 +348,8 @@ const BulkUploadForm = ({ onUpload, uploadKey }) => {
     <div className="mt-4">
       <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-3 sm:mb-4">
         Upload a CSV file with product data. Download the template for the
-        correct format.
+        correct format. The &quot;Category&quot; column must match an existing
+        category name exactly.
       </p>
       <div className="space-y-3 sm:space-y-4">
         <Button
@@ -437,7 +386,8 @@ Another Product,2000,2500,Men,Blue,L,5,Another description,https://example.com/i
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200">
           <strong>Note:</strong> Required fields: Product Name, Price, Category,
-          Stock. All other fields are optional.
+          Stock. All other fields are optional. Category must match an
+          existing category name.
         </div>
       </div>
     </div>

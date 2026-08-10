@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { ACTIVE_PAYMENT_METHODS, PAYMENT_METHOD_CATALOG } from "@/lib/paymentMethods";
 
 /**
  * GET /api/payments/methods
  * Get available payment methods
  *
- * Returns list of available payment methods with their details.
+ * Returns list of payment methods with an `enabled` flag reflecting
+ * ACTIVE_PAYMENT_METHODS — the same list src/app/api/orders/route.js
+ * validates paymentMethod against, so this can't drift out of sync with
+ * what checkout will actually accept.
  */
 export async function GET(request) {
   try {
@@ -12,35 +16,10 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const currency = searchParams.get("currency") || "INR";
 
-    // Define available payment methods
-    const paymentMethods = [
-      {
-        id: "razorpay",
-        name: "Razorpay",
-        displayName: "Credit/Debit Card, UPI, Net Banking",
-        type: "gateway",
-        enabled: true,
-        methods: ["card", "upi", "netbanking", "wallet"],
-        currencies: ["INR"],
-        icon: "💳",
-        description: "Secure payment via Razorpay",
-        minAmount: 1, // Minimum amount in rupees
-        maxAmount: null, // No maximum
-      },
-      {
-        id: "cod",
-        name: "Cash on Delivery",
-        displayName: "Cash on Delivery",
-        type: "cod",
-        enabled: true,
-        methods: ["cod"],
-        currencies: ["INR"],
-        icon: "💰",
-        description: "Pay when you receive your order",
-        minAmount: 0,
-        maxAmount: 5000, // Maximum COD amount
-      },
-    ];
+    const paymentMethods = PAYMENT_METHOD_CATALOG.map((method) => ({
+      ...method,
+      enabled: ACTIVE_PAYMENT_METHODS.includes(method.id),
+    }));
 
     // Filter by currency if specified
     const filteredMethods = paymentMethods.filter((method) =>

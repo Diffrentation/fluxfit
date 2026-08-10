@@ -12,6 +12,7 @@ import {
   DatePicker,
   Modal,
   Spin,
+  InputNumber,
 } from "antd";
 import {
   IconEye,
@@ -59,6 +60,10 @@ function ReviewModal({ order, onClose, onUpdated }) {
   const [delivery, setDelivery] = useState(
     order.estimatedDelivery ? dayjs(order.estimatedDelivery) : null
   );
+  const [pricePerUnit, setPricePerUnit] = useState(
+    order.quote?.pricePerUnit ?? null
+  );
+  const [quoteNotes, setQuoteNotes] = useState(order.quote?.notes || "");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -72,6 +77,9 @@ function ReviewModal({ order, onClose, onUpdated }) {
           status: newStatus,
           adminRemarks: remarks,
           estimatedDelivery: delivery ? delivery.toISOString() : null,
+          ...(pricePerUnit != null
+            ? { quote: { pricePerUnit, notes: quoteNotes } }
+            : {}),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -225,6 +233,39 @@ function ReviewModal({ order, onClose, onUpdated }) {
               className="w-full"
               format="DD MMM YYYY"
               disabledDate={(d) => d && d < dayjs().startOf("day")}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-gray-700 mb-2 block">
+              Price Quote (per unit)
+            </label>
+            <div className="flex items-center gap-3">
+              <InputNumber
+                value={pricePerUnit}
+                onChange={setPricePerUnit}
+                min={0}
+                prefix="₹"
+                className="w-full"
+                placeholder="e.g. 499"
+              />
+              {pricePerUnit != null && (
+                <span className="text-sm text-gray-500 whitespace-nowrap">
+                  Total: ₹{(pricePerUnit * order.quantity).toLocaleString("en-IN")}
+                </span>
+              )}
+            </div>
+            {order.quote?.quotedAt && (
+              <p className="text-xs text-gray-400 mt-1">
+                Last quoted {format(new Date(order.quote.quotedAt), "dd MMM yyyy, hh:mm a")}
+              </p>
+            )}
+            <Input
+              value={quoteNotes}
+              onChange={(e) => setQuoteNotes(e.target.value)}
+              placeholder="Optional note about the quote (e.g. bulk discount applied)"
+              className="mt-2"
+              maxLength={500}
             />
           </div>
 
@@ -438,6 +479,11 @@ export default function AdminCustomOrdersPage() {
                         <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 px-2.5 py-1 rounded-full capitalize">
                           {order.printPlacement?.replace(/_/g, " ")}
                         </span>
+                        {order.quote?.totalAmount != null && (
+                          <span className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full font-semibold border border-emerald-200 dark:border-emerald-800">
+                            Quoted: ₹{order.quote.totalAmount.toLocaleString("en-IN")}
+                          </span>
+                        )}
                       </div>
                     </div>
 

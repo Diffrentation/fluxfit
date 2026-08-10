@@ -24,6 +24,10 @@ export function usePublicProducts({
   maxPrice,
   colorFilter,
   selectedTags,
+  sizeFilter,
+  brandFilter,
+  minRating,
+  inStockOnly,
 }) {
   const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -45,6 +49,10 @@ export function usePublicProducts({
         maxPrice,
         color: colorFilter,
         tags: selectedTags,
+        size: sizeFilter,
+        brand: brandFilter,
+        minRating,
+        inStockOnly,
       }),
     [
       page,
@@ -58,6 +66,10 @@ export function usePublicProducts({
       maxPrice,
       colorFilter,
       selectedTags,
+      sizeFilter,
+      brandFilter,
+      minRating,
+      inStockOnly,
     ]
   );
 

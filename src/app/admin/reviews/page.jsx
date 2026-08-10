@@ -3,8 +3,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import axios from "axios";
-import { Button, Input, message, Modal, Select, Space, Spin, Table } from "antd";
+import { Button, Input, message, Modal, Pagination, Select, Space, Spin } from "antd";
 import AdminContent from "@/components/Admin/AdminContent";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
@@ -26,6 +42,8 @@ export default function AdminReviewsPage() {
   const [editStatus, setEditStatus] = useState("pending");
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -139,98 +157,98 @@ export default function AdminReviewsPage() {
     [fetchReviews]
   );
 
-  const columns = useMemo(
+  const columnDefs = useMemo(
     () => [
       {
-        title: "User",
-        dataIndex: ["user", "name"],
-        key: "user",
-        render: (_, row) => row.user?.name || "-",
-      },
-      {
-        title: "Product",
-        dataIndex: ["product", "name"],
-        key: "product",
-        render: (_, row) => row.product?.name || "-",
-      },
-      { title: "Rating", dataIndex: "rating", key: "rating", width: 90 },
-      { title: "Status", dataIndex: "status", key: "status", width: 110 },
-      {
-        title: "Comment",
-        dataIndex: "comment",
-        key: "comment",
-        render: (text) => <span className="line-clamp-2">{text}</span>,
-      },
-      {
-        title: "Helpful",
-        dataIndex: ["helpful", "count"],
-        key: "helpful",
-        width: 100,
-        render: (value) => value || 0,
-      },
-      {
-        title: "Created",
-        dataIndex: "createdAt",
-        key: "createdAt",
+        headerName: "User",
         width: 160,
-        render: (value) => new Date(value).toLocaleDateString(),
+        valueGetter: (p) => p.data.user?.name || "-",
       },
       {
-        title: "Actions",
-        key: "actions",
-        width: 320,
-        render: (_, row) => (
-          <Space>
-            <Select
-              size="small"
-              value={row.status}
-              style={{ width: 120 }}
-              options={[
-                { value: "pending", label: "Pending" },
-                { value: "approved", label: "Approved" },
-                { value: "rejected", label: "Rejected" },
-                { value: "spam", label: "Spam" },
-              ]}
-              onChange={async (nextStatus) => {
-                try {
-                  setActionLoadingId(row.id);
-                  await axios.put(
-                    `/api/reviews/${row.id}`,
-                    { status: nextStatus },
-                    { headers: getAuthHeaders() }
-                  );
-                  message.success(`Review marked as ${nextStatus}`);
-                  await fetchReviews();
-                } catch (error) {
-                  message.error(
-                    error?.response?.data?.message || "Failed to update review status"
-                  );
-                } finally {
-                  setActionLoadingId(null);
-                }
-              }}
-              disabled={actionLoadingId === row.id}
-            />
-            <Button
-              size="small"
-              onClick={() => handleOpenEdit(row.id)}
-              loading={actionLoadingId === row.id}
-            >
-              Edit
-            </Button>
-            <Button
-              size="small"
-              danger
-              onClick={() => handleDelete(row.id)}
-              loading={actionLoadingId === row.id}
-            >
-              Delete
-            </Button>
-          </Space>
-        ),
+        headerName: "Product",
+        width: 160,
+        valueGetter: (p) => p.data.product?.name || "-",
+      },
+      { headerName: "Rating", field: "rating", width: 90 },
+      { headerName: "Status", field: "status", width: 110 },
+      {
+        headerName: "Comment",
+        field: "comment",
+        flex: 1,
+        minWidth: 220,
+        cellRenderer: (p) => <span className="line-clamp-2">{p.value}</span>,
+      },
+      {
+        headerName: "Helpful",
+        width: 100,
+        valueGetter: (p) => p.data.helpful?.count || 0,
+      },
+      {
+        headerName: "Created",
+        field: "createdAt",
+        width: 130,
+        valueFormatter: (p) => new Date(p.value).toLocaleDateString(),
+      },
+      {
+        headerName: "Actions",
+        width: 340,
+        pinned: "right",
+        cellRenderer: (p) => {
+          const row = p.data;
+          return (
+            <Space>
+              <Select
+                size="small"
+                value={row.status}
+                style={{ width: 120 }}
+                options={[
+                  { value: "pending", label: "Pending" },
+                  { value: "approved", label: "Approved" },
+                  { value: "rejected", label: "Rejected" },
+                  { value: "spam", label: "Spam" },
+                ]}
+                onChange={async (nextStatus) => {
+                  try {
+                    setActionLoadingId(row.id);
+                    await axios.put(
+                      `/api/reviews/${row.id}`,
+                      { status: nextStatus },
+                      { headers: getAuthHeaders() }
+                    );
+                    message.success(`Review marked as ${nextStatus}`);
+                    await fetchReviews();
+                  } catch (error) {
+                    message.error(
+                      error?.response?.data?.message || "Failed to update review status"
+                    );
+                  } finally {
+                    setActionLoadingId(null);
+                  }
+                }}
+                disabled={actionLoadingId === row.id}
+              />
+              <Button
+                size="small"
+                onClick={() => handleOpenEdit(row.id)}
+                loading={actionLoadingId === row.id}
+              >
+                Edit
+              </Button>
+              <Button
+                size="small"
+                danger
+                onClick={() => handleDelete(row.id)}
+                loading={actionLoadingId === row.id}
+              >
+                Delete
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
-    [actionLoadingId, fetchReviews, handleDelete, handleOpenEdit]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [actionLoadingId, fetchReviews, handleDelete, handleOpenEdit, reviews]
   );
 
   return (
@@ -274,17 +292,38 @@ export default function AdminReviewsPage() {
                   <Spin />
                 </div>
               ) : (
-                <Table
-                  rowKey="id"
-                  dataSource={reviews}
-                  columns={columns}
-                  pagination={{
-                    current: page,
-                    pageSize: limit,
-                    total: pagination.total || 0,
-                    onChange: setPage,
-                  }}
-                />
+                <>
+                  {isClient ? (
+                    <div style={{ width: "100%", height: 560 }}>
+                      <AgGridReact
+                        theme={myDarkTheme}
+                        modules={[AllCommunityModule]}
+                        rowData={reviews}
+                        columnDefs={columnDefs}
+                        defaultColDef={{ sortable: true, resizable: true }}
+                        getRowId={(p) => p.data.id}
+                        animateRows
+                        rowHeight={56}
+                        headerHeight={44}
+                        overlayNoRowsTemplate="No reviews found"
+                        suppressCellFocus
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-[560px]" />
+                  )}
+                  {pagination.total > limit && (
+                    <div className="flex justify-end pt-3">
+                      <Pagination
+                        current={page}
+                        pageSize={limit}
+                        total={pagination.total || 0}
+                        onChange={setPage}
+                        showTotal={(t) => `Total ${t} reviews`}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <Modal

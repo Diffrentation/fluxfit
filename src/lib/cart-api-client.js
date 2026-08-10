@@ -55,3 +55,69 @@ export async function addItemToServerCart(productId, options = {}) {
   }
   return { ok: true, data };
 }
+
+/**
+ * Find the matching server cart line's Mongo _id for a given product+variant
+ * by reading the current server cart. The server cart is line-keyed by its
+ * own subdocument _id, while the local cart is keyed by product+variant, so
+ * quantity-change/remove need this lookup before they can call
+ * PUT/DELETE /api/cart/items/:itemId.
+ */
+async function findServerCartItemId(productId, size, color, headers) {
+  const { data } = await axios.get("/api/cart", { headers });
+  const items = data?.data?.cart?.items || [];
+  const { size: s, color: c } = normalizeVariantForServer(size, color);
+  const match = items.find(
+    (item) =>
+      String(item.product?.id) === String(productId) &&
+      (item.variant?.size || null) === s &&
+      (item.variant?.color || null) === c,
+  );
+  return match?.id || null;
+}
+
+/**
+ * Best-effort: mirror a local quantity change onto the MongoDB cart.
+ */
+export async function updateItemQuantityOnServerCart(productId, size, color, quantity) {
+  const headers = getCartAuthHeaders();
+  if (!headers.Authorization) return { ok: false, skipped: true, reason: "no_token" };
+  const id = productId != null ? String(productId).trim() : "";
+  if (!isStrictMongoObjectIdString(id)) {
+    return { ok: false, skipped: true, reason: "invalid_product_id" };
+  }
+  const itemId = await findServerCartItemId(id, size, color, headers);
+  if (!itemId) return { ok: false, skipped: true, reason: "not_in_server_cart" };
+  const { data } = await axios.put(
+    `/api/cart/items/${itemId}`,
+    { quantity: Math.max(0, Number(quantity) || 0) },
+    { headers },
+  );
+  if (!data?.success) {
+    const err = new Error(data?.message || "Server cart request failed");
+    err.response = { data };
+    throw err;
+  }
+  return { ok: true, data };
+}
+
+/**
+ * Best-effort: mirror a local item removal onto the MongoDB cart.
+ */
+export async function removeItemFromServerCart(productId, size, color) {
+  const headers = getCartAuthHeaders();
+  if (!headers.Authorization) return { ok: false, skipped: true, reason: "no_token" };
+  const id = productId != null ? String(productId).trim() : "";
+  if (!isStrictMongoObjectIdString(id)) {
+    return { ok: false, skipped: true, reason: "invalid_product_id" };
+  }
+  const itemId = await findServerCartItemId(id, size, color, headers);
+  if (!itemId) return { ok: false, skipped: true, reason: "not_in_server_cart" };
+  const { data } = await axios.delete(`/api/cart/items/${itemId}`, { headers });
+  if (!data?.success) {
+    const err = new Error(data?.message || "Server cart request failed");
+    err.response = { data };
+    throw err;
+  }
+  return { ok: true, data };
+}

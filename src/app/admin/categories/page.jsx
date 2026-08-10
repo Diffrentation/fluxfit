@@ -36,43 +36,21 @@ const CategoryManagementPage = () => {
     }
   }, []);
 
-  const loadBrands = useCallback(() => {
-    // Mock data - in production, fetch from API
-    const mockBrands = [
-      {
-        id: 1,
-        name: "Nike",
-        slug: "nike",
-        logo: "",
-        description: "Just Do It",
-        sortOrder: 1,
-      },
-      {
-        id: 2,
-        name: "Adidas",
-        slug: "adidas",
-        logo: "",
-        description: "Impossible is Nothing",
-        sortOrder: 2,
-      },
-      {
-        id: 3,
-        name: "Puma",
-        slug: "puma",
-        logo: "",
-        description: "Forever Faster",
-        sortOrder: 3,
-      },
-      {
-        id: 4,
-        name: "Zara",
-        slug: "zara",
-        logo: "",
-        description: "Fast Fashion",
-        sortOrder: 4,
-      },
-    ];
-    setBrands(mockBrands);
+  const loadBrands = useCallback(async () => {
+    try {
+      const { data } = await axios.get("/api/brands", {
+        params: { limit: 100, includeInactive: true },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!data?.success) throw new Error(data?.message || "Failed to load brands");
+      setBrands(data.data.brands || []);
+    } catch (error) {
+      console.error("Load brands error:", error);
+      message.error(error.response?.data?.message || "Failed to load brands");
+    }
   }, []);
 
   useEffect(() => {
@@ -221,51 +199,30 @@ const CategoryManagementPage = () => {
       okText: "Delete",
       okType: "danger",
       cancelText: "Cancel",
-      onOk: () => {
-        setBrands((prev) => prev.filter((brand) => brand.id !== brandId));
-        message.success("Brand deleted successfully");
+      onOk: async () => {
+        try {
+          const { data } = await axios.delete(`/api/brands/${brandId}`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          if (!data?.success) throw new Error(data?.message || "Failed to delete brand");
+          message.success("Brand deleted successfully");
+          await loadBrands();
+        } catch (error) {
+          message.error(error.response?.data?.message || "Failed to delete brand");
+        }
       },
     });
   };
 
-  const handleSaveBrand = (brandData) => {
-    if (selectedBrand && selectedBrand.id) {
-      // Update existing brand
-      setBrands((prev) =>
-        prev.map((brand) =>
-          brand.id === selectedBrand.id ? { ...brand, ...brandData } : brand,
-        ),
-      );
-      message.success("Brand updated successfully");
-    } else {
-      // Add new brand
-      const getMaxId = (brandsList) => {
-        return brandsList.length > 0
-          ? Math.max(...brandsList.map((b) => b.id || 0))
-          : 0;
-      };
-
-      const getNextSortOrder = (brandsList) => {
-        return brandsList.length > 0
-          ? Math.max(...brandsList.map((b) => b.sortOrder || 0)) + 1
-          : 1;
-      };
-
-      const newBrand = {
-        ...brandData,
-        id: getMaxId(brands) + 1,
-        sortOrder: brandData.sortOrder || getNextSortOrder(brands),
-      };
-      setBrands((prev) =>
-        [...prev, newBrand].sort(
-          (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0),
-        ),
-      );
-      message.success("Brand added successfully");
-    }
-
+  // BrandForm performs the real create/update API call itself — this just
+  // needs to close the modal and refresh the list.
+  const handleSaveBrand = () => {
     setIsBrandFormVisible(false);
     setSelectedBrand(null);
+    loadBrands();
   };
 
   return (

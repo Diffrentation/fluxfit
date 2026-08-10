@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { Button, Input, Switch, Table, message, Upload } from "antd";
-import { IconUpload, IconTrash } from "@tabler/icons-react";
+import { IconUpload, IconTrash, IconSparkles } from "@tabler/icons-react";
 import AdminContent from "@/components/Admin/AdminContent";
 
 const readToken = () => {
@@ -20,6 +20,7 @@ export default function CustomClothesDesignsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const authHeaders = useCallback(() => {
     const token = readToken();
@@ -113,6 +114,24 @@ export default function CustomClothesDesignsAdminPage() {
     }
 
     return Upload.LIST_IGNORE;
+  };
+
+  const seedDemoDesigns = async () => {
+    setSeeding(true);
+    try {
+      const { data } = await axios.post(
+        "/api/admin/custom-clothes-designs/seed",
+        {},
+        { headers: { ...authHeaders() } }
+      );
+      if (!data?.success) throw new Error(data?.message || "Seed failed");
+      message.success(data.message || "Demo designs seeded.");
+      await load();
+    } catch (e) {
+      message.error(e.response?.data?.message || e.message || "Seed failed");
+    } finally {
+      setSeeding(false);
+    }
   };
 
   const toggleActive = async (record, next) => {
@@ -231,6 +250,14 @@ export default function CustomClothesDesignsAdminPage() {
                 Upload image
               </Button>
             </Upload>
+            <Button
+              icon={<IconSparkles className="h-4 w-4" />}
+              loading={seeding}
+              disabled={seeding}
+              onClick={seedDemoDesigns}
+            >
+              Seed demo designs
+            </Button>
           </div>
 
           <div className="mt-8 rounded-xl border border-zinc-800 !bg-zinc-950 p-4">

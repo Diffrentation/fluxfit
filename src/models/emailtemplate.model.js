@@ -27,6 +27,7 @@ const emailTemplateSchema = new mongoose.Schema(
         "order-delivered",
         "order-cancelled",
         "password-reset",
+        "admin-password-reset",
         "email-verification",
         "payment-success",
         "payment-failed",

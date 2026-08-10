@@ -301,6 +301,10 @@ export function buildPublicProductsQuery({
   maxPrice,
   color = null,
   tags = [],
+  size = null,
+  brand = null,
+  minRating = null,
+  inStockOnly = false,
 }) {
   const params = {
     page,
@@ -338,6 +342,13 @@ export function buildPublicProductsQuery({
   if (Array.isArray(tags) && tags.length > 0) {
     params.tags = tags.map((t) => String(t).trim().toLowerCase()).join(",");
   }
+
+  if (size && String(size).trim()) params.size = String(size).trim();
+  if (brand && String(brand).trim()) params.brand = String(brand).trim();
+  if (minRating != null && Number.isFinite(Number(minRating))) {
+    params.minRating = Number(minRating);
+  }
+  if (inStockOnly) params.inStock = "true";
 
   return params;
 }

@@ -21,42 +21,76 @@ export async function GET(request) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const filter = { isDeleted: false };
-    if (status && status !== "all") filter.status = status;
+    const match = { isDeleted: false };
+    if (status && status !== "all") match.status = status;
 
-    let query = CustomClothingOrder.find(filter)
-      .populate("user", "name email phone avatar")
-      .populate("reviewedBy", "name email")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    // Search (user name/email, cloth type) has to run as part of the Mongo
+    // query itself — filtering after .skip().limit() would only search
+    // within the current page and make `total` inconsistent with the real
+    // match count. User docs are looked up via $lookup since search needs
+    // to reach fields (firstname/lastname/email) that live on that
+    // collection, not on the order itself.
+    const pipeline = [
+      { $match: match },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "reviewedBy",
+          foreignField: "_id",
+          as: "reviewedBy",
+        },
+      },
+      { $unwind: { path: "$reviewedBy", preserveNullAndEmptyArrays: true } },
+    ];
 
-    const [orders, total] = await Promise.all([
-      query.lean(),
-      CustomClothingOrder.countDocuments(filter),
-    ]);
-
-    // Apply search filter client-side (by user name/email)
-    let filtered = orders;
-    if (search) {
-      const s = search.toLowerCase();
-      filtered = orders.filter(
-        (o) =>
-          o.user?.name?.toLowerCase().includes(s) ||
-          o.user?.email?.toLowerCase().includes(s) ||
-          o.clothType?.toLowerCase().includes(s)
-      );
+    if (search && search.trim()) {
+      const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      pipeline.push({
+        $match: {
+          $or: [
+            { "user.firstname": regex },
+            { "user.lastname": regex },
+            { "user.email": regex },
+            { clothType: regex },
+          ],
+        },
+      });
     }
 
-    const formatted = filtered.map((o) => ({
+    const [orders, totalResult, statusCountsResult] = await Promise.all([
+      CustomClothingOrder.aggregate([
+        ...pipeline,
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+      ]),
+      CustomClothingOrder.aggregate([...pipeline, { $count: "total" }]),
+      CustomClothingOrder.aggregate([
+        { $match: { isDeleted: false } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const total = totalResult[0]?.total || 0;
+
+    const formatted = orders.map((o) => ({
       id: o._id.toString(),
       user: o.user
         ? {
             id: o.user._id.toString(),
-            name: o.user.name,
+            name: `${o.user.firstname || ""} ${o.user.lastname || ""}`.trim(),
             email: o.user.email,
             phone: o.user.phone || null,
-            avatar: o.user.avatar || null,
+            avatar: o.user.profileimage || null,
           }
         : null,
       clothType: o.clothType,
@@ -67,8 +101,12 @@ export async function GET(request) {
       designImages: o.designImages,
       status: o.status,
       adminRemarks: o.adminRemarks,
+      quote: o.quote || null,
       reviewedBy: o.reviewedBy
-        ? { id: o.reviewedBy._id.toString(), name: o.reviewedBy.name }
+        ? {
+            id: o.reviewedBy._id.toString(),
+            name: `${o.reviewedBy.firstname || ""} ${o.reviewedBy.lastname || ""}`.trim(),
+          }
         : null,
       reviewedAt: o.reviewedAt,
       estimatedDelivery: o.estimatedDelivery,
@@ -76,12 +114,7 @@ export async function GET(request) {
       updatedAt: o.updatedAt,
     }));
 
-    // Status counts
-    const counts = await CustomClothingOrder.aggregate([
-      { $match: { isDeleted: false } },
-      { $group: { _id: "$status", count: { $sum: 1 } } },
-    ]);
-    const statusCounts = counts.reduce((acc, c) => {
+    const statusCounts = statusCountsResult.reduce((acc, c) => {
       acc[c._id] = c.count;
       return acc;
     }, {});
@@ -92,7 +125,7 @@ export async function GET(request) {
         orders: formatted,
         statusCounts,
         pagination: {
-          total: search ? filtered.length : total,
+          total,
           page,
           limit,
           pages: Math.ceil(total / limit),

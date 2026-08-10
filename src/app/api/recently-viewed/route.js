@@ -33,7 +33,7 @@ export async function GET(request) {
     let recentlyViewed = await RecentlyViewed.findOne({ user: user._id })
       .populate({
         path: "products.product",
-        select: "name slug price images discountPrice stock inStock category brand tags description",
+        select: "name slug basePrice originalPrice discount images stock inStock category brand tags description",
         populate: [
           { path: "category", select: "name slug" },
           { path: "brand", select: "name slug" },
@@ -79,9 +79,13 @@ export async function GET(request) {
         id: product._id,
         name: product.name,
         slug: product.slug,
-        price: product.price,
-        discountPrice: product.discountPrice,
-        images: product.images,
+        basePrice: product.basePrice,
+        originalPrice: product.originalPrice || null,
+        discount: product.discount || 0,
+        image:
+          product.images?.find((img) => img.isPrimary)?.url ||
+          product.images?.[0]?.url ||
+          null,
         stock: product.stock,
         inStock: product.inStock,
         category: product.category
@@ -206,7 +210,7 @@ export async function POST(request) {
     recentlyViewed = await RecentlyViewed.findById(recentlyViewed._id)
       .populate({
         path: "products.product",
-        select: "name slug price images discountPrice stock inStock category brand tags description",
+        select: "name slug basePrice originalPrice discount images stock inStock category brand tags description",
         populate: [
           { path: "category", select: "name slug" },
           { path: "brand", select: "name slug" },
@@ -235,9 +239,13 @@ export async function POST(request) {
       id: productData._id,
       name: productData.name,
       slug: productData.slug,
-      price: productData.price,
-      discountPrice: productData.discountPrice,
-      images: productData.images,
+      basePrice: productData.basePrice,
+      originalPrice: productData.originalPrice || null,
+      discount: productData.discount || 0,
+      image:
+        productData.images?.find((img) => img.isPrimary)?.url ||
+        productData.images?.[0]?.url ||
+        null,
       stock: productData.stock,
       inStock: productData.inStock,
       category: productData.category

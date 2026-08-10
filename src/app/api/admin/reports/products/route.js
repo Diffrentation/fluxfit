@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Product from "@/models/product.model";
 import Order from "@/models/order.model";
-import { authenticateAdmin } from "@/lib/auth";
+import { authenticateAdminOrApiKey } from "@/lib/apiKeyAuth";
 import { generateCSV, generateCSVFilename } from "@/lib/csvGenerator";
 
 /**
@@ -22,7 +22,7 @@ import { generateCSV, generateCSVFilename } from "@/lib/csvGenerator";
 export async function GET(request) {
   try {
     // Authenticate admin
-    const { error, user } = await authenticateAdmin(request);
+    const { error } = await authenticateAdminOrApiKey(request, { permission: "read" });
     if (error) {
       return error;
     }

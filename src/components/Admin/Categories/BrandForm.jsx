@@ -66,12 +66,14 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
           sortOrder: values.sortOrder || 0,
         };
 
-        const { data } = await axios.post("/api/brands", JSON.stringify(payload), {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+        const brandId = brand?.id || brand?._id;
+        const headers = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        };
+        const { data } = brandId
+          ? await axios.put(`/api/brands/${brandId}`, payload, { headers })
+          : await axios.post("/api/brands", payload, { headers });
 
         if (!data.success) throw new Error(data.message);
 
@@ -95,7 +97,7 @@ const BrandForm = ({ visible, brand, onClose, onSave }) => {
         setLoading(false);
       }
     },
-    [logoList, onClose, onSave, form]
+    [logoList, onClose, onSave, form, brand]
   );
 
   /* ---------------- MEMOIZED FILE LIST ---------------- */

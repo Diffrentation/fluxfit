@@ -260,3 +260,47 @@ export async function PUT(request, { params }) {
   }
 }
 
+/**
+ * DELETE /api/admin/settings/sms-templates/:id
+ */
+export async function DELETE(request, { params }) {
+  try {
+    const { error } = await authenticateAdmin(request);
+    if (error) {
+      return error;
+    }
+
+    await connectDB();
+
+    const { id } = await params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid SMS template ID" },
+        { status: 400 }
+      );
+    }
+
+    const deleted = await SMSTemplate.findByIdAndDelete(id);
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, message: "SMS template not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, message: "SMS template deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Delete SMS template error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message || "Failed to delete SMS template. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
+}
+

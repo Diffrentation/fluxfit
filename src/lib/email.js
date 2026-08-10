@@ -1,4 +1,25 @@
 import nodemailer from "nodemailer";
+import connectDB from "@/lib/db";
+import EmailTemplate from "@/models/emailtemplate.model";
+
+/**
+ * Look up an active, admin-edited EmailTemplate for `type` and render it with
+ * `variables` (using the model's own {{tag}} substitution). Returns null if
+ * none is configured or the lookup fails, so callers can fall back to their
+ * hardcoded HTML — this is what actually makes editing a template in Admin
+ * Settings affect what gets sent, instead of it being ignored.
+ */
+async function renderEmailTemplate(type, variables) {
+  try {
+    await connectDB();
+    const template = await EmailTemplate.findOne({ type, isActive: true });
+    if (!template) return null;
+    return template.render(variables);
+  } catch (err) {
+    console.error(`Failed to load "${type}" email template, using default copy:`, err);
+    return null;
+  }
+}
 
 // Create reusable transporter object using SMTP transport
 const createTransporter = () => {
@@ -90,6 +111,18 @@ export const sendOTPEmail = async (email, otp, type = "email-verification") => {
     login: "Login OTP - FluxFit",
   };
 
+  const customTemplate = await renderEmailTemplate(type, {
+    otp,
+    otpExpiryMinutes: OTP_EXPIRY_MINUTES,
+  });
+  if (customTemplate) {
+    return await sendEmail({
+      to: email,
+      subject: customTemplate.subject,
+      html: customTemplate.body,
+    });
+  }
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -130,57 +163,26 @@ export const sendOTPEmail = async (email, otp, type = "email-verification") => {
 };
 
 /**
- * Send password reset email with reset link
- * @param {string} email - Recipient email
- * @param {string} resetLink - Password reset link
- * @returns {Promise<Object>} - Result object
- */
-export const sendPasswordResetEmail = async (email, resetLink) => {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reset Your Password - FluxFit</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; margin: 0;">FluxFit</h1>
-      </div>
-      <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
-        <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>
-        <p>Hello,</p>
-        <p>You requested to reset your password. Click the button below to reset it:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetLink}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
-        </div>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #667eea;">${resetLink}</p>
-        <p>This link will expire in 1 hour. If you didn't request this, please ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
-        <p style="color: #666; font-size: 12px; margin: 0;">
-          This is an automated email. Please do not reply to this message.
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
-
-  return await sendEmail({
-    to: email,
-    subject: "Reset Your Password - FluxFit",
-    html,
-  });
-};
-
-/**
  * Send order confirmation email
  * @param {string} email - Recipient email
  * @param {Object} orderData - Order details
  * @returns {Promise<Object>} - Result object
  */
 export const sendOrderConfirmationEmail = async (email, orderData) => {
+  const customTemplate = await renderEmailTemplate("order-confirmation", {
+    customerName: orderData.customerName || "Customer",
+    orderId: orderData.orderId,
+    orderDate: orderData.orderDate || new Date().toLocaleDateString(),
+    totalAmount: orderData.totalAmount || 0,
+  });
+  if (customTemplate) {
+    return await sendEmail({
+      to: email,
+      subject: customTemplate.subject,
+      html: customTemplate.body,
+    });
+  }
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -228,6 +230,19 @@ export const sendOrderConfirmationEmail = async (email, orderData) => {
  * @returns {Promise<Object>} - Result object
  */
 export const sendWelcomeEmail = async (email, userData) => {
+  const customTemplate = await renderEmailTemplate("welcome", {
+    firstname: userData.firstname || "",
+    lastname: userData.lastname || "",
+    email,
+  });
+  if (customTemplate) {
+    return await sendEmail({
+      to: email,
+      subject: customTemplate.subject,
+      html: customTemplate.body,
+    });
+  }
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -348,13 +363,231 @@ export const sendOwnerNotificationEmail = async (
   });
 };
 
+/**
+ * Send order status update email to customer (used by admin order actions:
+ * status change, partial cancel, return approve/reject, refund processed).
+ * @param {string} email - Recipient email
+ * @param {Object} orderData - Order details
+ * @param {string} orderData.orderId - Order number
+ * @param {string} orderData.status - New order status
+ * @param {string} [orderData.customerName] - Customer name
+ * @param {string} [orderData.note] - Extra note describing what changed
+ * @returns {Promise<Object>} - Result object
+ */
+// EmailTemplate's `type` enum only has dedicated statuses for shipped/
+// delivered/cancelled — other statuses (confirmed, processing, returned,
+// refunded, ...) have no matching admin-editable template, so those keep
+// using the generic hardcoded copy below.
+const ORDER_STATUS_TEMPLATE_TYPE = {
+  shipped: "order-shipped",
+  delivered: "order-delivered",
+  cancelled: "order-cancelled",
+};
+
+export const sendOrderStatusUpdateEmail = async (email, orderData) => {
+  const { orderId, status, customerName, note } = orderData;
+
+  const templateType = ORDER_STATUS_TEMPLATE_TYPE[status];
+  if (templateType) {
+    const customTemplate = await renderEmailTemplate(templateType, {
+      orderId,
+      status,
+      customerName: customerName || "Customer",
+      note: note || "",
+    });
+    if (customTemplate) {
+      return await sendEmail({
+        to: email,
+        subject: customTemplate.subject,
+        html: customTemplate.body,
+      });
+    }
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Order Update - FluxFit</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">FluxFit</h1>
+      </div>
+      <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
+        <h2 style="color: #333; margin-top: 0;">Your Order Has Been Updated</h2>
+        <p>Hello ${customerName || "Customer"},</p>
+        <p>There's an update on your order:</p>
+        <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Order ID:</strong> ${orderId}</p>
+          <p><strong>New Status:</strong> <span style="text-transform: capitalize;">${status}</span></p>
+          ${note ? `<p><strong>Details:</strong> ${note}</p>` : ""}
+        </div>
+        <p>If you have any questions about this update, please contact our support team.</p>
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+        <p style="color: #666; font-size: 12px; margin: 0;">
+          This is an automated email. Please do not reply to this message.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject: `Order Update - Order #${orderId}`,
+    html,
+  });
+};
+
+/**
+ * Send an admin-initiated password reset notification containing the new
+ * password so the user can log in and change it.
+ * @param {string} email - Recipient email
+ * @param {Object} userData - User information
+ * @param {string} userData.newPassword - The new password set by the admin
+ * @param {string} [userData.firstname] - User's first name
+ * @returns {Promise<Object>} - Result object
+ *
+ * Uses its own "admin-password-reset" EmailTemplate type — deliberately
+ * separate from "password-reset" (sendOTPEmail's {{otp}}-based self-service
+ * flow) so an admin editing one can't silently break the other; each type
+ * is substituted with a different, non-overlapping set of variables.
+ */
+export const sendAdminPasswordResetEmail = async (email, userData) => {
+  const { newPassword, firstname } = userData;
+
+  const customTemplate = await renderEmailTemplate("admin-password-reset", {
+    newPassword,
+    firstname: firstname || "",
+  });
+  if (customTemplate) {
+    return await sendEmail({
+      to: email,
+      subject: customTemplate.subject,
+      html: customTemplate.body,
+    });
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Your Password Has Been Reset - FluxFit</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">FluxFit</h1>
+      </div>
+      <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
+        <h2 style="color: #333; margin-top: 0;">Your Password Has Been Reset</h2>
+        <p>Hello ${firstname || "there"},</p>
+        <p>An administrator has reset your FluxFit account password. Your new temporary password is:</p>
+        <div style="background: white; border: 2px dashed #667eea; border-radius: 5px; padding: 20px; text-align: center; margin: 20px 0;">
+          <span style="color: #667eea; font-size: 24px; letter-spacing: 2px; font-weight: bold;">${newPassword}</span>
+        </div>
+        <p>Please log in and change this password as soon as possible. If you did not expect this change, contact our support team immediately.</p>
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+        <p style="color: #666; font-size: 12px; margin: 0;">
+          This is an automated email. Please do not reply to this message.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject: "Your Password Has Been Reset - FluxFit",
+    html,
+  });
+};
+
+/**
+ * Send an abandoned-cart recovery email listing what's still in the cart.
+ * @param {string} email - Recipient email
+ * @param {Object} cartData
+ * @param {string} [cartData.customerName]
+ * @param {Array<{name: string, quantity: number, price: number}>} cartData.items
+ * @param {number} cartData.cartTotal
+ * @param {string} [cartData.cartUrl] - Link back to the cart page
+ * @returns {Promise<Object>} - Result object
+ */
+export const sendCartRecoveryEmail = async (email, cartData) => {
+  const { customerName, items = [], cartTotal, cartUrl } = cartData;
+  const link = cartUrl || `${process.env.NEXT_PUBLIC_APP_URL || "https://fluxfit.com"}/cart`;
+
+  const itemsHtml = items
+    .map(
+      (item) => `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${item.name}</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: center;">×${item.quantity}</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">₹${item.price}</td>
+        </tr>`
+    )
+    .join("");
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>You left something in your cart - FluxFit</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">FluxFit</h1>
+      </div>
+      <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
+        <h2 style="color: #333; margin-top: 0;">You left something behind!</h2>
+        <p>Hello ${customerName || "there"},</p>
+        <p>Your cart is waiting for you — here's what you left:</p>
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 5px; margin: 20px 0;">
+          <thead>
+            <tr>
+              <th style="text-align: left; padding: 8px 0; border-bottom: 2px solid #667eea;">Item</th>
+              <th style="text-align: center; padding: 8px 0; border-bottom: 2px solid #667eea;">Qty</th>
+              <th style="text-align: right; padding: 8px 0; border-bottom: 2px solid #667eea;">Price</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+        <p style="text-align: right; font-weight: bold; font-size: 16px;">Total: ₹${cartTotal}</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${link}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Complete Your Purchase</a>
+        </div>
+        <p>Don't wait too long — your items may sell out!</p>
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+        <p style="color: #666; font-size: 12px; margin: 0;">
+          This is an automated email. Please do not reply to this message.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject: "You left something in your cart - FluxFit",
+    html,
+  });
+};
+
 const emailService = {
   sendEmail,
   sendOTPEmail,
-  sendPasswordResetEmail,
   sendOrderConfirmationEmail,
   sendWelcomeEmail,
+  sendCartRecoveryEmail,
   sendOwnerNotificationEmail,
+  sendOrderStatusUpdateEmail,
+  sendAdminPasswordResetEmail,
 };
 
 export default emailService;

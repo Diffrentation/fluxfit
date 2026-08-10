@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/user.model";
+import Order from "@/models/order.model";
 import { authenticateAdmin } from "@/lib/auth";
 import mongoose from "mongoose";
 
@@ -101,22 +102,45 @@ export async function GET(request) {
       User.countDocuments(query),
     ]);
 
+    // One extra aggregation over just this page's user IDs (not N+1 per
+    // user) to get real order counts/spend instead of hardcoding 0 in the UI.
+    const orderStats = users.length
+      ? await Order.aggregate([
+          { $match: { user: { $in: users.map((u) => u._id) } } },
+          {
+            $group: {
+              _id: "$user",
+              totalOrders: { $sum: 1 },
+              totalSpent: { $sum: "$total" },
+            },
+          },
+        ])
+      : [];
+    const statsByUser = new Map(
+      orderStats.map((s) => [s._id.toString(), s])
+    );
+
     // Format users
-    const formattedUsers = users.map((user) => ({
-      id: user._id,
-      username: user.username,
-      firstname: user.firstname,
-      lastname: user.lastname,
-      email: user.email,
-      phone: user.phone || null,
-      role: user.role || "buyer",
-      profileimage: user.profileimage || null,
-      isverified: user.isverified || false,
-      isblocked: user.isblocked || false,
-      address: user.address || null,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    }));
+    const formattedUsers = users.map((user) => {
+      const stats = statsByUser.get(user._id.toString());
+      return {
+        id: user._id,
+        username: user.username,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        phone: user.phone || null,
+        role: user.role || "buyer",
+        profileimage: user.profileimage || null,
+        isverified: user.isverified || false,
+        isblocked: user.isblocked || false,
+        address: user.address || null,
+        totalOrders: stats?.totalOrders || 0,
+        totalSpent: Math.round((stats?.totalSpent || 0) * 100) / 100,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    });
 
     // Return response
     return NextResponse.json(

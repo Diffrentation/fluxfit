@@ -43,7 +43,6 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCustomDesign } from "@/context/CustomDesignContext";
 import axios from "axios";
-import { addToRecentlyViewed } from "@/lib/recentlyViewed";
 import GetInTouch from "@/components/GetInTouch/GetInTouch";
 import ProductCard from "@/components/ui/ProductCard";
 import AddCustomDesignButton from "@/components/product-detail/AddCustomDesignButton";
@@ -59,6 +58,47 @@ import {
 const formatPrice = (price) => {
   return parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
+const formatShortDate = (date) =>
+  date.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+
+// No real shipping-partner ETA API exists yet, so this is a fixed-offset
+// illustration (order today -> ships tomorrow -> delivered in 4-8 days)
+// computed from "now" rather than the previously hardcoded specific dates,
+// so it no longer shows a fixed date range regardless of when it's viewed.
+function getDeliveryEstimate() {
+  const now = new Date();
+  const addDays = (n) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + n);
+    return d;
+  };
+  return {
+    orderPlaced: now,
+    shipped: addDays(1),
+    inTransit: addDays(2),
+    deliveryStart: addDays(4),
+    deliveryEnd: addDays(8),
+  };
+}
+
+// Today's order cutoff for same/next-day dispatch — counts down for real
+// instead of showing a frozen "02h : 45m : 12s" that never moves.
+function getNextCutoff() {
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setHours(18, 0, 0, 0);
+  if (now >= cutoff) cutoff.setDate(cutoff.getDate() + 1);
+  return cutoff;
+}
+
+function formatCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const h = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+  const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+  const s = String(totalSeconds % 60).padStart(2, "0");
+  return `${h}h : ${m}m : ${s}s`;
+}
 
 function ProductDetails() {
   const params = useParams();
@@ -98,6 +138,17 @@ function ProductDetails() {
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
   const [reviewImages, setReviewImages] = useState([]);
   const reviewImageInputRef = useRef(null);
+
+  const deliveryEstimate = useMemo(() => getDeliveryEstimate(), []);
+  const [cutoffMsRemaining, setCutoffMsRemaining] = useState(
+    () => getNextCutoff() - new Date()
+  );
+
+  useEffect(() => {
+    const tick = () => setCutoffMsRemaining(getNextCutoff() - new Date());
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const ratingOptions = [
     { label: "All Ratings", value: "" },
@@ -221,7 +272,12 @@ function ProductDetails() {
   }, [fetchRelatedProducts, params.id]);
 
   useEffect(() => {
-    if (product && product.id) addToRecentlyViewed(product.id);
+    if (!product?.id) return;
+    // Silently no-op for guests (endpoint requires auth) — recently-viewed
+    // tracking is per-account, not per-browser.
+    axios
+      .post("/api/recently-viewed", { productId: product.id })
+      .catch(() => {});
   }, [product]);
 
   const fetchOtherProducts = useCallback(async () => {
@@ -325,6 +381,21 @@ function ProductDetails() {
           }
         );
         if (data?.success) {
+          // Reconcile with the server's real count instead of trusting the
+          // optimistic +1 — if this was already marked helpful earlier
+          // (e.g. a stale click after a previous success), the server
+          // doesn't increment again and the optimistic bump above would
+          // otherwise stay applied, permanently overcounting by 1.
+          const serverCount = data.data?.review?.helpful?.count;
+          if (serverCount !== undefined) {
+            setReviews((prev) =>
+              prev.map((r) =>
+                r.id === reviewId
+                  ? { ...r, helpful: { ...(r.helpful || {}), count: serverCount } }
+                  : r
+              )
+            );
+          }
           setHelpfulClickedMap((prev) => ({ ...prev, [reviewId]: true }));
           message.success(data.message || "Marked as helpful");
         } else {
@@ -723,10 +794,19 @@ function ProductDetails() {
             >
               {/* Badges Row */}
               <div className="flex items-center justify-between">
-                <div className="inline-flex items-center gap-1.5 bg-[#e4f7ed] text-[#1e9a58] px-3 py-1.5 rounded-full text-sm font-bold">
-                  <IconStarFilled className="w-4 h-4" />
-                  Best Seller
-                </div>
+                {product.isPopular ? (
+                  <div className="inline-flex items-center gap-1.5 bg-[#e4f7ed] text-[#1e9a58] px-3 py-1.5 rounded-full text-sm font-bold">
+                    <IconStarFilled className="w-4 h-4" />
+                    Best Seller
+                  </div>
+                ) : product.isNew ? (
+                  <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full text-sm font-bold">
+                    <IconStarFilled className="w-4 h-4" />
+                    New Arrival
+                  </div>
+                ) : (
+                  <span />
+                )}
                 <button
                   onClick={toggleWishlist}
                   className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:shadow-sm transition-all"
@@ -747,19 +827,25 @@ function ProductDetails() {
 
               {/* Rating */}
               <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <IconStarFilled
-                      key={i}
-                      className={`w-5 h-5 ${i < Math.floor(product.rating || 5) ? "text-[#1e9a58]" : "text-gray-200"}`}
-                    />
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
-                  <span className="text-[#1e9a58] font-bold">{product.rating || 4.6}</span>
-                  <span className="text-gray-300">|</span>
-                  <span>{product.reviews || 128} reviews</span>
-                </div>
+                {(product.rating?.count || 0) > 0 ? (
+                  <>
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <IconStarFilled
+                          key={i}
+                          className={`w-5 h-5 ${i < Math.round(product.rating.average) ? "text-[#1e9a58]" : "text-gray-200"}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+                      <span className="text-[#1e9a58] font-bold">{product.rating.average.toFixed(1)}</span>
+                      <span className="text-gray-300">|</span>
+                      <span>{product.rating.count} review{product.rating.count === 1 ? "" : "s"}</span>
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-sm text-gray-400 font-medium">No reviews yet</span>
+                )}
               </div>
 
               {/* Pricing */}
@@ -1203,11 +1289,13 @@ function ProductDetails() {
                     {/* Timeline */}
                     <div className="border border-gray-100 rounded-xl p-6 relative overflow-hidden">
                       <h4 className="font-bold text-[#0d1c2f] text-sm mb-1">Estimated Delivery</h4>
-                      <div className="text-xl font-black text-[#0d1c2f] mb-2">24 May - 28 May</div>
+                      <div className="text-xl font-black text-[#0d1c2f] mb-2">
+                        {formatShortDate(deliveryEstimate.deliveryStart)} - {formatShortDate(deliveryEstimate.deliveryEnd)}
+                      </div>
                       <p className="text-xs text-gray-500 font-medium mb-8">
-                        Order within <span className="text-[#1e9a58] font-bold">02h : 45m : 12s</span> to get it by 24 May
+                        Order within <span className="text-[#1e9a58] font-bold">{formatCountdown(cutoffMsRemaining)}</span> to get it by {formatShortDate(deliveryEstimate.deliveryStart)}
                       </p>
-                      
+
                       {/* Timeline Graphic */}
                       <div className="relative pt-4">
                         <div className="absolute top-5 left-0 w-full h-[2px] bg-gray-100"></div>
@@ -1215,19 +1303,19 @@ function ProductDetails() {
                         <div className="flex justify-between relative z-10">
                           <div className="flex flex-col items-center gap-2">
                             <div className="w-3 h-3 bg-[#1e9a58] rounded-full ring-4 ring-white"></div>
-                            <div className="text-[10px] font-bold text-gray-400 text-center">Order Placed<br/>20 May</div>
+                            <div className="text-[10px] font-bold text-gray-400 text-center">Order Placed<br/>{formatShortDate(deliveryEstimate.orderPlaced)}</div>
                           </div>
                           <div className="flex flex-col items-center gap-2">
                             <div className="w-3 h-3 border-2 border-[#1e9a58] bg-white rounded-full ring-4 ring-white"></div>
-                            <div className="text-[10px] font-bold text-[#1e9a58] text-center">Shipped<br/>21 May</div>
+                            <div className="text-[10px] font-bold text-[#1e9a58] text-center">Shipped<br/>{formatShortDate(deliveryEstimate.shipped)}</div>
                           </div>
                           <div className="flex flex-col items-center gap-2">
                             <div className="w-3 h-3 bg-gray-200 rounded-full ring-4 ring-white"></div>
-                            <div className="text-[10px] font-bold text-gray-400 text-center">In Transit<br/>22 May</div>
+                            <div className="text-[10px] font-bold text-gray-400 text-center">In Transit<br/>{formatShortDate(deliveryEstimate.inTransit)}</div>
                           </div>
                           <div className="flex flex-col items-center gap-2">
                             <div className="w-3 h-3 bg-gray-200 rounded-full ring-4 ring-white"></div>
-                            <div className="text-[10px] font-bold text-gray-400 text-center">Delivered<br/>24-28 May</div>
+                            <div className="text-[10px] font-bold text-gray-400 text-center">Delivered<br/>{formatShortDate(deliveryEstimate.deliveryStart)}-{formatShortDate(deliveryEstimate.deliveryEnd)}</div>
                           </div>
                         </div>
                       </div>
@@ -1290,32 +1378,40 @@ function ProductDetails() {
                   <div className="lg:col-span-3 space-y-8">
                     <div>
                       <h2 className="text-xl font-bold text-[#0d1c2f] mb-6">Customer Reviews</h2>
-                      {/* Summary Cards */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                      {/* Summary Cards — real product.rating (aggregate across all
+                          approved reviews) plus a recommended% computed from the
+                          currently-loaded review page (no dedicated aggregate
+                          endpoint exists for that second number). */}
+                      <div className="grid grid-cols-2 gap-4 mb-8 max-w-md">
                         <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center">
-                          <div className="text-4xl font-black text-[#0d1c2f] mb-1">4.8</div>
+                          <div className="text-4xl font-black text-[#0d1c2f] mb-1">
+                            {(product.rating?.count || 0) > 0 ? product.rating.average.toFixed(1) : "—"}
+                          </div>
                           <div className="flex text-yellow-400 mb-1">
-                            <IconStarFilled className="w-4 h-4" />
-                            <IconStarFilled className="w-4 h-4" />
-                            <IconStarFilled className="w-4 h-4" />
-                            <IconStarFilled className="w-4 h-4" />
-                            <IconStarFilled className="w-4 h-4" />
+                            {[...Array(5)].map((_, i) => (
+                              <IconStarFilled
+                                key={i}
+                                className={`w-4 h-4 ${i < Math.round(product.rating?.average || 0) ? "" : "text-gray-200"}`}
+                              />
+                            ))}
                           </div>
                           <p className="text-[10px] text-gray-500 font-bold">Out of 5</p>
-                          <p className="text-xs font-bold text-[#0d1c2f]">1,247 Reviews</p>
+                          <p className="text-xs font-bold text-[#0d1c2f]">
+                            {(product.rating?.count || 0).toLocaleString()} Review{product.rating?.count === 1 ? "" : "s"}
+                          </p>
                         </div>
-                        <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                          <div className="text-2xl font-black text-[#1e9a58] mb-1">96%</div>
-                          <p className="text-xs text-gray-500 font-medium">Recommended<br/>by customers</p>
-                        </div>
-                        <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                          <div className="text-2xl font-black text-[#1e9a58] mb-1">4.7</div>
-                          <p className="text-xs text-gray-500 font-medium">Quality<br/>Score</p>
-                        </div>
-                        <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                          <div className="text-2xl font-black text-[#1e9a58] mb-1">4.6</div>
-                          <p className="text-xs text-gray-500 font-medium">Value for<br/>Money</p>
-                        </div>
+                        {reviews.length > 0 ? (
+                          <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                            <div className="text-2xl font-black text-[#1e9a58] mb-1">
+                              {Math.round((reviews.filter((r) => r.rating >= 4).length / reviews.length) * 100)}%
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium">Recommended<br/>by customers</p>
+                          </div>
+                        ) : (
+                          <div className="border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                            <p className="text-xs text-gray-400 font-medium">Be the first to review this product</p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Filters */}
@@ -1405,31 +1501,43 @@ function ProductDetails() {
                                   <div>
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-bold text-[#0d1c2f] text-sm">{review.user?.name || "Anonymous"}</h4>
-                                      <span className="flex items-center gap-1 text-[10px] font-bold text-[#1e9a58]">
-                                        <IconCircleCheck className="w-3 h-3" /> Verified Purchase
-                                      </span>
+                                      {review.isVerifiedPurchase && (
+                                        <span className="flex items-center gap-1 text-[10px] font-bold text-[#1e9a58]">
+                                          <IconCircleCheck className="w-3 h-3" /> Verified Purchase
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-1 mt-0.5">
                                       {[1, 2, 3, 4, 5].map((s) => (
                                         <IconStarFilled key={s} className={`w-3 h-3 ${s <= review.rating ? "text-yellow-400" : "text-gray-300"}`} />
                                       ))}
-                                      <span className="text-[10px] text-gray-400 ml-2">Size: L | Color: Green</span>
                                     </div>
                                   </div>
                                 </div>
                                 <span className="text-xs font-medium text-gray-400">{new Date(review.createdAt).toLocaleDateString()}</span>
                               </div>
-                              <h5 className="font-bold text-[#0d1c2f] text-sm mb-1">Excellent quality and perfect fit!</h5>
+                              {review.title && (
+                                <h5 className="font-bold text-[#0d1c2f] text-sm mb-1">{review.title}</h5>
+                              )}
                               <p className="text-xs text-gray-500 leading-relaxed mb-3">
-                                {review.comment || "The fabric is super soft and comfortable. Perfect for daily wear. The color and fit are exactly as shown in the images. Highly recommended!"}
+                                {review.comment}
                               </p>
-                              
-                              {/* Photos Placeholder */}
-                              <div className="flex gap-2 mb-4">
-                                <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
-                                <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
-                                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-xs font-bold text-white bg-black/50">+2</div>
-                              </div>
+
+                              {Array.isArray(review.images) && review.images.length > 0 && (
+                                <div className="flex gap-2 mb-4">
+                                  {review.images.slice(0, 3).map((img, idx) => (
+                                    <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={img.url || img} alt="" className="w-full h-full object-cover" />
+                                      {idx === 2 && review.images.length > 3 && (
+                                        <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white bg-black/50">
+                                          +{review.images.length - 3}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
 
                               <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
                                 <span className="font-medium">Was this helpful?</span>

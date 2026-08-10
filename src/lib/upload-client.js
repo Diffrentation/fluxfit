@@ -3,6 +3,17 @@
  * Use this in client components instead of cloudinary.js
  */
 
+// This module uses raw fetch() (not axios), so it doesn't get the app-wide
+// axios request interceptor that attaches the Bearer token automatically —
+// it has to be added explicitly here.
+const authHeaders = () => {
+  if (typeof window === "undefined") return {};
+  const token = localStorage.getItem("token");
+  return token && token !== "null" && token !== "undefined"
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+};
+
 /**
  * Upload image via API endpoint
  * @param {File} file - File to upload
@@ -26,6 +37,7 @@ export const uploadImage = async (file, options = {}) => {
 
     const response = await fetch("/api/upload/image", {
       method: "POST",
+      headers: authHeaders(),
       body: formData,
     });
 
@@ -68,6 +80,7 @@ export const uploadImages = async (files, options = {}) => {
 
     const response = await fetch("/api/upload/images", {
       method: "POST",
+      headers: authHeaders(),
       body: formData,
     });
 
@@ -93,6 +106,7 @@ export const deleteImage = async (publicId) => {
   try {
     const response = await fetch(`/api/upload/${publicId}`, {
       method: "DELETE",
+      headers: authHeaders(),
     });
 
     const result = await response.json();

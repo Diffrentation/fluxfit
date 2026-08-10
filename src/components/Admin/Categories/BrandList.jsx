@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Table,
   Tag,
   Button,
   Avatar,
@@ -14,12 +13,30 @@ import {
   Spin,
 } from "antd";
 import { IconEdit, IconTrash, IconDots } from "@tabler/icons-react";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const BrandList = ({ onEdit, onDelete }) => {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
 
   /* ---------------- FETCH BRANDS ---------------- */
   const fetchBrands = useCallback(async () => {
@@ -53,61 +70,55 @@ const BrandList = ({ onEdit, onDelete }) => {
     return brands.slice(start, start + pageSize);
   }, [brands, currentPage, pageSize]);
 
-  /* ---------------- TABLE COLUMNS (MEMOIZED) ---------------- */
-  const columns = useMemo(
+  /* ---------------- GRID COLUMNS (MEMOIZED) ---------------- */
+  const columnDefs = useMemo(
     () => [
       {
-        title: "Brand",
-        key: "brand",
-        width: 200,
-        render: (_, record) => (
-          <div className="flex items-center gap-3">
+        headerName: "Brand",
+        field: "name",
+        flex: 1,
+        minWidth: 220,
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center gap-3">
             <Avatar
-              src={record.logo}
-              size={44}
-              className="rounded-lg"
-              icon={record.name?.[0]?.toUpperCase()}
+              src={p.data.logo}
+              size={36}
+              className="rounded-lg shrink-0"
+              icon={p.data.name?.[0]?.toUpperCase()}
             />
             <div className="min-w-0">
               <div className="font-semibold text-gray-900 dark:text-white truncate">
-                {record.name}
+                {p.data.name}
               </div>
-              <div className="text-xs text-gray-500 truncate">
-                {record.slug}
-              </div>
+              <div className="text-xs text-gray-500 truncate">{p.data.slug}</div>
             </div>
           </div>
         ),
       },
       {
-        title: "Description",
-        dataIndex: "description",
-        key: "description",
-        render: (text) => (
-          <span className="text-gray-600 dark:text-gray-300">
-            {text || "-"}
-          </span>
-        ),
+        headerName: "Description",
+        field: "description",
+        flex: 1.4,
+        minWidth: 200,
+        valueFormatter: (p) => p.value || "-",
       },
       {
-        title: "Sort Order",
-        dataIndex: "sortOrder",
-        key: "sortOrder",
+        headerName: "Sort Order",
+        field: "sortOrder",
+        width: 130,
+        cellRenderer: (p) => <Tag color="blue">{p.value}</Tag>,
+      },
+      {
+        headerName: "Products",
+        field: "productCount",
         width: 120,
-        render: (order) => <Tag color="blue">{order}</Tag>,
+        cellRenderer: (p) => <Tag color="green">{p.value}</Tag>,
       },
       {
-        title: "Products",
-        dataIndex: "productCount",
-        key: "productCount",
-        width: 120,
-        render: (count) => <Tag color="green">{count}</Tag>,
-      },
-      {
-        title: "Actions",
-        key: "actions",
+        headerName: "Actions",
         width: 80,
-        render: (_, record) => (
+        pinned: "right",
+        cellRenderer: (p) => (
           <Dropdown
             menu={{
               items: [
@@ -115,7 +126,7 @@ const BrandList = ({ onEdit, onDelete }) => {
                   key: "edit",
                   label: "Edit Brand",
                   icon: <IconEdit className="w-4 h-4" />,
-                  onClick: () => onEdit?.(record),
+                  onClick: () => onEdit?.(p.data),
                 },
                 { type: "divider" },
                 {
@@ -123,7 +134,7 @@ const BrandList = ({ onEdit, onDelete }) => {
                   label: "Delete",
                   icon: <IconTrash className="w-4 h-4" />,
                   danger: true,
-                  onClick: () => onDelete?.(record.id),
+                  onClick: () => onDelete?.(p.data.id),
                 },
               ],
             }}
@@ -211,12 +222,29 @@ const BrandList = ({ onEdit, onDelete }) => {
       ) : (
         <>
           {/* Desktop Table */}
-          <div className="hidden lg:block">
-            <Table
-              dataSource={brands.map((b) => ({ ...b, key: b.id }))}
-              columns={columns}
-              pagination={{ pageSize: 10 }}
-            />
+          <div className="hidden lg:block p-2">
+            {isClient ? (
+              <div style={{ width: "100%", height: 520 }}>
+                <AgGridReact
+                  theme={myDarkTheme}
+                  modules={[AllCommunityModule]}
+                  rowData={brands}
+                  columnDefs={columnDefs}
+                  defaultColDef={{ sortable: true, resizable: true }}
+                  getRowId={(p) => p.data.id}
+                  animateRows
+                  rowHeight={56}
+                  headerHeight={44}
+                  pagination
+                  paginationPageSize={10}
+                  paginationPageSizeSelector={[10, 20, 50]}
+                  overlayNoRowsTemplate="No brands yet"
+                  suppressCellFocus
+                />
+              </div>
+            ) : (
+              <div className="h-[520px]" />
+            )}
           </div>
 
           {/* Mobile Cards */}

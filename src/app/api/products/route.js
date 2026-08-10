@@ -25,6 +25,7 @@ import slugify from "slugify";
  * - isFeatured: Filter featured products (true/false)
  * - isNew: Filter new products (true/false)
  * - isPopular: Filter popular products (true/false)
+ * - minRating: Minimum average rating (0-5)
  * - sort: Sort field and order (e.g., "price-asc", "price-desc", "rating-desc", "createdAt-desc")
  */
 export async function GET(request) {
@@ -50,6 +51,7 @@ export async function GET(request) {
     const isFeatured = searchParams.get("isFeatured");
     const isNew = searchParams.get("isNew");
     const isPopular = searchParams.get("isPopular");
+    const minRating = searchParams.get("minRating");
     const sort = searchParams.get("sort") || "createdAt-desc";
 
     // 1. Build Match Query
@@ -137,13 +139,35 @@ export async function GET(request) {
       }
     }
 
-    if (color) query.colors = { $in: [color] };
-    if (size) query.sizes = { $in: [size] };
+    // Color/size live either on the top-level colors/sizes arrays (when set
+    // at product creation) or only on individual variants (variants.color /
+    // variants.size) — most products in this catalog only have the latter,
+    // so match either to avoid the filter always returning zero results.
+    const andConditions = [];
+    if (color) {
+      // Color values in this catalog aren't consistently cased ("black" vs
+      // "WHITE"), so match case-insensitively rather than requiring the
+      // filter UI to guess the exact stored casing.
+      const colorRe = new RegExp(`^${color.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+      andConditions.push({
+        $or: [{ colors: { $in: [colorRe] } }, { "variants.color": colorRe }],
+      });
+    }
+    if (size) {
+      const sizeRe = new RegExp(`^${size.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+      andConditions.push({
+        $or: [{ sizes: { $in: [sizeRe] } }, { "variants.size": sizeRe }],
+      });
+    }
     if (tags) query.tags = { $in: tags.split(",").map(t => t.trim().toLowerCase()) };
+    if (andConditions.length > 0) query.$and = andConditions;
     if (inStock !== null) query.inStock = inStock === "true";
     if (isFeatured !== null) query.isFeatured = isFeatured === "true";
     if (isNew !== null) query.isNew = isNew === "true";
     if (isPopular !== null) query.isPopular = isPopular === "true";
+    if (minRating !== null && String(minRating).trim() !== "") {
+      query["rating.average"] = { $gte: parseFloat(minRating) };
+    }
 
     // 2. Build Sort Object
     let sortObj = {};

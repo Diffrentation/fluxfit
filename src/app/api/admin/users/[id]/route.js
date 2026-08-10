@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/user.model";
+import Order from "@/models/order.model";
 import { authenticateAdmin } from "@/lib/auth";
 import mongoose from "mongoose";
 
@@ -45,6 +46,18 @@ export async function GET(request, { params }) {
       );
     }
 
+    const orderStats = await Order.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(id) } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSpent: { $sum: "$total" },
+        },
+      },
+    ]);
+    const stats = orderStats[0] || { totalOrders: 0, totalSpent: 0 };
+
     // Format user
     const formattedUser = {
       id: user._id,
@@ -60,6 +73,8 @@ export async function GET(request, { params }) {
       isdeleted: user.isdeleted || false,
       address: user.address || null,
       adminPermissions: user.adminPermissions || null,
+      totalOrders: stats.totalOrders,
+      totalSpent: Math.round((stats.totalSpent || 0) * 100) / 100,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

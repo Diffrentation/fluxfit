@@ -133,6 +133,7 @@ export async function GET(request) {
       designImages: o.designImages,
       status: o.status,
       adminRemarks: o.adminRemarks,
+      quote: o.quote || null,
       estimatedDelivery: o.estimatedDelivery,
       reviewedAt: o.reviewedAt,
       createdAt: o.createdAt,

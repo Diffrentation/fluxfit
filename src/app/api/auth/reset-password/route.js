@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
 import connectDB from "@/lib/db";
 import User from "@/models/user.model";
-import OTP from "@/models/otp.model";
+
+const getJwtSecret = () =>
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 /**
  * POST /api/auth/reset-password
- * Reset password after OTP verification
- * Requires userId and newPassword (OTP should be verified via verify-forgot-pass-otp first)
+ * Reset password after OTP verification.
+ * Requires userId, newPassword, and the single-use resetToken issued by
+ * POST /api/auth/verify-otp (type: "password-reset") for this exact
+ * verification event — the token, not just knowledge of userId, proves the
+ * caller actually completed the OTP step.
  */
 export async function POST(request) {
   try {
@@ -15,14 +21,14 @@ export async function POST(request) {
 
     // Parse request body
     const body = await request.json();
-    const { userId, newPassword } = body;
+    const { userId, newPassword, resetToken } = body;
 
     // Validate required fields
-    if (!userId || !newPassword) {
+    if (!userId || !newPassword || !resetToken) {
       return NextResponse.json(
         {
           success: false,
-          message: "Please provide both userId and newPassword",
+          message: "Please provide userId, newPassword, and resetToken",
         },
         { status: 400 },
       );
@@ -66,33 +72,36 @@ export async function POST(request) {
       );
     }
 
-    // Verify that a password-reset OTP was recently verified (within last 10 minutes)
-    const recentOTP = await OTP.findOne({
-      userId: user._id,
-      type: "password-reset",
-      isUsed: true,
-      updatedAt: { $gte: new Date(Date.now() - 10 * 60 * 1000) }, // Within last 10 minutes
-    }).sort({ updatedAt: -1 });
-
-    if (!recentOTP) {
+    // Verify the resetToken: must be a valid JWT for this user, must match
+    // the token this exact server issued (stored on the user doc when the
+    // OTP was verified), and must not have expired or already been used.
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, getJwtSecret());
+    } catch {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Please verify OTP first using /api/auth/verify-forgot-pass-otp",
+          message: "Invalid or expired reset token. Please verify OTP again.",
         },
         { status: 400 },
       );
     }
 
-    // Check if user is blocked
-    if (user.isblocked) {
+    if (
+      decoded.type !== "password-reset" ||
+      String(decoded.userId) !== String(user._id) ||
+      !user.resetPasswordToken ||
+      user.resetPasswordToken !== resetToken ||
+      !user.resetPasswordExpires ||
+      new Date(user.resetPasswordExpires) < new Date()
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "Account is blocked. Please contact support.",
+          message: "Invalid or expired reset token. Please verify OTP again.",
         },
-        { status: 403 },
+        { status: 400 },
       );
     }
 

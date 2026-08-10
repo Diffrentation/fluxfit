@@ -387,35 +387,26 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Verify purchase if orderId is provided
-    let isVerifiedPurchase = false;
-    if (orderId && mongoose.Types.ObjectId.isValid(orderId)) {
-      const order = await Order.findOne({
-        _id: orderId,
-        user: user._id,
-        status: { $in: ["delivered", "completed"] },
-      });
+    // Verify purchase server-side — look up the user's own delivered orders
+    // for this product directly, rather than trusting a client-supplied
+    // orderId (the client never actually sent one, so verification was
+    // silently always false in practice).
+    const verifiedOrder = await Order.findOne({
+      user: user._id,
+      status: "delivered",
+      "items.product": product._id,
+    }).sort({ createdAt: -1 });
 
-      if (order) {
-        // Check if order contains this product
-        // Handle both populated and unpopulated product references
-        const hasProduct = order.items?.some((item) => {
-          const itemProductId = item.product?._id
-            ? item.product._id.toString()
-            : item.product?.toString();
-          return itemProductId === product._id.toString();
-        });
-        if (hasProduct) {
-          isVerifiedPurchase = true;
-        }
-      }
-    }
+    const isVerifiedPurchase = !!verifiedOrder;
+    const linkedOrderId =
+      verifiedOrder?._id ||
+      (orderId && mongoose.Types.ObjectId.isValid(orderId) ? orderId : null);
 
     // Create review
     const review = new Review({
       product: product._id,
       user: user._id,
-      order: orderId && mongoose.Types.ObjectId.isValid(orderId) ? orderId : null,
+      order: linkedOrderId,
       rating: Math.round(rating),
       title: title?.trim() || null,
       comment: comment.trim(),

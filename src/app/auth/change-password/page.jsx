@@ -32,13 +32,20 @@ function ChangePasswordContent() {
       return toast.error("Passwords do not match!");
     }
 
+    const resetToken = sessionStorage.getItem(`resetToken:${userId}`);
+    if (!resetToken) {
+      return toast.error("Your OTP session has expired. Please verify OTP again.");
+    }
+
     try {
       setLoading(true);
       const response = await axios.post("/api/auth/reset-password",{
         userId: userId,
-        newPassword: newPassword
+        newPassword: newPassword,
+        resetToken,
       })
       if (response?.data?.success) {
+        sessionStorage.removeItem(`resetToken:${userId}`);
         toast.success(response?.data?.message);
         router.push("/auth/login");
       } else {

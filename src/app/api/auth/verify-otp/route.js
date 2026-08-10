@@ -146,6 +146,24 @@ export async function POST(request) {
       return response;
     }
 
+    if (type === "password-reset") {
+      // Issue a single-use, short-lived reset token bound to this specific
+      // verification event — reset-password must present it, so knowing the
+      // userId alone is no longer enough to change the password.
+      const resetToken = user.generatePasswordResetToken();
+      await user.save({ validateBeforeSave: false });
+      return NextResponse.json(
+        {
+          ...basePayload,
+          data: {
+            ...basePayload.data,
+            resetToken,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
     return NextResponse.json(
       {
         ...basePayload,

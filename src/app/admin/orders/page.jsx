@@ -194,9 +194,101 @@ const OrderManagementPage = () => {
     [loadOrders],
   );
 
-  const handlePartialCancel = useCallback(() => {
-    message.info("Partial cancel: use the admin API or support workflow.");
-  }, []);
+  const handlePartialCancel = useCallback(
+    async (orderId, itemIds, reason) => {
+      const headers = getOrdersAuthHeaders();
+      try {
+        const { data } = await axios.post(
+          `/api/admin/orders/${encodeURIComponent(orderId)}/partial-cancel`,
+          { itemIds, reason },
+          { headers },
+        );
+        if (!data?.success) {
+          message.error(data?.message || "Partial cancel failed");
+          return;
+        }
+        message.success("Selected items cancelled");
+        await loadOrders();
+      } catch (err) {
+        message.error(
+          err.response?.data?.message || err.message || "Partial cancel failed",
+        );
+      }
+    },
+    [loadOrders],
+  );
+
+  const handleApproveReturn = useCallback(
+    async (orderId, itemIds, note) => {
+      const headers = getOrdersAuthHeaders();
+      try {
+        const { data } = await axios.post(
+          `/api/admin/orders/${encodeURIComponent(orderId)}/approve-return`,
+          { itemIds, note },
+          { headers },
+        );
+        if (!data?.success) {
+          message.error(data?.message || "Approve return failed");
+          return;
+        }
+        message.success("Return approved");
+        await loadOrders();
+      } catch (err) {
+        message.error(
+          err.response?.data?.message || err.message || "Approve return failed",
+        );
+      }
+    },
+    [loadOrders],
+  );
+
+  const handleRejectReturn = useCallback(
+    async (orderId, itemIds, reason) => {
+      const headers = getOrdersAuthHeaders();
+      try {
+        const { data } = await axios.post(
+          `/api/admin/orders/${encodeURIComponent(orderId)}/reject-return`,
+          { itemIds, reason },
+          { headers },
+        );
+        if (!data?.success) {
+          message.error(data?.message || "Reject return failed");
+          return;
+        }
+        message.success("Return rejected");
+        await loadOrders();
+      } catch (err) {
+        message.error(
+          err.response?.data?.message || err.message || "Reject return failed",
+        );
+      }
+    },
+    [loadOrders],
+  );
+
+  const handleProcessRefund = useCallback(
+    async (orderId, itemIds, amount, note) => {
+      const headers = getOrdersAuthHeaders();
+      try {
+        const { data } = await axios.post(
+          `/api/admin/orders/${encodeURIComponent(orderId)}/process-refund`,
+          { itemIds, amount, note },
+          { headers },
+        );
+        if (!data?.success) {
+          message.error(data?.message || "Refund failed");
+          return;
+        }
+        message.success("Refund processed");
+        await loadOrders();
+      } catch (err) {
+        message.error(
+          err.response?.data?.message || err.message || "Refund failed",
+        );
+      }
+    },
+    [loadOrders],
+  );
 
   const handleSelectOrder = useCallback((order) => {
     setSelectedOrder(order);
@@ -323,6 +415,9 @@ const OrderManagementPage = () => {
                           onAssignDeliveryPartner={handleAssignDeliveryPartner}
                           onCancel={handleCancelOrder}
                           onPartialCancel={handlePartialCancel}
+                          onApproveReturn={handleApproveReturn}
+                          onRejectReturn={handleRejectReturn}
+                          onProcessRefund={handleProcessRefund}
                           onGenerateInvoice={() =>
                             handleGenerateInvoice(selectedOrder.orderId)
                           }
@@ -369,6 +464,9 @@ const OrderManagementPage = () => {
             onAssignDeliveryPartner={handleAssignDeliveryPartner}
             onCancel={handleCancelOrder}
             onPartialCancel={handlePartialCancel}
+                          onApproveReturn={handleApproveReturn}
+                          onRejectReturn={handleRejectReturn}
+                          onProcessRefund={handleProcessRefund}
             onGenerateInvoice={() =>
               handleGenerateInvoice(selectedOrder.orderId)
             }

@@ -29,6 +29,9 @@ import {
   IconMap,
   IconArrowRight,
   IconChevronDown,
+  IconEye,
+  IconEyeOff,
+  IconKey,
 } from "@tabler/icons-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
@@ -115,7 +118,15 @@ function ProfileContent() {
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [savingAddress, setSavingAddress] = useState(false);
-  
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const fileInputRef = useRef(null);
 
   // Form states (React controlled)
@@ -244,6 +255,42 @@ function ProfileContent() {
       toast.error(e?.response?.data?.message || "Could not save profile");
     } finally {
       setSavingAccount(false);
+    }
+  };
+
+  const handlePasswordFieldChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const onChangePassword = async (e) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error("New password and confirm password do not match");
+      return;
+    }
+    if (passwordForm.newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters long");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { data } = await axios.put(
+        "/api/users/password",
+        {
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        },
+        { headers: jsonHeaders(), _skipGlobalToast: true }
+      );
+      if (data?.success) {
+        toast.success("Password changed successfully");
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Could not change password");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -669,6 +716,96 @@ function ProfileContent() {
               </div>
             )}
 
+            {/* Change Password */}
+            {activeTab === "account" && (
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
+                <form onSubmit={onChangePassword}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-[#111827] flex items-center gap-2">
+                      <IconKey className="w-5 h-5 text-[#1e9a58]" /> Change Password
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords((v) => !v)}
+                      className="text-[13px] font-semibold text-gray-500 hover:text-[#1e9a58] flex items-center gap-1.5"
+                    >
+                      {showPasswords ? (
+                        <IconEyeOff className="w-4 h-4" />
+                      ) : (
+                        <IconEye className="w-4 h-4" />
+                      )}
+                      {showPasswords ? "Hide" : "Show"} passwords
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6">
+                    <div className="flex flex-col space-y-1.5 sm:col-span-2">
+                      <label className="text-sm font-medium text-gray-700">Current Password</label>
+                      <div className="relative">
+                        <IconLock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#1e9a58]" />
+                        <input
+                          type={showPasswords ? "text" : "password"}
+                          name="currentPassword"
+                          value={passwordForm.currentPassword}
+                          onChange={handlePasswordFieldChange}
+                          required
+                          autoComplete="current-password"
+                          className="w-full pl-10 pr-4 h-[48px] bg-white border border-gray-200 rounded-xl text-[15px] outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">New Password</label>
+                      <div className="relative">
+                        <IconLock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#1e9a58]" />
+                        <input
+                          type={showPasswords ? "text" : "password"}
+                          name="newPassword"
+                          value={passwordForm.newPassword}
+                          onChange={handlePasswordFieldChange}
+                          required
+                          minLength={8}
+                          maxLength={32}
+                          autoComplete="new-password"
+                          className="w-full pl-10 pr-4 h-[48px] bg-white border border-gray-200 rounded-xl text-[15px] outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Confirm New Password</label>
+                      <div className="relative">
+                        <IconLock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#1e9a58]" />
+                        <input
+                          type={showPasswords ? "text" : "password"}
+                          name="confirmPassword"
+                          value={passwordForm.confirmPassword}
+                          onChange={handlePasswordFieldChange}
+                          required
+                          minLength={8}
+                          maxLength={32}
+                          autoComplete="new-password"
+                          className="w-full pl-10 pr-4 h-[48px] bg-white border border-gray-200 rounded-xl text-[15px] outline-none text-neutral-800 transition duration-300 focus:ring-1 focus:ring-[#1e9a58] focus:border-[#1e9a58]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <button
+                      type="submit"
+                      disabled={changingPassword}
+                      className="w-full sm:w-auto h-[48px] bg-[#1e9a58] hover:bg-green-700 text-white font-bold px-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50 text-[15px] shadow-md shadow-green-500/20"
+                    >
+                      {changingPassword ? "Updating..." : "Update Password"}
+                    </button>
+                    <div className="flex items-center justify-center sm:justify-end gap-1.5 text-[13px] text-gray-500">
+                      <IconShieldCheck className="w-4 h-4" /> At least 8 characters
+                    </div>
+                  </div>
+                </form>
+              </div>
+            )}
+
             {/* Addresses Tab */}
             {activeTab === "addresses" && (
               <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 h-full">
@@ -766,7 +903,7 @@ function ProfileContent() {
               <IconHeadset className="w-5 h-5 lg:w-6 lg:h-6 text-[#1e9a58]" />
             </div>
             <h4 className="font-bold text-[#111827] text-[13px] lg:text-sm">24/7 Support</h4>
-            <p className="text-[11px] lg:text-xs text-gray-500 mt-1 line-clamp-2">We're here to help anytime</p>
+            <p className="text-[11px] lg:text-xs text-gray-500 mt-1 line-clamp-2">We&apos;re here to help anytime</p>
           </div>
         </div>
 

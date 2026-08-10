@@ -1,11 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { productDatabase } from "@/lib/productDatabase";
+import { useAuth } from "@/context/AuthContext";
 import {
   IconTrash,
   IconPlus,
@@ -54,8 +55,10 @@ const CartPage = () => {
   } = useCart();
   const { savedForLaterItems, addToSavedForLater, removeFromSavedForLater } =
     useWishlist();
+  const { isAuthenticated } = useAuth();
   const [couponCode, setCouponCode] = useState("");
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [realEstimate, setRealEstimate] = useState(null);
 
   const handleQuantityChange = (item, newQuantity) => {
     if (newQuantity < 1) {
@@ -90,7 +93,7 @@ const CartPage = () => {
     }
 
     setIsApplyingCoupon(true);
-    const result = applyCoupon(couponCode.trim());
+    const result = await applyCoupon(couponCode.trim());
 
     if (result.success) {
       message.success(result.message);
@@ -116,7 +119,7 @@ const CartPage = () => {
   };
 
   const handleMoveToCart = (item) => {
-    const success = addToCart(productDatabase[item.id], {
+    const success = addToCart(item, {
       size: item.size,
       color: item.color,
       quantity: item.quantity,
@@ -142,16 +145,11 @@ const CartPage = () => {
     }
   };
 
-  const getProductDetails = (item) => {
-    return productDatabase[item.id] || null;
-  };
-
   const calculateDiscount = (item) => {
-    const product = getProductDetails(item);
-    if (product && product.originalPrice) {
+    if (item.originalPrice) {
       const discount =
-        ((parseFloat(product.originalPrice) - parseFloat(product.price)) /
-          parseFloat(product.originalPrice)) *
+        ((parseFloat(item.originalPrice) - parseFloat(item.price)) /
+          parseFloat(item.originalPrice)) *
         100;
       return Math.round(discount);
     }
@@ -162,6 +160,64 @@ const CartPage = () => {
   const subtotal = getCartTotal();
   const discount = getDiscountAmount();
   const finalTotal = getFinalTotal();
+
+  // Same flat-rate estimate the checkout page shows before an address is
+  // selected — the real shipping/tax are only known once a delivery
+  // address is picked (ShippingRule/TaxRate zone matching happens
+  // server-side in /api/orders), so this is deliberately labeled
+  // "(estimated)" rather than presented as the final charge.
+  const estimatedShipping = 50;
+  const estimatedTax = Math.round(finalTotal * 0.18 * 100) / 100;
+  const estimatedGrandTotal = finalTotal + estimatedShipping + estimatedTax;
+
+  // If the user is logged in with a saved (default) address, replace the
+  // flat guess above with the real ShippingRule/TaxRate-resolved numbers
+  // for that destination — same server logic /api/orders uses at order
+  // creation, via the shared /api/orders/estimate endpoint. Falls back to
+  // the flat estimate above for guests or accounts with no saved address.
+  useEffect(() => {
+    if (!isAuthenticated || finalTotal <= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRealEstimate(null);
+      return;
+    }
+    let cancelled = false;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    axios
+      .get("/api/users/addresses", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(({ data }) => {
+        if (cancelled || !data?.success) return;
+        const defaultAddress =
+          (data.data.addresses || []).find((a) => a.isDefault) ||
+          (data.data.addresses || [])[0];
+        if (!defaultAddress) return null;
+        return axios.post(
+          "/api/orders/estimate",
+          { addressId: defaultAddress.id, orderValue: finalTotal },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      })
+      .then((res) => {
+        if (cancelled || !res?.data?.success) return;
+        setRealEstimate(res.data.data);
+      })
+      .catch(() => {
+        if (!cancelled) setRealEstimate(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, finalTotal]);
+
+  const displayShipping = realEstimate ? realEstimate.shippingCost : estimatedShipping;
+  const displayTax = realEstimate ? realEstimate.taxAmount : estimatedTax;
+  const displayTaxRate = realEstimate ? realEstimate.taxRatePercent : 18;
+  const displayGrandTotal = realEstimate ? realEstimate.total : estimatedGrandTotal;
 
   if (cartItems.length === 0) {
     return (
@@ -202,10 +258,10 @@ const CartPage = () => {
               Your cart is <span className="text-[#1e9a58]">empty</span>
             </h1>
             <p className="text-base sm:text-lg text-gray-500 font-medium mb-1">
-              Looks like you haven't added anything to your cart yet.
+              Looks like you haven&apos;t added anything to your cart yet.
             </p>
             <p className="text-base sm:text-lg text-gray-500 font-medium mb-8">
-              Let's change that!
+              Let&apos;s change that!
             </p>
             
             <button
@@ -262,7 +318,7 @@ const CartPage = () => {
                 </div>
                 <div>
                   <p className="font-bold text-[#1e9a58] text-base mb-1">24/7 Support</p>
-                  <p className="text-gray-500 text-sm leading-relaxed">We're always here to help you.</p>
+                  <p className="text-gray-500 text-sm leading-relaxed">We&apos;re always here to help you.</p>
                 </div>
               </div>
             </div>
@@ -314,12 +370,11 @@ const CartPage = () => {
             <div className="space-y-4 sm:space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto pr-0 sm:pr-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
               <AnimatePresence>
                 {cartItems.map((item, index) => {
-                  const product = getProductDetails(item);
                   const discount = calculateDiscount(item);
                   const itemPrice = parseFloat(item.price);
                   const itemTotal = itemPrice * item.quantity;
-                  const originalPrice = product?.originalPrice
-                    ? parseFloat(product.originalPrice)
+                  const originalPrice = item.originalPrice
+                    ? parseFloat(item.originalPrice)
                     : null;
 
                   return (
@@ -351,7 +406,7 @@ const CartPage = () => {
                             />
                           ) : (
                             <Image
-                              src={item.image || product?.images?.[0] || ""}
+                              src={item.image || ""}
                               alt={item.name}
                               fill
                               className="object-cover hover:scale-105 transition-transform duration-300"
@@ -378,11 +433,6 @@ const CartPage = () => {
                             >
                               {item.name}
                             </h2>
-                            {product?.description && (
-                              <p className="text-[12px] sm:text-[13px] text-gray-500 line-clamp-1 mb-2">
-                                {product.description}
-                              </p>
-                            )}
                           </div>
 
                           {/* Status Badges */}
@@ -612,28 +662,34 @@ const CartPage = () => {
                             Apply
                           </button>
                         </div>
-                        <p className="text-xs text-[#1e9a58] mt-2 font-medium">
-                          Try: WELCOME10, SAVE20, FLAT50, SUMMER25
-                        </p>
                       </div>
                     )}
                   </div>
 
                   <div className="flex items-center justify-between pt-4">
-                    <p className="text-sm font-bold text-gray-900">Shipping</p>
-                    <span className="text-sm font-medium text-gray-500">Calculated at checkout</span>
+                    <p className="text-sm font-bold text-gray-900">
+                      Shipping {realEstimate ? "(to your default address)" : "(estimated)"}
+                    </p>
+                    <span className="text-sm font-medium text-gray-500">₹{formatPrice(displayShipping)}</span>
                   </div>
-                  <div className="flex items-center justify-between pb-4 border-b border-gray-200">
-                    <p className="text-sm font-bold text-gray-900">Taxes</p>
-                    <span className="text-sm font-medium text-gray-500">Calculated at checkout</span>
+                  <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                    <p className="text-sm font-bold text-gray-900">
+                      Tax {realEstimate ? `(GST ${displayTaxRate}%)` : "(estimated, GST 18%)"}
+                    </p>
+                    <span className="text-sm font-medium text-gray-500">₹{formatPrice(displayTax)}</span>
                   </div>
+                  <p className="text-[11px] text-gray-400 pb-2">
+                    {realEstimate
+                      ? "Calculated for your default address — recheck at checkout if you deliver elsewhere."
+                      : "Final shipping and tax are calculated for your delivery address at checkout."}
+                  </p>
 
                   <div className="flex items-center justify-between pt-2">
                     <p className="text-base font-bold text-gray-900">
                       Total <span className="text-xs text-gray-500 font-normal">(Incl. taxes)</span>
                     </p>
                     <span className="text-sm font-bold text-[#1e9a58]">
-                      Calculated at checkout
+                      ₹{formatPrice(displayGrandTotal)}
                     </span>
                   </div>
                 </div>
@@ -688,7 +744,7 @@ const CartPage = () => {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-gray-900">24/7 Support</p>
-                      <p className="text-xs text-gray-500 mt-0.5">We're always here to help you</p>
+                      <p className="text-xs text-gray-500 mt-0.5">We&apos;re always here to help you</p>
                     </div>
                   </div>
                 </div>
@@ -709,7 +765,6 @@ const CartPage = () => {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {savedForLaterItems.map((item, index) => {
-                const product = getProductDetails(item);
                 const itemPrice = parseFloat(item.price);
                 const itemTotal = itemPrice * item.quantity;
 
@@ -724,7 +779,7 @@ const CartPage = () => {
                     <div className="flex gap-3 sm:gap-4">
                       <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
                         <Image
-                          src={item.image || product?.images?.[0] || ""}
+                          src={item.image || ""}
                           alt={item.name}
                           fill
                           className="object-cover"

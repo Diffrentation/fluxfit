@@ -1,13 +1,41 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
 import AdminContent from "@/components/Admin/AdminContent";
 import CouponList from "@/components/Admin/Coupons/CouponList";
 import CouponForm from "@/components/Admin/Coupons/CouponForm";
 import FlashSaleManager from "@/components/Admin/Coupons/FlashSaleManager";
-import { Button, Tabs, Input, Select, message } from "antd";
+import { Button, Tabs, Input, Select, message, Modal } from "antd";
 import { IconPlus, IconSearch, IconTag } from "@tabler/icons-react";
+
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
+
+// CouponList/CouponForm were built independently and expect slightly
+// different field names for the same coupon (list wants `value`/`usedCount`/
+// `status`, the form wants the real API names `discount`/`usageCount`/
+// `isActive`) — map once here so neither child component needs to change.
+function toDisplayCoupon(c) {
+  const now = new Date();
+  const status = c.isDeleted
+    ? "deleted"
+    : !c.isActive
+      ? "inactive"
+      : c.validUntil && now > new Date(c.validUntil)
+        ? "expired"
+        : "active";
+  return {
+    ...c,
+    value: c.discount,
+    usedCount: c.usageCount || 0,
+    status,
+    expiryDate: c.validUntil,
+  };
+}
 
 const { Search } = Input;
 const { Option } = Select;
@@ -23,59 +51,27 @@ const CouponManagementPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("coupons");
 
+  const loadCoupons = useCallback(async () => {
+    try {
+      const { data } = await axios.get("/api/admin/coupons", {
+        params: { limit: 100 },
+        headers: authHeaders(),
+      });
+      if (!data?.success) throw new Error(data?.message || "Failed to load coupons");
+      setCoupons((data.data.coupons || []).map(toDisplayCoupon));
+    } catch (error) {
+      console.error("Load coupons error:", error);
+      message.error(error.response?.data?.message || "Failed to load coupons");
+    }
+  }, []);
+
   useEffect(() => {
     loadCoupons();
-  }, []);
+  }, [loadCoupons]);
 
   useEffect(() => {
     filterCoupons();
   }, [coupons, debouncedSearchQuery, statusFilter]);
-
-  const loadCoupons = () => {
-    // Mock data - in production, fetch from API
-    const mockCoupons = [
-      {
-        id: 1,
-        code: "WELCOME10",
-        type: "percentage",
-        value: 10,
-        minPurchase: 1000,
-        maxDiscount: 500,
-        usageLimit: 100,
-        usedCount: 45,
-        expiryDate: "2024-12-31",
-        status: "active",
-        createdAt: "2024-01-01",
-      },
-      {
-        id: 2,
-        code: "FLAT500",
-        type: "flat",
-        value: 500,
-        minPurchase: 2000,
-        maxDiscount: null,
-        usageLimit: 50,
-        usedCount: 12,
-        expiryDate: "2024-06-30",
-        status: "active",
-        createdAt: "2024-02-01",
-      },
-      {
-        id: 3,
-        code: "SUMMER20",
-        type: "percentage",
-        value: 20,
-        minPurchase: 3000,
-        maxDiscount: 1000,
-        usageLimit: 200,
-        usedCount: 200,
-        expiryDate: "2024-08-31",
-        status: "expired",
-        createdAt: "2024-03-01",
-      },
-    ];
-    setCoupons(mockCoupons);
-  };
 
   const filterCoupons = () => {
     let filtered = [...coupons];
@@ -104,16 +100,31 @@ const CouponManagementPage = () => {
   };
 
   const handleDeleteCoupon = (couponId) => {
-    message.success("Coupon deleted successfully");
-    loadCoupons();
+    Modal.confirm({
+      title: "Delete this coupon?",
+      content: "This cannot be undone.",
+      okText: "Delete",
+      okType: "danger",
+      onOk: async () => {
+        try {
+          const { data } = await axios.delete(`/api/admin/coupons/${couponId}`, {
+            headers: authHeaders(),
+          });
+          if (!data?.success) throw new Error(data?.message || "Failed to delete coupon");
+          message.success("Coupon deleted successfully");
+          loadCoupons();
+        } catch (error) {
+          console.error("Delete coupon error:", error);
+          message.error(error.response?.data?.message || "Failed to delete coupon");
+        }
+      },
+    });
   };
 
-  const handleSaveCoupon = (couponData) => {
-    message.success(
-      selectedCoupon
-        ? "Coupon updated successfully"
-        : "Coupon created successfully"
-    );
+  // CouponForm performs the real create/update API call itself and passes
+  // the saved coupon back here — this just needs to close the modal and
+  // refresh the list.
+  const handleSaveCoupon = () => {
     setIsFormVisible(false);
     setSelectedCoupon(null);
     loadCoupons();

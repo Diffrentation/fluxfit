@@ -167,18 +167,25 @@ export async function GET(request, { params }) {
       };
     });
 
-    // Calculate summary statistics
+    // Calculate summary statistics over the FULL matching order set, not
+    // just the current page's slice — otherwise totalSpent/averageOrderValue
+    // silently shrink to whatever fits in one page while totalOrders (from
+    // countDocuments) stays correct, giving inconsistent numbers.
+    const summaryAgg = await Order.aggregate([
+      { $match: orderQuery },
+      {
+        $group: {
+          _id: null,
+          totalSpent: { $sum: "$total" },
+          averageOrderValue: { $avg: "$total" },
+        },
+      },
+    ]);
     const summary = {
       totalOrders: total,
-      totalSpent: Math.round(
-        orders.reduce((sum, order) => sum + order.total, 0) * 100
-      ) / 100,
+      totalSpent: Math.round((summaryAgg[0]?.totalSpent || 0) * 100) / 100,
       averageOrderValue:
-        orders.length > 0
-          ? Math.round(
-              (orders.reduce((sum, order) => sum + order.total, 0) / orders.length) * 100
-            ) / 100
-          : 0,
+        Math.round((summaryAgg[0]?.averageOrderValue || 0) * 100) / 100,
     };
 
     // Return response

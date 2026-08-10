@@ -46,6 +46,7 @@ export async function GET(request) {
         "order-delivered",
         "order-cancelled",
         "password-reset",
+        "admin-password-reset",
         "email-verification",
         "payment-success",
         "payment-failed",
@@ -119,6 +120,157 @@ export async function GET(request) {
       {
         success: false,
         message: error.message || "Failed to retrieve email templates. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+const VALID_EMAIL_TEMPLATE_TYPES = [
+  "welcome",
+  "order-confirmation",
+  "order-shipped",
+  "order-delivered",
+  "order-cancelled",
+  "password-reset",
+  "admin-password-reset",
+  "email-verification",
+  "payment-success",
+  "payment-failed",
+  "refund-processed",
+  "newsletter",
+  "custom",
+];
+
+/**
+ * POST /api/admin/settings/email-templates
+ * Create a new email template
+ *
+ * Body Parameters:
+ * - name: Template name, unique (required)
+ * - subject: Email subject (required)
+ * - body: Email body, HTML or text with {{variable}} placeholders (required)
+ * - type: One of VALID_EMAIL_TEMPLATE_TYPES (required)
+ * - variables: Array of { name, description } (optional)
+ * - isActive: Active status (default true)
+ */
+export async function POST(request) {
+  try {
+    const { error } = await authenticateAdmin(request);
+    if (error) {
+      return error;
+    }
+
+    await connectDB();
+
+    const body = await request.json();
+    const { name, subject, body: templateBody, type, variables, isActive } = body;
+
+    if (!name || !name.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Template name is required",
+          errors: [{ field: "name", message: "Template name is required" }],
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!subject || !subject.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Email subject is required",
+          errors: [{ field: "subject", message: "Email subject is required" }],
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!templateBody || !templateBody.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Email body is required",
+          errors: [{ field: "body", message: "Email body is required" }],
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!type || !VALID_EMAIL_TEMPLATE_TYPES.includes(type)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Invalid template type. Must be one of: ${VALID_EMAIL_TEMPLATE_TYPES.join(", ")}`,
+          errors: [
+            {
+              field: "type",
+              message: `Template type must be one of: ${VALID_EMAIL_TEMPLATE_TYPES.join(", ")}`,
+            },
+          ],
+        },
+        { status: 400 }
+      );
+    }
+
+    const normalizedVariables = Array.isArray(variables)
+      ? variables
+          .filter((v) => v?.name?.trim())
+          .map((v) => ({
+            name: v.name.trim(),
+            description: v.description ? v.description.trim() : "",
+          }))
+      : [];
+
+    const template = await EmailTemplate.create({
+      name: name.trim(),
+      subject: subject.trim(),
+      body: templateBody,
+      type,
+      variables: normalizedVariables,
+      isActive: isActive !== undefined ? !!isActive : true,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Email template created successfully",
+        data: {
+          template: {
+            id: template._id,
+            name: template.name,
+            subject: template.subject,
+            body: template.body,
+            type: template.type,
+            variables: template.variables || [],
+            isActive: template.isActive,
+            createdAt: template.createdAt,
+            updatedAt: template.updatedAt,
+          },
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Create email template error:", error);
+
+    if (error.code === 11000) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "A template with this name already exists",
+          errors: [{ field: "name", message: "Template name must be unique" }],
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message || "Failed to create email template. Please try again.",
       },
       { status: 500 }
     );

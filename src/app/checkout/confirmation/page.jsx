@@ -18,7 +18,6 @@ import {
 } from "@tabler/icons-react";
 import { Button, Card, message } from "antd";
 import Image from "next/image";
-import { productDatabase } from "@/lib/productDatabase";
 
 const OrderConfirmationContent = () => {
   const searchParams = useSearchParams();
@@ -82,10 +81,6 @@ const OrderConfirmationContent = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-  };
-
-  const getProductDetails = (item) => {
-    return productDatabase[item.id] || null;
   };
 
   const generateInvoice = () => {
@@ -250,7 +245,6 @@ const OrderConfirmationContent = () => {
             </h2>
             <div className="space-y-4">
               {order.items.map((item, index) => {
-                const product = getProductDetails(item);
                 const itemTotal = parseFloat(item.price) * item.quantity;
 
                 return (
@@ -263,7 +257,7 @@ const OrderConfirmationContent = () => {
                   >
                     <div className="relative w-16 h-16 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                       <Image
-                        src={item.image || product?.images?.[0] || ""}
+                        src={item.image || ""}
                         alt={item.name}
                         fill
                         className="object-cover"

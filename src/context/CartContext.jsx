@@ -1,6 +1,12 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { addItemToServerCart } from "@/lib/cart-api-client";
+import axios from "axios";
+import {
+  addItemToServerCart,
+  updateItemQuantityOnServerCart,
+  removeItemFromServerCart,
+  getCartAuthHeaders,
+} from "@/lib/cart-api-client";
 import { blockAdminAction } from "@/lib/adminBlocker";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
@@ -168,6 +174,15 @@ export const CartProvider = ({ children }) => {
           )
       )
     );
+
+    if (isAuthenticated) {
+      removeItemFromServerCart(id, size, color).catch((err) => {
+        console.warn(
+          "[cart] Server cart remove failed (local cart still updated):",
+          err?.response?.data?.message || err?.message || err,
+        );
+      });
+    }
   };
 
   const updateQuantity = (id, size, color, customization, newQuantity) => {
@@ -188,6 +203,15 @@ export const CartProvider = ({ children }) => {
           : item
       )
     );
+
+    if (isAuthenticated) {
+      updateItemQuantityOnServerCart(id, size, color, newQuantity).catch((err) => {
+        console.warn(
+          "[cart] Server cart quantity sync failed (local cart still updated):",
+          err?.response?.data?.message || err?.message || err,
+        );
+      });
+    }
   };
 
   const clearCart = () => {
@@ -207,50 +231,60 @@ export const CartProvider = ({ children }) => {
     );
   };
 
-  const applyCoupon = (couponCode) => {
-    // Sample coupon codes
-    const coupons = {
-      WELCOME10: {
-        code: "WELCOME10",
-        discount: 10,
-        type: "percentage",
-        minPurchase: 0,
-      },
-      SAVE20: {
-        code: "SAVE20",
-        discount: 20,
-        type: "percentage",
-        minPurchase: 100,
-      },
-      FLAT50: { code: "FLAT50", discount: 50, type: "fixed", minPurchase: 200 },
-      SUMMER25: {
-        code: "SUMMER25",
-        discount: 25,
-        type: "percentage",
-        minPurchase: 50,
-      },
-    };
-
-    const coupon = coupons[couponCode.toUpperCase()];
-    if (!coupon) {
-      return { success: false, message: "Invalid coupon code" };
+  const applyCoupon = async (couponCode) => {
+    if (!isAuthenticated) {
+      return { success: false, message: "Please log in to apply a coupon" };
+    }
+    if (cartItems.length === 0) {
+      return { success: false, message: "Your cart is empty" };
     }
 
-    const subtotal = getCartTotal();
-    if (subtotal < coupon.minPurchase) {
+    try {
+      // The coupon is validated against the real Coupon collection using the
+      // *server* cart's items/subtotal, so push the current local cart to
+      // the server first to guarantee they match (real-time add/qty/remove
+      // sync keeps them close, but this removes any doubt).
+      const { syncLocalCartToServer } = await import("@/lib/checkout-order");
+      await syncLocalCartToServer(cartItems, null);
+
+      const headers = getCartAuthHeaders();
+      const { data } = await axios.post(
+        "/api/cart/apply-coupon",
+        { code: couponCode.trim() },
+        { headers },
+      );
+
+      if (!data?.success) {
+        return { success: false, message: data?.message || "Invalid coupon code" };
+      }
+
+      setAppliedCoupon({
+        code: data.data.coupon.code,
+        discount: data.data.coupon.discount,
+        type: data.data.coupon.type,
+      });
+
+      return { success: true, message: data.message || "Coupon applied successfully!" };
+    } catch (err) {
       return {
         success: false,
-        message: `Minimum purchase of ₹${coupon.minPurchase.toFixed(
-          2
-        )} required`,
+        message:
+          err?.response?.data?.message || err.message || "Failed to apply coupon",
       };
     }
-
-    setAppliedCoupon(coupon);
-    return { success: true, message: "Coupon applied successfully!" };
   };
 
-  const removeCoupon = () => {
+  const removeCoupon = async () => {
+    if (isAuthenticated) {
+      try {
+        await axios.delete("/api/cart/coupon", { headers: getCartAuthHeaders() });
+      } catch (err) {
+        console.warn(
+          "[cart] Server coupon removal failed (local coupon still cleared):",
+          err?.response?.data?.message || err?.message || err,
+        );
+      }
+    }
     setAppliedCoupon(null);
   };
 

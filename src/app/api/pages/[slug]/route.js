@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Page from "@/models/page.model";
 import { authenticateAdmin } from "@/lib/auth";
+import slugify from "slugify";
 
 export async function GET(request, { params }) {
   try {
@@ -30,10 +31,17 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     await connectDB();
-    const adminCheck = await authenticateAdmin(request);
-    if (adminCheck) return adminCheck;
+    const { error } = await authenticateAdmin(request);
+    if (error) return error;
 
-    const { slug } = await params;
+    const { slug: rawSlug } = await params;
+    const slug = slugify(rawSlug, { lower: true, strict: true });
+    if (!slug) {
+      return NextResponse.json(
+        { success: false, message: "Slug must contain at least one letter or number" },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
 
     let page = await Page.findOne({ slug });

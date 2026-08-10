@@ -78,14 +78,14 @@ export default function OtpSendTo() {
         method: "email"
       })
       if (response?.data?.success) {
-        toast.success(response?.data?.data?.message);
+        toast.success(response?.data?.message || "OTP sent successfully");
         router.push(`/auth/otp?type=password-reset&userId=${response?.data?.data?.userId}`);
       } else {
-        toast.error(response?.data?.data?.message);
+        toast.error(response?.data?.message || "Forgot password failed. Please try again.");
       }
     } catch (error) {
       console.error("Forgot password error:", error);
-      toast.error(error?.response?.data?.data?.message || "Forgot password failed. Please try again.");
+      toast.error(error?.response?.data?.message || "Forgot password failed. Please try again.");
     } finally {
       setLoading(false);
     }

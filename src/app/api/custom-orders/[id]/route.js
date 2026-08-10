@@ -49,6 +49,7 @@ export async function GET(request, { params }) {
           designImages: order.designImages,
           status: order.status,
           adminRemarks: order.adminRemarks,
+          quote: order.quote || null,
           estimatedDelivery: order.estimatedDelivery,
           reviewedAt: order.reviewedAt,
           createdAt: order.createdAt,

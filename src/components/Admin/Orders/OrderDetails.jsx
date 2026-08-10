@@ -9,6 +9,8 @@ import {
   Modal,
   Form,
   Input,
+  InputNumber,
+  Checkbox,
   Divider,
   Timeline,
   Avatar,
@@ -31,22 +33,48 @@ import { format } from "date-fns";
 const { TextArea } = Input;
 const { Option } = Select;
 
+// Statuses the corresponding admin action routes actually accept — kept in
+// sync with the cancellableStatuses/refundableStatuses checks in
+// src/app/api/admin/orders/[id]/{partial-cancel,process-refund}/route.js so
+// the buttons only appear when the call would actually succeed.
+const PARTIAL_CANCELLABLE_STATUSES = ["pending", "confirmed", "processing", "shipped"];
+const REFUNDABLE_STATUSES = ["delivered", "returned", "cancelled"];
+
 const OrderDetails = ({
   order,
   onStatusChange,
   onAssignDeliveryPartner,
   onCancel,
   onPartialCancel,
+  onApproveReturn,
+  onRejectReturn,
+  onProcessRefund,
   onGenerateInvoice,
   onClose,
 }) => {
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [isDeliveryModalVisible, setIsDeliveryModalVisible] = useState(false);
   const [isCancelModalVisible, setIsCancelModalVisible] = useState(false);
+  const [isPartialCancelVisible, setIsPartialCancelVisible] = useState(false);
+  const [isReturnActionVisible, setIsReturnActionVisible] = useState(false);
+  const [returnAction, setReturnAction] = useState("approve"); // "approve" | "reject"
+  const [isRefundModalVisible, setIsRefundModalVisible] = useState(false);
   const [previewModal, setPreviewModal] = useState({ open: false, src: "", label: "" });
   const [statusForm] = Form.useForm();
   const [deliveryForm] = Form.useForm();
   const [cancelForm] = Form.useForm();
+  const [partialCancelForm] = Form.useForm();
+  const [returnActionForm] = Form.useForm();
+  const [refundForm] = Form.useForm();
+
+  const cancellableItems = (order.items || []).filter(
+    (item) => !["cancelled", "refunded", "returned"].includes(item.status)
+  );
+  const returnedItems = (order.items || []).filter((item) => item.returnRequested);
+  const canPartialCancel =
+    PARTIAL_CANCELLABLE_STATUSES.includes(order.status) && cancellableItems.length > 1;
+  const canActOnReturn = returnedItems.length > 0;
+  const canProcessRefund = REFUNDABLE_STATUSES.includes(order.status);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -83,6 +111,43 @@ const OrderDetails = ({
     onCancel(order.orderId, values.reason);
     setIsCancelModalVisible(false);
     cancelForm.resetFields();
+  };
+
+  const handlePartialCancelSubmit = (values) => {
+    if (!values.itemIds || values.itemIds.length === 0) {
+      message.warning("Select at least one item to cancel");
+      return;
+    }
+    onPartialCancel(order.orderId, values.itemIds, values.reason);
+    setIsPartialCancelVisible(false);
+    partialCancelForm.resetFields();
+  };
+
+  const openReturnAction = (action) => {
+    setReturnAction(action);
+    returnActionForm.resetFields();
+    returnActionForm.setFieldsValue({ itemIds: returnedItems.map((i) => i.itemId) });
+    setIsReturnActionVisible(true);
+  };
+
+  const handleReturnActionSubmit = (values) => {
+    if (!values.itemIds || values.itemIds.length === 0) {
+      message.warning("Select at least one item");
+      return;
+    }
+    if (returnAction === "approve") {
+      onApproveReturn(order.orderId, values.itemIds, values.note);
+    } else {
+      onRejectReturn(order.orderId, values.itemIds, values.reason);
+    }
+    setIsReturnActionVisible(false);
+    returnActionForm.resetFields();
+  };
+
+  const handleRefundSubmit = (values) => {
+    onProcessRefund(order.orderId, values.itemIds?.length ? values.itemIds : undefined, values.amount, values.note);
+    setIsRefundModalVisible(false);
+    refundForm.resetFields();
   };
 
   return (
@@ -402,18 +467,52 @@ const OrderDetails = ({
                 Cancel Order
               </Button>
             )}
-            {order.status === "delivered" && (
+            {canPartialCancel && (
+              <Button
+                block
+                icon={<IconX className="w-4 h-4" />}
+                onClick={() => setIsPartialCancelVisible(true)}
+                size="large"
+                className="text-xs sm:text-sm"
+              >
+                Partially Cancel Items
+              </Button>
+            )}
+            {canActOnReturn && (
+              <>
+                <Button
+                  block
+                  icon={<IconCheck className="w-4 h-4" />}
+                  onClick={() => openReturnAction("approve")}
+                  size="large"
+                  className="text-xs sm:text-sm"
+                >
+                  Approve Return ({returnedItems.length})
+                </Button>
+                <Button
+                  danger
+                  block
+                  icon={<IconX className="w-4 h-4" />}
+                  onClick={() => openReturnAction("reject")}
+                  size="large"
+                  className="text-xs sm:text-sm"
+                >
+                  Reject Return ({returnedItems.length})
+                </Button>
+              </>
+            )}
+            {canProcessRefund && (
               <Button
                 block
                 icon={<IconRefresh className="w-4 h-4" />}
                 onClick={() => {
-                  // Handle return/refund
-                  message.info("Return/Refund functionality");
+                  refundForm.resetFields();
+                  setIsRefundModalVisible(true);
                 }}
                 size="large"
                 className="text-xs sm:text-sm"
               >
-                Handle Return/Refund
+                Process Refund
               </Button>
             )}
           </div>
@@ -565,6 +664,125 @@ const OrderDetails = ({
             <Button onClick={() => setIsCancelModalVisible(false)}>Cancel</Button>
             <Button type="primary" danger htmlType="submit">
               Cancel Order
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Partial Cancel Modal */}
+      <Modal
+        title="Partially Cancel Items"
+        open={isPartialCancelVisible}
+        onCancel={() => {
+          setIsPartialCancelVisible(false);
+          partialCancelForm.resetFields();
+        }}
+        footer={null}
+        width={650}
+      >
+        <Form form={partialCancelForm} layout="vertical" onFinish={handlePartialCancelSubmit} className="mt-4">
+          <Form.Item
+            name="itemIds"
+            label="Select items to cancel"
+            rules={[{ required: true, message: "Select at least one item" }]}
+          >
+            <Checkbox.Group className="flex flex-col gap-2 w-full">
+              {cancellableItems.map((item) => (
+                <Checkbox key={item.itemId} value={item.itemId}>
+                  {item.name} — {item.size} · {item.color} · Qty {item.quantity} — ₹{formatPrice(item.price * item.quantity)}
+                </Checkbox>
+              ))}
+            </Checkbox.Group>
+          </Form.Item>
+          <Form.Item
+            name="reason"
+            label="Cancellation Reason"
+            rules={[{ required: true, message: "Please enter a reason" }]}
+          >
+            <TextArea rows={3} placeholder="e.g. Item out of stock" />
+          </Form.Item>
+          <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-4">
+            <Button onClick={() => setIsPartialCancelVisible(false)}>Cancel</Button>
+            <Button type="primary" htmlType="submit">
+              Cancel Selected Items
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Approve/Reject Return Modal */}
+      <Modal
+        title={returnAction === "approve" ? "Approve Return" : "Reject Return"}
+        open={isReturnActionVisible}
+        onCancel={() => setIsReturnActionVisible(false)}
+        footer={null}
+        width={650}
+      >
+        <Form form={returnActionForm} layout="vertical" onFinish={handleReturnActionSubmit} className="mt-4">
+          <Form.Item
+            name="itemIds"
+            label="Returned items"
+            rules={[{ required: true, message: "Select at least one item" }]}
+          >
+            <Checkbox.Group className="flex flex-col gap-2 w-full">
+              {returnedItems.map((item) => (
+                <Checkbox key={item.itemId} value={item.itemId}>
+                  {item.name} — {item.size} · {item.color} · Qty {item.quantity}
+                </Checkbox>
+              ))}
+            </Checkbox.Group>
+          </Form.Item>
+          {returnAction === "approve" ? (
+            <Form.Item name="note" label="Note (optional)">
+              <TextArea rows={3} placeholder="e.g. Item received in good condition, stock restored" />
+            </Form.Item>
+          ) : (
+            <Form.Item
+              name="reason"
+              label="Rejection Reason"
+              rules={[{ required: true, message: "Please enter a reason" }]}
+            >
+              <TextArea rows={3} placeholder="e.g. Return window expired" />
+            </Form.Item>
+          )}
+          <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-4">
+            <Button onClick={() => setIsReturnActionVisible(false)}>Cancel</Button>
+            <Button type="primary" danger={returnAction === "reject"} htmlType="submit">
+              {returnAction === "approve" ? "Approve Return" : "Reject Return"}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Process Refund Modal */}
+      <Modal
+        title="Process Refund"
+        open={isRefundModalVisible}
+        onCancel={() => setIsRefundModalVisible(false)}
+        footer={null}
+        width={650}
+      >
+        <Form form={refundForm} layout="vertical" onFinish={handleRefundSubmit} className="mt-4">
+          <Form.Item name="itemIds" label="Items to refund (leave empty to refund the whole order)">
+            <Checkbox.Group className="flex flex-col gap-2 w-full">
+              {(order.items || []).map((item) => (
+                <Checkbox key={item.itemId} value={item.itemId} disabled={item.status === "refunded"}>
+                  {item.name} — Qty {item.quantity} — ₹{formatPrice(item.price * item.quantity)}
+                  {item.status === "refunded" ? " (already refunded)" : ""}
+                </Checkbox>
+              ))}
+            </Checkbox.Group>
+          </Form.Item>
+          <Form.Item name="amount" label="Refund amount (₹) — leave empty to use the item/order total">
+            <InputNumber min={0} className="w-full" placeholder={`${order.orderSummary?.grandTotal || 0}`} />
+          </Form.Item>
+          <Form.Item name="note" label="Note (optional)">
+            <TextArea rows={2} placeholder="e.g. Refunded via original payment method" />
+          </Form.Item>
+          <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4 mt-4">
+            <Button onClick={() => setIsRefundModalVisible(false)}>Cancel</Button>
+            <Button type="primary" htmlType="submit">
+              Process Refund
             </Button>
           </div>
         </Form>

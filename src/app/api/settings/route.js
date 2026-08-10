@@ -19,8 +19,8 @@ export async function GET() {
 export async function PUT(request) {
   try {
     await connectDB();
-    const adminCheck = await authenticateAdmin(request);
-    if (adminCheck) return adminCheck;
+    const { error } = await authenticateAdmin(request);
+    if (error) return error;
 
     const body = await request.json();
     const settings = await Settings.updateSettings(body);

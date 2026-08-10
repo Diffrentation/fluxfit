@@ -53,6 +53,13 @@ const cartSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // Tracks the last automated abandoned-cart recovery email so the cron
+    // job (see /api/cron/abandoned-cart-recovery) doesn't re-email the same
+    // cart every time it runs — only once per cooldown window.
+    recoveryEmailSentAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

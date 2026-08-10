@@ -146,6 +146,11 @@ const orderSchema = new mongoose.Schema(
     tax: {
       gst: { type: Number, default: 0, min: 0 },
       total: { type: Number, default: 0, min: 0 },
+      // The effective rate used to compute gst above, resolved server-side
+      // from active TaxRate documents (or Settings.tax.defaultRate) at the
+      // moment the order was created. Stored so later recalculation (e.g.
+      // partial cancel) stays consistent with what the customer was charged.
+      ratePercent: { type: Number, default: 18, min: 0, max: 100 },
     },
     total: {
       type: Number,
@@ -266,11 +271,15 @@ orderSchema.methods.calculateTotals = function () {
 
   this.discount = discount;
 
-  // Calculate tax (GST)
+  // Calculate tax using the effective rate resolved server-side at order
+  // creation (see /api/orders POST) — falls back to 18% for legacy orders
+  // that predate per-order rate tracking.
   const taxableAmount = this.subtotal - this.discount;
-  const gst = (taxableAmount * 18) / 100; // 18% GST
+  const ratePercent = this.tax?.ratePercent ?? 18;
+  const gst = (taxableAmount * ratePercent) / 100;
   this.tax.gst = gst;
   this.tax.total = gst;
+  this.tax.ratePercent = ratePercent;
 
   // Calculate total
   this.total = taxableAmount + this.tax.total + this.shipping.cost;

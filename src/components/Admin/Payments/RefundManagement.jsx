@@ -1,11 +1,17 @@
 "use client";
 import React, { useState, useMemo, useCallback } from "react";
+import axios from "axios";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { Table, Tag, Button, Modal, Form, Input, Select, message, Card, Pagination } from "antd";
-import { IconCheck, IconX, IconEye, IconSearch } from "@tabler/icons-react";
+import { IconCheck, IconX, IconEye, IconSearch, IconCash } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
+
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -27,22 +33,69 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
       pending: "orange",
       approved: "green",
       rejected: "red",
+      processing: "purple",
       processed: "blue",
     };
     return colors[status] || "default";
   };
 
-  const handleApprove = useCallback((refund) => {
-    if (onUpdateRefunds) {
-      const updatedRefunds = refunds.map((r) =>
-        r.id === refund.id
-          ? { ...r, status: "approved", processedDate: new Date().toISOString().split('T')[0] }
-          : r
+  const handleApprove = useCallback(async (refund) => {
+    try {
+      const { data } = await axios.post(
+        `/api/admin/refunds/${refund.paymentId}/approve`,
+        { refundIndex: refund.refundIndex },
+        { headers: authHeaders() }
       );
-      onUpdateRefunds(updatedRefunds);
-      message.success("Refund approved successfully");
+      if (!data?.success) throw new Error(data?.message || "Failed to approve refund");
+      message.success("Refund approved — Razorpay refund initiated");
+      onUpdateRefunds?.();
+    } catch (error) {
+      console.error("Approve refund error:", error);
+      message.error(error.response?.data?.message || "Failed to approve refund");
     }
-  }, [refunds, onUpdateRefunds]);
+  }, [onUpdateRefunds]);
+
+  // For COD (and any other non-gateway) payments there's no webhook to
+  // auto-confirm the refund the way Razorpay's is — the admin has actually
+  // returned the money manually (cash/bank transfer), so this is them
+  // confirming that happened. Confirmation popup since it can't be undone
+  // from here and triggers a customer-facing email.
+  const handleComplete = useCallback(
+    (refund) => {
+      Modal.confirm({
+        title: "Mark this refund as completed?",
+        content: (
+          <div className="text-sm">
+            <p className="mb-2">
+              Only confirm this once you&apos;ve actually returned{" "}
+              <b>₹{formatPrice(refund.amount)}</b> to the customer for order #
+              {refund.orderId} (cash, UPI, or bank transfer) — this can&apos;t be
+              undone here, and the customer will be emailed that their refund is
+              complete.
+            </p>
+          </div>
+        ),
+        okText: "Yes, mark as refunded",
+        cancelText: "Cancel",
+        onOk: async () => {
+          try {
+            const { data } = await axios.post(
+              `/api/admin/refunds/${refund.paymentId}/complete`,
+              { refundIndex: refund.refundIndex },
+              { headers: authHeaders() }
+            );
+            if (!data?.success) throw new Error(data?.message || "Failed to complete refund");
+            message.success("Refund marked as completed");
+            onUpdateRefunds?.();
+          } catch (error) {
+            console.error("Complete refund error:", error);
+            message.error(error.response?.data?.message || "Failed to complete refund");
+          }
+        },
+      });
+    },
+    [onUpdateRefunds]
+  );
 
   const handleReject = useCallback((refund) => {
     setSelectedRefund(refund);
@@ -50,20 +103,31 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
     form.setFieldsValue({ action: "reject" });
   }, [form]);
 
-  const handleSubmit = useCallback((values) => {
-    if (values.action === "reject" && selectedRefund && onUpdateRefunds) {
-      const updatedRefunds = refunds.map((r) =>
-        r.id === selectedRefund.id
-          ? { ...r, status: "rejected", rejectionReason: values.reason }
-          : r
-      );
-      onUpdateRefunds(updatedRefunds);
-      message.success("Refund rejected");
+  const handleSubmit = useCallback(async (values) => {
+    if (values.action !== "reject" || !selectedRefund) {
+      setIsModalVisible(false);
+      form.resetFields();
+      setSelectedRefund(null);
+      return;
     }
-    setIsModalVisible(false);
-    form.resetFields();
-    setSelectedRefund(null);
-  }, [selectedRefund, refunds, onUpdateRefunds, form]);
+    try {
+      const { data } = await axios.post(
+        `/api/admin/refunds/${selectedRefund.paymentId}/reject`,
+        { refundIndex: selectedRefund.refundIndex, reason: values.reason },
+        { headers: authHeaders() }
+      );
+      if (!data?.success) throw new Error(data?.message || "Failed to reject refund");
+      message.success("Refund rejected — the customer will see this in their order.");
+      onUpdateRefunds?.();
+    } catch (error) {
+      console.error("Reject refund error:", error);
+      message.error(error.response?.data?.message || "Failed to reject refund");
+    } finally {
+      setIsModalVisible(false);
+      form.resetFields();
+      setSelectedRefund(null);
+    }
+  }, [selectedRefund, onUpdateRefunds, form]);
 
   const handleViewDetails = useCallback((refund) => {
     setSelectedRefundDetails(refund);
@@ -179,6 +243,16 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
                 </Button>
               </>
             )}
+            {refund.status === "processing" && refund.gateway !== "razorpay" && (
+              <Button
+                size="small"
+                icon={<IconCash className="w-3 h-3" />}
+                onClick={() => handleComplete(refund)}
+                className="flex-1 !text-emerald-500 !border-emerald-800"
+              >
+                Mark Refunded
+              </Button>
+            )}
             <Button
               type="text"
               size="small"
@@ -274,6 +348,16 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
               </Button>
             </>
           )}
+          {record.status === "processing" && record.gateway !== "razorpay" && (
+            <Button
+              size="small"
+              icon={<IconCash className="w-3 h-3" />}
+              onClick={() => handleComplete(record)}
+              className="!text-emerald-500 !border-emerald-800"
+            >
+              Mark Refunded
+            </Button>
+          )}
           <Button
             type="text"
             size="small"
@@ -321,6 +405,7 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
         >
           <Option value="all">All Status</Option>
           <Option value="pending">Pending</Option>
+          <Option value="processing">Processing</Option>
           <Option value="approved">Approved</Option>
           <Option value="rejected">Rejected</Option>
           <Option value="processed">Processed</Option>
@@ -506,6 +591,19 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
                   <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Processed Date</div>
                   <div className="text-sm text-zinc-200">
                     {format(new Date(selectedRefundDetails.processedDate), "MMM dd, yyyy")}
+                  </div>
+                </div>
+              )}
+              {selectedRefundDetails.method && (
+                <div>
+                  <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Payment Method</div>
+                  <div className="text-sm text-zinc-200 uppercase">
+                    {selectedRefundDetails.method}
+                    {selectedRefundDetails.method !== "razorpay" && selectedRefundDetails.status === "processing" && (
+                      <span className="ml-2 text-[11px] normal-case text-amber-400">
+                        (needs manual &quot;Mark Refunded&quot; confirmation)
+                      </span>
+                    )}
                   </div>
                 </div>
               )}

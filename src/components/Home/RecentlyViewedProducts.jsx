@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   IconChevronLeft,
@@ -8,11 +9,27 @@ import {
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ui/ProductCard";
-import { getRecentlyViewedProducts } from "@/lib/recentlyViewed";
-import { productDatabase } from "@/lib/productDatabase";
+import { useAuth } from "@/context/AuthContext";
+
+// Maps the real /api/recently-viewed product shape to what ProductCard expects.
+function mapToCardProduct(p) {
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    price: p.basePrice,
+    originalPrice: p.originalPrice,
+    discount: p.discount,
+    image: p.image,
+    images: p.image ? [p.image] : [],
+    inStock: p.inStock,
+    stock: p.stock,
+  };
+}
 
 function RecentlyViewedProducts() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [recentProducts, setRecentProducts] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -29,30 +46,27 @@ function RecentlyViewedProducts() {
 
   const [productsPerView, setProductsPerView] = useState(getProductsPerView());
 
-  // Load recently viewed products
+  // Load recently viewed products from the server (per-account, not per-browser).
   useEffect(() => {
-    const loadRecentProducts = () => {
-      const products = getRecentlyViewedProducts(productDatabase);
-      setRecentProducts(products);
-    };
-
-    loadRecentProducts();
-
-    // Listen for storage changes (when products are viewed in other tabs)
-    const handleStorageChange = () => {
-      loadRecentProducts();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    // Also check periodically for changes in the same tab
-    const interval = setInterval(loadRecentProducts, 1000);
-
+    if (!isAuthenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRecentProducts([]);
+      return;
+    }
+    let cancelled = false;
+    axios
+      .get("/api/recently-viewed?limit=8")
+      .then(({ data }) => {
+        if (cancelled || !data?.success) return;
+        setRecentProducts((data.data.products || []).map(mapToCardProduct));
+      })
+      .catch(() => {
+        if (!cancelled) setRecentProducts([]);
+      });
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
+      cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const handleResize = () => {

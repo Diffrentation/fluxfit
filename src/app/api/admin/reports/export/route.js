@@ -3,24 +3,29 @@ import connectDB from "@/lib/db";
 import Order from "@/models/order.model";
 import Product from "@/models/product.model";
 import User from "@/models/user.model";
-import { authenticateAdmin } from "@/lib/auth";
+import { authenticateAdminOrApiKey } from "@/lib/apiKeyAuth";
 import { generateCSV, generateCSVFilename } from "@/lib/csvGenerator";
 
 /**
  * GET /api/admin/reports/export
  * Export data (CSV/Excel)
- * 
+ *
  * Query Parameters:
  * - type: Data type to export - "orders", "products", "users", "sales" (required)
  * - format: Export format - "csv" (default), "json"
  * - startDate: Start date (ISO format, optional, required for orders/sales)
  * - endDate: End date (ISO format, optional, required for orders/sales)
  * - filters: JSON string of additional filters (optional)
+ *
+ * Authenticated either as an admin (Bearer token) or via an API key with
+ * the "read" permission (`x-api-key` header, `x-api-secret` for
+ * private/webhook-type keys) — lets external tools export data without an
+ * admin session, using keys issued from Admin Settings > API Keys.
  */
 export async function GET(request) {
   try {
-    // Authenticate admin
-    const { error, user } = await authenticateAdmin(request);
+    // Authenticate admin or API key
+    const { error } = await authenticateAdminOrApiKey(request, { permission: "read" });
     if (error) {
       return error;
     }

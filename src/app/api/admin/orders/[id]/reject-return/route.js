@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/order.model";
 import { authenticateAdmin } from "@/lib/auth";
+import { sendOrderStatusUpdateEmail } from "@/lib/email";
 import mongoose from "mongoose";
 
 /**
@@ -74,7 +75,9 @@ export async function POST(request, { params }) {
     }
 
     // Find order
-    const order = await Order.findOne(query).populate("items.product");
+    const order = await Order.findOne(query)
+      .populate("items.product")
+      .populate("user", "email firstname lastname phone");
 
     if (!order) {
       return NextResponse.json(
@@ -248,6 +251,20 @@ export async function POST(request, { params }) {
         returnReason: item.returnReason,
       };
     });
+
+    // Notify the customer by email (best-effort, does not block the response)
+    if (order.user?.email) {
+      sendOrderStatusUpdateEmail(order.user.email, {
+        orderId: order.orderNumber,
+        status: order.status,
+        customerName: order.user.firstname
+          ? `${order.user.firstname} ${order.user.lastname || ""}`.trim()
+          : undefined,
+        note: `Return rejected for ${rejectedItems.length} item(s) (${rejectedItemNames}). Reason: ${reason.trim()}`,
+      }).catch((err) =>
+        console.error("Failed to send reject-return email:", err)
+      );
+    }
 
     // Return response
     return NextResponse.json(

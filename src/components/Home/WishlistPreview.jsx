@@ -12,7 +12,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { productDatabase } from "@/lib/productDatabase";
+import { findMatchingProductVariant } from "@/lib/publicProductsApi";
 import { Button, message } from "antd";
 
 // Format price helper - prices are already in INR
@@ -41,9 +41,13 @@ function WishlistPreview() {
   }
 
   const handleAddToCart = (product) => {
+    // No size/color picker on this preview card, so pick a real variant
+    // instead of guessing "One Size"/"default" (a guess that doesn't match
+    // any real variant would silently fail to sync to the server cart).
+    const variant = findMatchingProductVariant(product.variants, null, null);
     const success = addToCart(product, {
-      size: product.sizes?.[0] || "One Size",
-      color: product.color || product.colors?.[0] || "default",
+      size: variant?.size || "One Size",
+      color: variant?.color || "default",
       quantity: 1,
     });
     if (success === false) return;
@@ -57,10 +61,6 @@ function WishlistPreview() {
   const handleRemoveFromWishlist = (itemId, itemName) => {
     removeFromWishlist(itemId);
     message.success(`${itemName} removed from wishlist`);
-  };
-
-  const getProductDetails = (item) => {
-    return productDatabase[item.id] || null;
   };
 
   const wishlistCount = getWishlistCount();
@@ -112,7 +112,6 @@ function WishlistPreview() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
           <AnimatePresence mode="popLayout">
             {displayItems.map((item, index) => {
-              const product = getProductDetails(item);
               const price = parseFloat(item.price);
               const originalPrice = item.originalPrice
                 ? parseFloat(item.originalPrice)
@@ -139,7 +138,7 @@ function WishlistPreview() {
                       className="relative w-full h-full"
                     >
                       <Image
-                        src={item.image || product?.images?.[0] || ""}
+                        src={item.image || ""}
                         alt={item.name}
                         fill
                         className="object-cover"
@@ -192,7 +191,7 @@ function WishlistPreview() {
                       type="primary"
                       size="large"
                       icon={<IconShoppingCart className="w-4 h-4" />}
-                      onClick={() => handleAddToCart(product || item)}
+                      onClick={() => handleAddToCart(item)}
                       className="flex-1 bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800 border-none text-xs sm:text-sm md:text-sm h-12 sm:h-14 md:h-14"
                     >
                       Add to Cart

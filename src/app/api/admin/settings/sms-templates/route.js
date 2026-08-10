@@ -119,3 +119,145 @@ export async function GET(request) {
   }
 }
 
+const VALID_SMS_TEMPLATE_TYPES = [
+  "otp",
+  "order-confirmation",
+  "order-shipped",
+  "order-delivered",
+  "payment-success",
+  "payment-failed",
+  "custom",
+];
+
+/**
+ * POST /api/admin/settings/sms-templates
+ * Create a new SMS template
+ *
+ * Body Parameters:
+ * - name: Template name, unique (required)
+ * - message: SMS body, max 160 chars, with {{variable}} placeholders (required)
+ * - type: One of VALID_SMS_TEMPLATE_TYPES (required)
+ * - variables: Array of { name, description } (optional)
+ * - isActive: Active status (default true)
+ */
+export async function POST(request) {
+  try {
+    const { error } = await authenticateAdmin(request);
+    if (error) {
+      return error;
+    }
+
+    await connectDB();
+
+    const body = await request.json();
+    const { name, message: smsMessage, type, variables, isActive } = body;
+
+    if (!name || !name.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Template name is required",
+          errors: [{ field: "name", message: "Template name is required" }],
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!smsMessage || !smsMessage.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "SMS message is required",
+          errors: [{ field: "message", message: "SMS message is required" }],
+        },
+        { status: 400 }
+      );
+    }
+
+    if (smsMessage.length > 160) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "SMS message must be 160 characters or fewer",
+          errors: [{ field: "message", message: "SMS message must be 160 characters or fewer" }],
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!type || !VALID_SMS_TEMPLATE_TYPES.includes(type)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Invalid template type. Must be one of: ${VALID_SMS_TEMPLATE_TYPES.join(", ")}`,
+          errors: [
+            {
+              field: "type",
+              message: `Template type must be one of: ${VALID_SMS_TEMPLATE_TYPES.join(", ")}`,
+            },
+          ],
+        },
+        { status: 400 }
+      );
+    }
+
+    const normalizedVariables = Array.isArray(variables)
+      ? variables
+          .filter((v) => v?.name?.trim())
+          .map((v) => ({
+            name: v.name.trim(),
+            description: v.description ? v.description.trim() : "",
+          }))
+      : [];
+
+    const template = await SMSTemplate.create({
+      name: name.trim(),
+      message: smsMessage,
+      type,
+      variables: normalizedVariables,
+      isActive: isActive !== undefined ? !!isActive : true,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "SMS template created successfully",
+        data: {
+          template: {
+            id: template._id,
+            name: template.name,
+            message: template.message,
+            type: template.type,
+            variables: template.variables || [],
+            isActive: template.isActive,
+            createdAt: template.createdAt,
+            updatedAt: template.updatedAt,
+          },
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Create SMS template error:", error);
+
+    if (error.code === 11000) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "A template with this name already exists",
+          errors: [{ field: "name", message: "Template name must be unique" }],
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message || "Failed to create SMS template. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
+}
+

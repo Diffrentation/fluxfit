@@ -215,6 +215,26 @@ export default function OrderStatusTracker({ order }) {
         </div>
       )}
 
+      {/* Price quote */}
+      {order.quote?.totalAmount != null && (
+        <div className="mt-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-2xl p-4">
+          <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide mb-1">
+            Price Quote
+          </p>
+          <p className="text-lg font-bold text-indigo-900 dark:text-indigo-300">
+            ₹{order.quote.totalAmount.toLocaleString("en-IN")}
+            <span className="text-xs font-normal text-indigo-500 dark:text-indigo-400 ml-2">
+              (₹{order.quote.pricePerUnit.toLocaleString("en-IN")} × {order.quantity})
+            </span>
+          </p>
+          {order.quote.notes && (
+            <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-1">
+              {order.quote.notes}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Estimated delivery */}
       {order.estimatedDelivery && (
         <div className="mt-4 flex items-center gap-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-2.5">

@@ -1,4 +1,6 @@
 import twilio from "twilio";
+import connectDB from "@/lib/db";
+import SMSTemplate from "@/models/smstemplate.model";
 
 let cachedClient = null;
 
@@ -129,9 +131,20 @@ export const sendOTPSMS = async (phoneNumber, otp, type = "password-reset") => {
     login: `Your FluxFit login code is: ${otp}. Valid for 10 minutes. Do not share this code.`,
   };
 
-  const message =
-    messageMap[type] ||
-    `Your FluxFit verification code is: ${otp}. Valid for 10 minutes.`;
+  // Prefer the admin-editable template (SMSTemplate, type "otp") over the
+  // hardcoded copy above, so editing it in Admin Settings actually changes
+  // what's sent. Falls back to the hardcoded message if none is configured
+  // or the DB lookup fails, so OTP delivery never breaks over this.
+  let message = messageMap[type] || `Your FluxFit verification code is: ${otp}. Valid for 10 minutes.`;
+  try {
+    await connectDB();
+    const template = await SMSTemplate.findOne({ type: "otp", isActive: true });
+    if (template) {
+      message = template.render({ otp, type });
+    }
+  } catch (err) {
+    console.error("Failed to load SMS template, using default copy:", err);
+  }
 
   return await sendSMS(phoneNumber, message);
 };

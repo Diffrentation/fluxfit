@@ -35,7 +35,7 @@ export async function GET(request) {
 
     // Get all active products for filter extraction
     const products = await Product.find(productQuery)
-      .select("category brand basePrice colors sizes tags")
+      .select("category brand basePrice colors sizes tags variants")
       .populate("category", "name slug")
       .populate("brand", "name logo")
       .lean();
@@ -81,23 +81,27 @@ export async function GET(request) {
       a.name.localeCompare(b.name)
     );
 
-    // Extract unique colors
+    // Extract unique colors — most products only set this on individual
+    // variants rather than the top-level colors array, so fall back to
+    // variants[].color whenever the top-level array is empty.
     const colorMap = new Map();
     products.forEach((product) => {
-      if (product.colors && Array.isArray(product.colors)) {
-        product.colors.forEach((color) => {
-          if (color && color.trim()) {
-            const colorKey = color.trim().toLowerCase();
-            if (!colorMap.has(colorKey)) {
-              colorMap.set(colorKey, {
-                name: color.trim(),
-                count: 0,
-              });
-            }
-            colorMap.get(colorKey).count++;
+      const productColors =
+        Array.isArray(product.colors) && product.colors.length > 0
+          ? product.colors
+          : (product.variants || []).map((v) => v.color).filter(Boolean);
+      productColors.forEach((color) => {
+        if (color && color.trim()) {
+          const colorKey = color.trim().toLowerCase();
+          if (!colorMap.has(colorKey)) {
+            colorMap.set(colorKey, {
+              name: color.trim(),
+              count: 0,
+            });
           }
-        });
-      }
+          colorMap.get(colorKey).count++;
+        }
+      });
     });
     const colors = Array.from(colorMap.values())
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -106,23 +110,25 @@ export async function GET(request) {
         count: color.count,
       }));
 
-    // Extract unique sizes
+    // Extract unique sizes — same variants[].size fallback as colors above.
     const sizeMap = new Map();
     products.forEach((product) => {
-      if (product.sizes && Array.isArray(product.sizes)) {
-        product.sizes.forEach((size) => {
-          if (size && size.trim()) {
-            const sizeKey = size.trim().toUpperCase();
-            if (!sizeMap.has(sizeKey)) {
-              sizeMap.set(sizeKey, {
-                name: size.trim(),
-                count: 0,
-              });
-            }
-            sizeMap.get(sizeKey).count++;
+      const productSizes =
+        Array.isArray(product.sizes) && product.sizes.length > 0
+          ? product.sizes
+          : (product.variants || []).map((v) => v.size).filter(Boolean);
+      productSizes.forEach((size) => {
+        if (size && size.trim()) {
+          const sizeKey = size.trim().toUpperCase();
+          if (!sizeMap.has(sizeKey)) {
+            sizeMap.set(sizeKey, {
+              name: size.trim(),
+              count: 0,
+            });
           }
-        });
-      }
+          sizeMap.get(sizeKey).count++;
+        }
+      });
     });
     const sizes = Array.from(sizeMap.values())
       .sort((a, b) => {

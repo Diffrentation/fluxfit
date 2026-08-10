@@ -1,8 +1,8 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Card, Statistic, Spin, Empty } from "antd";
-import { IconShoppingCart, IconX } from "@tabler/icons-react";
+import { Card, Statistic, Spin, Empty, Button, message } from "antd";
+import { IconShoppingCart, IconX, IconMailForward } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import axios from "axios";
 
@@ -24,6 +24,8 @@ const AbandonedCartStats = ({ refreshNonce }) => {
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
   const [byDays, setByDays] = useState([]);
+  const [cartIds, setCartIds] = useState([]);
+  const [sending, setSending] = useState(false);
 
   const fetchAbandoned = useCallback(async () => {
     setLoading(true);
@@ -52,6 +54,7 @@ const AbandonedCartStats = ({ refreshNonce }) => {
         averageAbandonedValue: toNumber(s.averageAbandonedValue),
       });
       setByDays((s.byDays || []).map((r) => ({ range: r.range, count: r.count, totalValue: r.totalValue })));
+      setCartIds((data.data?.carts || []).filter((c) => c.user?.email).map((c) => c.id));
     } catch (e) {
       if (e?.response?.status === 401) {
         setError(new Error("Session expired. Please login again."));
@@ -99,6 +102,25 @@ const AbandonedCartStats = ({ refreshNonce }) => {
   }, [fetchAbandoned, refreshNonce]);
 
   const empty = useMemo(() => !loading && !error && (!stats || stats.totalAbandonedCarts === 0), [loading, error, stats]);
+
+  const handleSendRecovery = useCallback(async () => {
+    const token = readAuthToken();
+    if (!token || cartIds.length === 0) return;
+    setSending(true);
+    try {
+      const { data } = await axios.post(
+        "/api/admin/dashboard/abandoned-carts/send-recovery",
+        { cartIds },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!data?.success) throw new Error(data?.message);
+      message.success(data.message || `Sent ${data.data?.sentCount || 0} recovery email(s)`);
+    } catch (e) {
+      message.error(e?.response?.data?.message || e.message || "Failed to send recovery emails");
+    } finally {
+      setSending(false);
+    }
+  }, [cartIds]);
 
   return (
     <motion.div
@@ -164,9 +186,21 @@ const AbandonedCartStats = ({ refreshNonce }) => {
               </div>
             </div>
             <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
-                <strong>Tip:</strong> Send cart recovery emails based on the most abandoned value ranges.
-              </p>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+                  <strong>{cartIds.length}</strong> abandoned cart{cartIds.length === 1 ? "" : "s"} with a saved email can be sent a recovery reminder.
+                </p>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<IconMailForward className="w-3.5 h-3.5" />}
+                  loading={sending}
+                  disabled={cartIds.length === 0}
+                  onClick={handleSendRecovery}
+                >
+                  Send Recovery Emails
+                </Button>
+              </div>
               <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {byDays.slice(0, 4).map((r) => (
                   <div key={r.range} className="bg-white/60 dark:bg-black/20 rounded p-2 border border-blue-200 dark:border-blue-800">

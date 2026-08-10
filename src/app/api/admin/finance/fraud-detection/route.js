@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/order.model";
 import User from "@/models/user.model";
+import FraudAlertReview from "@/models/fraudAlertReview.model";
 import { authenticateAdmin } from "@/lib/auth";
 import mongoose from "mongoose";
 
@@ -328,6 +329,37 @@ export async function GET(request) {
           },
           detectedAt: new Date(),
         });
+      }
+    }
+
+    // Overlay any persisted admin decision (see FraudAlertReview) onto the
+    // freshly-computed alerts — this is what actually makes "pending"
+    // change to "reviewed"/"resolved"/"false-positive" and stay that way
+    // across refreshes, since the alerts themselves are recomputed from
+    // scratch on every request.
+    if (fraudAlerts.length > 0) {
+      const reviews = await FraudAlertReview.find({
+        alertId: { $in: fraudAlerts.map((a) => a.id) },
+      })
+        .populate("reviewedBy", "firstname lastname email")
+        .lean();
+      const reviewsByAlertId = new Map(reviews.map((r) => [r.alertId, r]));
+
+      for (const alert of fraudAlerts) {
+        const review = reviewsByAlertId.get(alert.id);
+        if (review) {
+          alert.status = review.status;
+          alert.review = {
+            notes: review.notes || "",
+            reviewedBy: review.reviewedBy
+              ? {
+                  id: review.reviewedBy._id,
+                  name: `${review.reviewedBy.firstname} ${review.reviewedBy.lastname}`,
+                }
+              : null,
+            reviewedAt: review.reviewedAt,
+          };
+        }
       }
     }
 

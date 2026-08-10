@@ -16,7 +16,11 @@ function OTPPageContent() {
 
   // ✅ Get userId and type directly from URL
   const userId = searchParams?.get("userId");
-  const type = searchParams?.get("type") || "register"; // "register" | "forgot"
+  const type = searchParams?.get("type") || "register"; // "register" | "email-verification" | "password-reset"
+
+  // Normalize whatever the URL/redirect gave us into a value the OTP schema
+  // actually accepts — both verify and resend must use this, not the raw type.
+  const apiType = type === "password-reset" ? "password-reset" : "email-verification";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -77,11 +81,6 @@ function OTPPageContent() {
     const otpValue = otp.join("");
     if (otpValue.length !== 6) return toast.error("Please enter complete OTP");
 
-    const apiType =
-    type === "email-verification" ? "email-verification" :
-    type === "password-reset" ? "password-reset" :
-    "email-verification";
-
     try {
       setLoading(true);
 
@@ -108,6 +107,10 @@ function OTPPageContent() {
 
         // ✅ redirect
         if(type === "password-reset") {
+          const resetToken = response?.data?.data?.resetToken;
+          if (resetToken) {
+            sessionStorage.setItem(`resetToken:${userId}`, resetToken);
+          }
           router.push("/auth/change-password?userId=" + userId);
         } else {
           router.push("/auth/login");
@@ -131,7 +134,7 @@ function OTPPageContent() {
 
       const response = await axios.post("/api/auth/resend-otp", {
         userId,
-        type, // ✅ if backend uses
+        type: apiType,
       });
 
       if (response?.data?.success) {

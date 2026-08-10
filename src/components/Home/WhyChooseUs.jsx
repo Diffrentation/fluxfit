@@ -6,13 +6,13 @@ const features = [
   {
     icon: "🚀",
     title: "Fast Delivery",
-    description: "Get your order delivered within 30 minutes guaranteed",
+    description: "Tracked, pan-India shipping with your order at your door in days, not weeks",
     bg: "bg-orange-50",
   },
   {
     icon: "✨",
     title: "Premium Quality",
-    description: "Fresh ingredients and best quality products every time",
+    description: "Premium fabrics and careful craftsmanship in every garment",
     bg: "bg-yellow-50",
   },
   {

@@ -1,149 +1,148 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Table, Tag, Avatar, Button, Dropdown, Card, Pagination } from "antd";
+import { Tag, Avatar, Button, Dropdown, Card, Pagination } from "antd";
 import { IconDots, IconEye } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
+
+const STATUS_BADGE_CLASS = {
+  delivered: "bg-green-900/20 text-green-300 border-green-800/30",
+  cancelled: "bg-red-900/20 text-red-300 border-red-800/30",
+  shipped: "bg-purple-900/20 text-purple-300 border-purple-800/30",
+  processing: "bg-orange-900/20 text-orange-300 border-orange-800/30",
+  confirmed: "bg-blue-900/20 text-blue-300 border-blue-800/30",
+  pending: "bg-amber-900/20 text-amber-300 border-amber-800/30",
+};
+const STATUS_DOT_CLASS = {
+  delivered: "bg-green-500",
+  cancelled: "bg-red-500",
+  shipped: "bg-purple-500",
+  processing: "bg-orange-500",
+  confirmed: "bg-blue-500",
+  pending: "bg-amber-500",
+};
+
+function StatusBadge({ status, small }) {
+  return (
+    <span
+      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize inline-flex items-center gap-1.5 border ${
+        STATUS_BADGE_CLASS[status] || "bg-zinc-800/40 text-zinc-400 border-zinc-700/50"
+      }`}
+    >
+      <span
+        className={`rounded-full ${small ? "w-1 h-1" : "w-1.5 h-1.5"} ${
+          STATUS_DOT_CLASS[status] || "bg-zinc-500"
+        }`}
+      />
+      {status}
+    </span>
+  );
+}
 
 const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const getStatusColor = (status) => {
-    const colors = {
-      pending: "orange",
-      confirmed: "blue",
-      processing: "cyan",
-      shipped: "purple",
-      delivered: "green",
-      cancelled: "red",
-      returned: "volcano",
-    };
-    return colors[status] || "default";
-  };
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
 
-  const columns = [
-    {
-      title: "Order ID",
-      dataIndex: "orderId",
-      key: "orderId",
-      width: 150,
-      render: (orderId) => (
-        <span className="font-mono font-semibold text-blue-600">#{orderId}</span>
-      ),
-    },
-    {
-      title: "Customer",
-      key: "customer",
-      width: 200,
-      render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <Avatar size={40} className="bg-blue-500">
-            {record.address?.name?.[0]?.toUpperCase() || "C"}
-          </Avatar>
-          <div>
-            <div className="font-medium text-zinc-100">{record.address?.name || "N/A"}</div>
-            <div className="text-xs text-zinc-400">{record.address?.phone || ""}</div>
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Order ID",
+        field: "orderId",
+        width: 150,
+        cellRenderer: (p) => (
+          <span className="font-mono font-semibold text-blue-400">#{p.value}</span>
+        ),
+      },
+      {
+        headerName: "Customer",
+        width: 210,
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center gap-3">
+            <Avatar size={32} className="bg-blue-500 shrink-0">
+              {p.data.address?.name?.[0]?.toUpperCase() || "C"}
+            </Avatar>
+            <div className="min-w-0">
+              <div className="font-medium text-zinc-100 truncate">
+                {p.data.address?.name || "N/A"}
+              </div>
+              <div className="text-xs text-zinc-400 truncate">
+                {p.data.address?.phone || ""}
+              </div>
+            </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      title: "Items",
-      key: "items",
-      width: 100,
-      render: (_, record) => (
-        <span className="text-zinc-300">{record.items?.length || 0} items</span>
-      ),
-    },
-    {
-      title: "Total",
-      dataIndex: "orderSummary",
-      key: "total",
-      width: 120,
-      render: (summary) => (
-        <span className="font-semibold text-zinc-100">
-          ₹{formatPrice(summary?.grandTotal || 0)}
-        </span>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 130,
-      render: (status) => (
-        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize inline-flex items-center gap-1.5 border ${
-          status === "delivered"
-            ? "bg-green-900/20 text-green-300 border-green-800/30"
-            : status === "cancelled"
-            ? "bg-red-900/20 text-red-300 border-red-800/30"
-            : status === "shipped"
-            ? "bg-purple-900/20 text-purple-300 border-purple-800/30"
-            : status === "processing"
-            ? "bg-orange-900/20 text-orange-300 border-orange-800/30"
-            : status === "confirmed"
-            ? "bg-blue-900/20 text-blue-300 border-blue-800/30"
-            : status === "pending"
-            ? "bg-amber-900/20 text-amber-300 border-amber-800/30"
-            : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50"
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            status === "delivered"
-              ? "bg-green-500"
-              : status === "cancelled"
-              ? "bg-red-500"
-              : status === "shipped"
-              ? "bg-purple-500"
-              : status === "processing"
-              ? "bg-orange-500"
-              : status === "confirmed"
-              ? "bg-blue-500"
-              : status === "pending"
-              ? "bg-amber-500"
-              : "bg-zinc-500"
-          }`} />
-          {status}
-        </span>
-      ),
-    },
-    {
-      title: "Date",
-      dataIndex: "orderDate",
-      key: "date",
-      width: 120,
-      render: (date) => (
-        <span className="text-zinc-300">{format(new Date(date), "MMM dd, yyyy")}</span>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 100,
-      fixed: "right",
-      render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "view",
-                label: "View Details",
-                icon: <IconEye className="w-4 h-4" />,
-                onClick: () => onSelect(record),
-              },
-            ],
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            type="text"
-            icon={<IconDots className="w-4 h-4" />}
-            className="flex items-center justify-center"
-          />
-        </Dropdown>
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        headerName: "Items",
+        width: 100,
+        valueGetter: (p) => p.data.items?.length || 0,
+        valueFormatter: (p) => `${p.value} items`,
+      },
+      {
+        headerName: "Total",
+        width: 130,
+        valueGetter: (p) => p.data.orderSummary?.grandTotal || 0,
+        cellRenderer: (p) => (
+          <span className="font-semibold text-zinc-100">₹{formatPrice(p.value)}</span>
+        ),
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 140,
+        cellRenderer: (p) => <StatusBadge status={p.value} />,
+      },
+      {
+        headerName: "Date",
+        field: "orderDate",
+        width: 130,
+        valueFormatter: (p) => format(new Date(p.value), "MMM dd, yyyy"),
+      },
+      {
+        headerName: "Actions",
+        width: 90,
+        pinned: "right",
+        cellRenderer: (p) => (
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "view",
+                  label: "View Details",
+                  icon: <IconEye className="w-4 h-4" />,
+                  onClick: () => onSelect(p.data),
+                },
+              ],
+            }}
+            trigger={["click"]}
+          >
+            <Button type="text" icon={<IconDots className="w-4 h-4" />} />
+          </Dropdown>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orders]
+  );
 
   // Calculate pagination for mobile/tablet
   const startIndex = (currentPage - 1) * pageSize;
@@ -183,38 +182,7 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
                     <span className="font-mono font-semibold text-sm sm:text-base text-blue-600 dark:text-blue-400">
                       #{order.orderId}
                     </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold capitalize inline-flex items-center gap-1.5 border ${
-                      order.status === "delivered"
-                        ? "bg-green-900/20 text-green-300 border-green-800/30"
-                        : order.status === "cancelled"
-                        ? "bg-red-900/20 text-red-300 border-red-800/30"
-                        : order.status === "shipped"
-                        ? "bg-purple-900/20 text-purple-300 border-purple-800/30"
-                        : order.status === "processing"
-                        ? "bg-orange-900/20 text-orange-300 border-orange-800/30"
-                        : order.status === "confirmed"
-                        ? "bg-blue-900/20 text-blue-300 border-blue-800/30"
-                        : order.status === "pending"
-                        ? "bg-amber-900/20 text-amber-300 border-amber-800/30"
-                        : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50"
-                    }`}>
-                      <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
-                        order.status === "delivered"
-                          ? "bg-green-500"
-                          : order.status === "cancelled"
-                          ? "bg-red-500"
-                          : order.status === "shipped"
-                          ? "bg-purple-500"
-                          : order.status === "processing"
-                          ? "bg-orange-500"
-                          : order.status === "confirmed"
-                          ? "bg-blue-500"
-                          : order.status === "pending"
-                          ? "bg-amber-500"
-                          : "bg-zinc-500"
-                      }`} />
-                      {order.status}
-                    </span>
+                    <StatusBadge status={order.status} small />
                   </div>
                   <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     {format(new Date(order.orderDate), "MMM dd, yyyy")}
@@ -282,21 +250,33 @@ const OrderList = ({ orders, onSelect, selectedOrderId, onStatusChange }) => {
       className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden"
     >
       {/* Desktop Table View */}
-      <div className="hidden lg:block">
-        <Table
-          dataSource={orders.map((o) => ({ ...o, key: o.orderId }))}
-          columns={columns}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} orders`,
-          }}
-          scroll={{ x: 1000 }}
-          onRow={(record) => ({
-            onClick: () => onSelect(record),
-            className: selectedOrderId === record.orderId ? "bg-blue-50 dark:bg-blue-900/20" : "cursor-pointer hover:bg-zinc-800/50",
-          })}
-        />
+      <div className="hidden lg:block p-2">
+        {isClient ? (
+          <div style={{ width: "100%", height: 560 }}>
+            <AgGridReact
+              theme={myDarkTheme}
+              modules={[AllCommunityModule]}
+              rowData={orders}
+              columnDefs={columnDefs}
+              defaultColDef={{ sortable: true, resizable: true }}
+              getRowId={(p) => p.data.orderId}
+              animateRows
+              rowHeight={56}
+              headerHeight={44}
+              pagination
+              paginationPageSize={10}
+              paginationPageSizeSelector={[10, 20, 50]}
+              overlayNoRowsTemplate="No orders yet"
+              suppressCellFocus
+              onRowClicked={(p) => onSelect(p.data)}
+              rowClassRules={{
+                "!bg-blue-900/20": (p) => selectedOrderId === p.data.orderId,
+              }}
+            />
+          </div>
+        ) : (
+          <div className="h-[560px]" />
+        )}
       </div>
 
       {/* Mobile/Tablet Grid View */}

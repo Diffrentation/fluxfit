@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { deleteFromCloudinary } from "@/lib/cloudinary";
+import { authenticateUser } from "@/lib/auth";
 
 /**
  * DELETE /api/upload/:imageId
- * Delete image from Cloudinary
+ * Delete image from Cloudinary — requires an authenticated user.
  */
 export async function DELETE(request, { params }) {
   try {
+    const { error } = await authenticateUser(request);
+    if (error) return error;
+
     const { imageId } = await params;
 
     if (!imageId) {

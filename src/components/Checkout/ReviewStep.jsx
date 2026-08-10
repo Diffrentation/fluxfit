@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import { productDatabase } from "@/lib/productDatabase";
 import {
   syncLocalCartToServer,
   createOrderFromServerCart,
@@ -42,21 +41,9 @@ const ReviewStep = ({
     });
   };
 
-  const getProductDetails = (item) => {
-    return productDatabase[item.id] || null;
-  };
-
   const getPaymentMethodName = (method) => {
-    const methods = {
-      cod: "Cash on Delivery",
-      card: "Credit/Debit Card",
-      upi: "UPI",
-      netbanking: "Net Banking",
-      razorpay: "Razorpay",
-      stripe: "Stripe",
-      paypal: "PayPal",
-    };
-    return methods[method] || method;
+    // Cash on Delivery is the only active method — see PaymentStep.jsx.
+    return method === "cod" ? "Cash on Delivery" : method;
   };
 
   const handlePlaceOrder = async () => {
@@ -123,7 +110,6 @@ const ReviewStep = ({
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Order Items</h2>
         <div className="space-y-3 sm:space-y-4">
           {cartItems.map((item, index) => {
-            const product = getProductDetails(item);
             const itemPrice = parseFloat(item.price);
             const itemTotal = itemPrice * item.quantity;
 
@@ -137,7 +123,7 @@ const ReviewStep = ({
               >
                 <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-gray-100 dark:bg-gray-600 rounded-lg overflow-hidden">
                   <Image
-                    src={item.image || product?.images?.[0] || ""}
+                    src={item.image || ""}
                     alt={item.name}
                     fill
                     className="object-cover"
@@ -203,17 +189,9 @@ const ReviewStep = ({
           <p className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
             {getPaymentMethodName(paymentMethod)}
           </p>
-          {paymentMethod === "card" && paymentDetails.cardDetails && (
-            <p className="text-xs sm:text-sm text-gray-600">
-              Card ending in {paymentDetails.cardDetails.cardNumber.slice(-4)}
-            </p>
-          )}
-          {paymentMethod === "upi" && paymentDetails.upiId && (
-            <p className="text-xs sm:text-sm text-gray-600">{paymentDetails.upiId}</p>
-          )}
-          {paymentMethod === "netbanking" && paymentDetails.bank && (
-            <p className="text-xs sm:text-sm text-gray-600">{paymentDetails.bank}</p>
-          )}
+          <p className="text-xs sm:text-sm text-gray-600">
+            You&apos;ll pay in cash when your order is delivered.
+          </p>
         </div>
       </div>
 

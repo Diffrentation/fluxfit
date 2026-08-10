@@ -466,6 +466,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             typeof values.keywords === "string"
               ? values.keywords.split(",").map((k) => k.trim())
               : values.keywords,
+          tags: Array.isArray(values.tags) ? values.tags : [],
           status: values.status,
           slug: autoSlug,
         };
@@ -807,6 +808,21 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
               placeholder="Enter product description"
               maxLength={200}
               showCount
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="tags"
+            label="Tags"
+            help="Drives the storefront Tags filter — press Enter to add a tag"
+          >
+            <Select
+              mode="tags"
+              placeholder="e.g. fashion, streetstyle, denim"
+              tokenSeparators={[","]}
+              options={["Fashion", "Lifestyle", "Denim", "Streetstyle", "Crafts"].map(
+                (t) => ({ value: t.toLowerCase(), label: t })
+              )}
             />
           </Form.Item>
 

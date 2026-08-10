@@ -50,8 +50,10 @@ const OrderDetailsPageContent = () => {
   const [order, setOrder] = useState(null);
   const [isCancelModalVisible, setIsCancelModalVisible] = useState(false);
   const [isReturnModalVisible, setIsReturnModalVisible] = useState(false);
+  const [isRefundModalVisible, setIsRefundModalVisible] = useState(false);
   const [cancelForm] = Form.useForm();
   const [returnForm] = Form.useForm();
+  const [refundForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
@@ -164,9 +166,37 @@ const OrderDetailsPageContent = () => {
     }
   };
 
-  const handleRefundRequest = async () => {
+  const handleRefundRequest = async (values) => {
     if (blockAdminAction()) return;
-    message.info("Refund is processed by support after return approval.");
+    const id = params.id;
+    setLoading(true);
+    try {
+      const itemIds = Array.isArray(values?.items) ? values.items : [];
+      const { data } = await axios.post(
+        `/api/orders/${encodeURIComponent(id)}/refund`,
+        {
+          reason: values?.reason,
+          ...(itemIds.length ? { itemIds } : {}),
+        },
+        { headers: getOrdersAuthHeaders() },
+      );
+      if (!data?.success) {
+        message.error(data?.message || "Failed to submit refund request");
+        return;
+      }
+      message.success("Refund request submitted successfully");
+      setIsRefundModalVisible(false);
+      refundForm.resetFields();
+      await loadOrder();
+    } catch (err) {
+      message.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to submit refund request",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const generateInvoice = async () => {
@@ -240,6 +270,11 @@ const OrderDetailsPageContent = () => {
 
   const getEstimatedDelivery = () => {
     if (!order) return "";
+    // Prefer the real estimate set by admin (delivery assignment) over a
+    // guessed range.
+    if (order.delivery?.estimatedDelivery) {
+      return format(new Date(order.delivery.estimatedDelivery), "MMM dd, yyyy");
+    }
     const orderDate = new Date(order.orderDate);
     const start = new Date(orderDate);
     start.setDate(orderDate.getDate() + 3);
@@ -301,7 +336,7 @@ const OrderDetailsPageContent = () => {
       "delivered",
     ];
     const st = order?.status;
-    
+
     if (st === "cancelled") {
       return [
         {
@@ -312,12 +347,59 @@ const OrderDetailsPageContent = () => {
       ];
     }
 
+    // "returned"/"refunded" aren't part of the linear pending -> delivered
+    // sequence — treating them as an unrecognized status (indexOf === -1)
+    // used to fall back to index 0, making a returned order look like it
+    // had just been placed. Show the linear steps as fully completed
+    // (the order did reach delivered before being returned) plus a
+    // trailing step for the actual current status.
+    if (st === "returned" || st === "refunded") {
+      return [
+        ...statusOrder.map((status) => ({
+          title: (
+            <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </span>
+          ),
+          status: "finish",
+          description: (
+            <div className="text-[10px] sm:text-xs mt-0.5 text-gray-500 dark:text-gray-400">
+              {getStepTimestamp(status) || "Completed"}
+            </div>
+          ),
+        })),
+        {
+          title: (
+            <span className="text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              {st.charAt(0).toUpperCase() + st.slice(1)}
+            </span>
+          ),
+          status: "process",
+          description: (
+            <div className="text-[10px] sm:text-xs mt-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
+              {getStepTimestamp(st) || "In progress"}
+            </div>
+          ),
+        },
+      ];
+    }
+
+    // Derive completion from statusHistory rather than a fixed array
+    // index — an admin can skip a stage (e.g. go straight from
+    // "confirmed" to "shipped"), and indexOf-based comparison alone can't
+    // tell a genuinely-skipped stage apart from one that just hasn't
+    // happened yet the way checking for a recorded history entry can.
+    const historyStatuses = new Set(
+      (order?.statusHistory || []).map((h) => h.status)
+    );
     let currentIndex = statusOrder.indexOf(st);
     if (currentIndex < 0) currentIndex = 0;
 
     return statusOrder.map((status, index) => {
-      const isCompleted = index < currentIndex;
-      const isActive = index === currentIndex;
+      const isCompleted = historyStatuses.has(status)
+        ? status !== st
+        : index < currentIndex;
+      const isActive = status === st;
       const timestamp = getStepTimestamp(status);
 
       return {
@@ -639,17 +721,24 @@ const OrderDetailsPageContent = () => {
               <div className="flex items-center justify-between pl-10">
                 <div>
                   <p className="font-bold text-gray-900 dark:text-white capitalize text-sm">
-                    {order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod.toUpperCase()}
+                    {order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod?.toUpperCase()}
                   </p>
-                  {order.paymentMethod === "card" && order.paymentDetails?.cardDetails && (
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Card ending in {order.paymentDetails.cardDetails.cardNumber.slice(-4)}
-                    </p>
-                  )}
                 </div>
-                <div className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-100 rounded text-[10px] font-bold">
-                  {order.paymentMethod === "cod" ? (order.status === "delivered" ? "PAID" : "PENDING") : "PAID"}
-                </div>
+                {(() => {
+                  const badges = {
+                    completed: { label: "PAID", cls: "bg-green-50 text-green-700 border-green-100" },
+                    pending: { label: "PENDING", cls: "bg-amber-50 text-amber-700 border-amber-100" },
+                    processing: { label: "PROCESSING", cls: "bg-blue-50 text-blue-700 border-blue-100" },
+                    failed: { label: "FAILED", cls: "bg-red-50 text-red-700 border-red-100" },
+                    refunded: { label: "REFUNDED", cls: "bg-gray-50 text-gray-700 border-gray-200" },
+                  };
+                  const badge = badges[order.paymentStatus] || badges.pending;
+                  return (
+                    <div className={`px-2 py-0.5 border rounded text-[10px] font-bold ${badge.cls}`}>
+                      {badge.label}
+                    </div>
+                  );
+                })()}
               </div>
             </motion.div>
 
@@ -745,7 +834,10 @@ const OrderDetailsPageContent = () => {
 
                 {canRefund() && (
                   <button
-                    onClick={handleRefundRequest}
+                    onClick={() => {
+                      if (blockAdminAction()) return;
+                      setIsRefundModalVisible(true);
+                    }}
                     className="h-11 bg-orange-50 hover:bg-orange-100 text-orange-600 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors w-full col-span-1 sm:col-span-2 lg:col-span-1 xl:col-span-2"
                   >
                     <IconRefresh className="w-4 h-4" />
@@ -925,6 +1017,70 @@ const OrderDetailsPageContent = () => {
             </Button>
             <Button type="primary" htmlType="submit" loading={loading}>
               Submit Return Request
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Refund Request Modal */}
+      <Modal
+        title="Request Refund"
+        open={isRefundModalVisible}
+        onCancel={() => {
+          setIsRefundModalVisible(false);
+          refundForm.resetFields();
+        }}
+        footer={null}
+        width="90%"
+        style={{ maxWidth: 600 }}
+      >
+        <Form
+          form={refundForm}
+          layout="vertical"
+          onFinish={handleRefundRequest}
+          className="mt-4"
+        >
+          <Form.Item name="items" label="Select Items to Refund (leave empty to refund the whole order)">
+            <Select
+              mode="multiple"
+              placeholder="Select items to refund"
+              options={order.items.map((item) => ({
+                label: `${item.name} (${item.size || "One Size"}, ${
+                  item.color || "N/A"
+                })`,
+                value: item.lineItemId,
+                disabled: !item.lineItemId,
+              }))}
+            />
+          </Form.Item>
+
+          <Form.Item name="reason" label="Notes (Optional)">
+            <TextArea
+              rows={3}
+              placeholder="Anything you'd like our support team to know..."
+            />
+          </Form.Item>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+            <div className="flex items-start gap-2">
+              <IconAlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <div className="text-xs sm:text-sm text-blue-800 dark:text-blue-300">
+                Refunds are reviewed by our team and processed to your original payment method within 5-7 business days.
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              onClick={() => {
+                setIsRefundModalVisible(false);
+                refundForm.resetFields();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              Submit Refund Request
             </Button>
           </div>
         </Form>

@@ -50,8 +50,8 @@ const UserManagementPage = () => {
       status: u.isblocked ? "blocked" : "active",
       registeredAt: u.createdAt,
       createdAt: u.createdAt,
-      totalOrders: 0,
-      totalSpent: 0,
+      totalOrders: u.totalOrders || 0,
+      totalSpent: u.totalSpent || 0,
     };
   }, []);
 
@@ -209,9 +209,27 @@ const UserManagementPage = () => {
     [fetchUsers, fetchUserDetails, getAuthHeaders, isMutating, selectedUser?.id],
   );
 
-  const handleResetPassword = useCallback((userId) => {
-    message.success("Password reset email sent successfully");
-  }, []);
+  const handleResetPassword = useCallback(
+    async (userId, newPassword) => {
+      if (isMutating) return;
+      setIsMutating(true);
+      try {
+        const { data } = await axios.post(
+          `/api/admin/users/${userId}/reset-password`,
+          { newPassword, confirmPassword: newPassword },
+          { headers: getAuthHeaders() },
+        );
+        if (!data?.success) throw new Error(data?.message || "Failed to reset password");
+        message.success("Password reset — the user has been emailed their new password");
+      } catch (error) {
+        console.error("Reset password error:", error);
+        message.error(error.response?.data?.message || error.message || "Failed to reset password");
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [getAuthHeaders, isMutating],
+  );
 
   const handleSelectUser = useCallback(
     (user) => {

@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import { uploadMultipleToCloudinary } from "@/lib/cloudinary";
+import { authenticateUser } from "@/lib/auth";
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
+const MAX_BYTES = 8 * 1024 * 1024; // 8MB
+const MAX_FILES = 10;
 
 /**
  * POST /api/upload/images
- * Upload multiple images to Cloudinary
+ * Upload multiple images to Cloudinary — requires an authenticated user.
  */
 export async function POST(request) {
   try {
+    const { error } = await authenticateUser(request);
+    if (error) return error;
+
     const formData = await request.formData();
     const files = formData.getAll("files");
     const folder = formData.get("folder") || "fluxfit";
@@ -17,6 +25,30 @@ export async function POST(request) {
         {
           success: false,
           message: "No files provided",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (files.length > MAX_FILES) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Too many files. Maximum is ${MAX_FILES} per upload.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const invalid = files.find(
+      (f) => !ALLOWED_TYPES.includes(f.type) || f.size > MAX_BYTES
+    );
+    if (invalid) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "One or more files are invalid. Allowed types: JPEG, PNG, WEBP, GIF, SVG, max 8MB each.",
         },
         { status: 400 }
       );
