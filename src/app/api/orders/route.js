@@ -295,10 +295,13 @@ export async function GET(request) {
 
 /**
  * POST /api/orders
- * Creates an order from the authenticated user's server cart (line prices from DB products).
+ * Creates an order from the authenticated user's server cart (line prices from DB products),
+ * OR — when `directItem` is provided — a "Buy Now" order for exactly one product/variant,
+ * bypassing the cart entirely (the user's real cart is never read, mutated, or cleared).
  * Body: shippingAddressId (required), paymentMethod (required), shippingCost (optional number),
- * optional billingAddressId, shippingMethod, clearCart, paymentId, transactionId, notes.
- * Ignores any client-supplied subtotal, total, or orderNumber — those are computed server-side.
+ * optional billingAddressId, shippingMethod, clearCart, paymentId, transactionId, notes,
+ * directItem: { productId, size?, color?, quantity }.
+ * Ignores any client-supplied subtotal, total, price, or orderNumber — those are computed server-side.
  */
 export async function POST(request) {
   try {
@@ -346,6 +349,10 @@ export async function POST(request) {
       shippingCost: shippingCostRaw = 0,
       notes,
       clearCart = true,
+      // Buy Now: { productId, size, color, quantity } — bypasses the server
+      // Cart entirely so the order contains ONLY this product/variant and
+      // the user's real cart is never read, mutated, or cleared.
+      directItem,
     } = body;
 
     const errors = [];
@@ -377,6 +384,33 @@ export async function POST(request) {
       });
     }
 
+    const isDirect = directItem != null && typeof directItem === "object";
+    let directProductId = "";
+    let directQuantity = 0;
+
+    if (isDirect) {
+      directProductId =
+        directItem.productId != null ? String(directItem.productId).trim() : "";
+      if (!directProductId) {
+        errors.push({ field: "directItem.productId", message: "Product ID is required" });
+      } else if (!isStrictMongoObjectIdString(directProductId)) {
+        errors.push({
+          field: "directItem.productId",
+          message: "Invalid product ID: must be a 24-character hexadecimal MongoDB ObjectId",
+        });
+      }
+
+      const qty = Number(directItem.quantity);
+      if (!Number.isFinite(qty) || qty < 1 || !Number.isInteger(qty)) {
+        errors.push({
+          field: "directItem.quantity",
+          message: "Quantity must be a whole number greater than 0",
+        });
+      } else {
+        directQuantity = qty;
+      }
+    }
+
     if (errors.length > 0) {
       return NextResponse.json(
         {
@@ -390,28 +424,83 @@ export async function POST(request) {
 
     await connectDB();
 
-    const Cart = (await import("@/models/cart.model")).default;
     const Address = (await import("@/models/address.model")).default;
 
-    const cart = await Cart.findOne({ user: user._id }).populate(
-      "items.product",
-    );
+    // sourceItems is fed through the exact same per-item validation/pricing/
+    // stock-decrement loop below regardless of origin, so Buy Now and normal
+    // cart checkout share one code path and can't drift apart.
+    let cart = null;
+    let sourceItems;
 
-    if (!cart?.items?.length) {
-      console.warn("[api/orders] POST empty cart", { userId });
-      return NextResponse.json(
+    if (isDirect) {
+      const Product = (await import("@/models/product.model")).default;
+      const directProduct = await Product.findOne({
+        _id: directProductId,
+        isDeleted: false,
+      });
+
+      if (!directProduct) {
+        console.warn("[api/orders] POST direct item product not found", {
+          userId,
+          productId: directProductId,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Product not found",
+            errors: [
+              {
+                field: "directItem.productId",
+                message: "No product exists for this id",
+              },
+            ],
+          },
+          { status: 404 },
+        );
+      }
+
+      sourceItems = [
         {
-          success: false,
-          message: "Cart is empty",
-          errors: [
-            {
-              field: "cart",
-              message: "Your cart is empty. Add items to create an order.",
-            },
-          ],
+          product: directProduct,
+          variant: {
+            size:
+              directItem.size != null && String(directItem.size).trim() !== ""
+                ? String(directItem.size).trim()
+                : null,
+            color:
+              directItem.color != null && String(directItem.color).trim() !== ""
+                ? String(directItem.color).trim()
+                : null,
+          },
+          quantity: directQuantity,
+          customization:
+            directItem.customization != null && typeof directItem.customization === "object"
+              ? directItem.customization
+              : null,
         },
-        { status: 400 },
-      );
+      ];
+    } else {
+      const Cart = (await import("@/models/cart.model")).default;
+      cart = await Cart.findOne({ user: user._id }).populate("items.product");
+
+      if (!cart?.items?.length) {
+        console.warn("[api/orders] POST empty cart", { userId });
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Cart is empty",
+            errors: [
+              {
+                field: "cart",
+                message: "Your cart is empty. Add items to create an order.",
+              },
+            ],
+          },
+          { status: 400 },
+        );
+      }
+
+      sourceItems = cart.items;
     }
 
     const shippingAddr = await Address.findOne({
@@ -472,26 +561,33 @@ export async function POST(request) {
     // the authoritative cost is always recomputed here from ShippingRule.
     void shippingCostRaw;
 
-    // Validate cart items and prepare order items
+    // Validate items and prepare order items — identical logic for both the
+    // normal cart path and the Buy Now direct-item path (sourceItems has one
+    // synthetic entry in the latter case).
     const orderItems = [];
     const productUpdates = [];
+    const errorField = isDirect ? "directItem" : "cart";
 
-    for (const cartItem of cart.items) {
+    for (const cartItem of sourceItems) {
       const product = cartItem.product;
 
       if (!product || typeof product !== "object" || !product._id) {
-        console.warn("[api/orders] POST cart line missing populated product", {
+        console.warn("[api/orders] POST line missing populated product", {
           userId,
+          isDirect,
         });
         return NextResponse.json(
           {
             success: false,
-            message: "Cart contains an invalid product reference",
+            message: isDirect
+              ? "The selected product is invalid"
+              : "Cart contains an invalid product reference",
             errors: [
               {
-                field: "cart",
-                message:
-                  "A cart item could not be loaded. Remove it and add the product again.",
+                field: errorField,
+                message: isDirect
+                  ? "The product could not be loaded. Go back and try again."
+                  : "A cart item could not be loaded. Remove it and add the product again.",
               },
             ],
           },
@@ -507,7 +603,7 @@ export async function POST(request) {
             message: `Product "${cartItem.product?.name || "Unknown"}" is no longer available`,
             errors: [
               {
-                field: "cart",
+                field: errorField,
                 message: `Product "${cartItem.product?.name || "Unknown"}" has been removed or is unavailable`,
               },
             ],
@@ -535,7 +631,7 @@ export async function POST(request) {
               message: `Variant for "${product.name}" is no longer available`,
               errors: [
                 {
-                  field: "cart",
+                  field: errorField,
                   message: `Selected variant for "${product.name}" is no longer available`,
                 },
               ],
@@ -554,7 +650,7 @@ export async function POST(request) {
             message: `Insufficient stock for "${product.name}"`,
             errors: [
               {
-                field: "cart",
+                field: errorField,
                 message: `Only ${availableStock} item${availableStock === 1 ? "" : "s"} available for "${product.name}"`,
               },
             ],
@@ -638,8 +734,10 @@ export async function POST(request) {
       pincode: billingAddr.pincode,
     };
 
+    // Buy Now never applies the user's cart coupon — it's a direct,
+    // single-item purchase outside the cart.
     const cartCoupon =
-      cart.coupon && cart.coupon.code
+      !isDirect && cart?.coupon && cart.coupon.code
         ? {
             code: cart.coupon.code,
             discount: cart.coupon.discount,
@@ -670,7 +768,8 @@ export async function POST(request) {
 
     console.log("[api/orders] POST creating order", {
       userId,
-      cartLineCount: cart.items.length,
+      isDirect,
+      sourceLineCount: sourceItems.length,
       orderLineCount: orderItems.length,
       subtotal: pricing.subtotal,
       discount: pricing.discount,
@@ -750,8 +849,9 @@ export async function POST(request) {
       );
     }
 
-    // Clear cart if requested
-    if (clearCart) {
+    // Clear cart if requested — never applies to Buy Now, which never read
+    // or touched the user's real cart in the first place.
+    if (clearCart && cart) {
       await cart.clear();
     }
 

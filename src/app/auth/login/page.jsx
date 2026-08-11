@@ -11,6 +11,17 @@ import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import GuestRoute from "@/components/auth/GuestRoute";
 
+/**
+ * Only same-origin relative paths are followed after login — rejects
+ * protocol-relative ("//evil.com") or absolute URLs to avoid an open redirect.
+ */
+function getSafeRedirectTarget(searchParams) {
+  const raw = searchParams.get("redirect") || searchParams.get("returnUrl");
+  if (!raw || typeof raw !== "string") return null;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
 function Login() {
   const { login: authLogin } = useAuth();
   const searchParams = useSearchParams();
@@ -64,7 +75,7 @@ function Login() {
           return;
         }
 
-        router.push("/");
+        router.push(getSafeRedirectTarget(searchParams) || "/");
         return;
       }
 

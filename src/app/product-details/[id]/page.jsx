@@ -566,7 +566,7 @@ function ProductDetails() {
 
   const handleBuyNow = () => {
     if (!product) return;
-    
+
     if (!displayPricing.inStock) {
       if (!product.inStock || product.stock === 0) {
         message.error(`Sorry, ${product.name} is completely out of stock.`);
@@ -576,23 +576,18 @@ function ProductDetails() {
       return;
     }
 
-    const success = addToCart(
-      {
-        id: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: displayPricing.price,
-        image: product.images?.[0],
-        images: product.images,
-      },
-      {
-        size: selectedSize || "One Size",
-        color: selectedColor || "default",
-        quantity,
-      }
-    );
-    if (success === false) return;
-    router.push("/checkout");
+    // Buy Now is a direct checkout for this product/variant only — it never
+    // calls addToCart, never touches localStorage["cart"], and never syncs
+    // or clears the server cart. The checkout page re-fetches and
+    // re-validates the product/variant/price/stock from the DB itself.
+    const params = new URLSearchParams({
+      mode: "buy-now",
+      productId: String(product.id),
+      quantity: String(quantity),
+    });
+    if (selectedSize) params.set("size", selectedSize);
+    if (selectedColor) params.set("color", selectedColor);
+    router.push(`/checkout?${params.toString()}`);
   };
 
   const getVariantImage = (variant) => {

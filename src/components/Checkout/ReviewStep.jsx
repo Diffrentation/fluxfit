@@ -6,6 +6,7 @@ import { useCart } from "@/context/CartContext";
 import {
   syncLocalCartToServer,
   createOrderFromServerCart,
+  createDirectOrder,
   isLoggedInForCheckout,
 } from "@/lib/checkout-order";
 import { mapApiOrderToLegacyUi } from "@/lib/order-display";
@@ -27,11 +28,18 @@ const ReviewStep = ({
   onOrderPlace,
   onBack,
   orderSummary,
+  // Buy Now: a single { id, name, image, price, size, color, quantity }
+  // item. When present, ONLY this item is reviewed/ordered — the real cart
+  // (cartItems) is never read, synced, or cleared.
+  buyNowItem = null,
 }) => {
   const router = useRouter();
   const { cartItems, clearCart, appliedCoupon } = useCart();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+
+  const isBuyNow = Boolean(buyNowItem);
+  const displayItems = isBuyNow ? [buyNowItem] : cartItems;
 
   // Format price helper - prices are already in INR
   const formatPrice = (price) => {
@@ -67,17 +75,35 @@ const ReviewStep = ({
     setIsPlacingOrder(true);
 
     try {
-      await syncLocalCartToServer(cartItems, appliedCoupon);
+      let apiOrder;
 
-      const apiOrder = await createOrderFromServerCart({
-        shippingAddressId: String(shippingAddressId),
-        paymentMethod,
-        shippingCost: Number(orderSummary?.shipping) || 0,
-        shippingMethod: "standard",
-        clearCart: true,
-      });
+      if (isBuyNow) {
+        // Direct checkout for exactly this product/variant — never touches
+        // the user's real cart (no sync, no clear).
+        apiOrder = await createDirectOrder({
+          shippingAddressId: String(shippingAddressId),
+          paymentMethod,
+          directItem: {
+            productId: buyNowItem.id,
+            size: buyNowItem.size,
+            color: buyNowItem.color,
+            quantity: buyNowItem.quantity,
+          },
+        });
+      } else {
+        await syncLocalCartToServer(cartItems, appliedCoupon);
 
-      clearCart();
+        apiOrder = await createOrderFromServerCart({
+          shippingAddressId: String(shippingAddressId),
+          paymentMethod,
+          shippingCost: Number(orderSummary?.shipping) || 0,
+          shippingMethod: "standard",
+          clearCart: true,
+        });
+
+        clearCart();
+      }
+
       const orderUi = {
         ...mapApiOrderToLegacyUi(apiOrder),
         paymentDetails: paymentDetails || {},
@@ -109,7 +135,7 @@ const ReviewStep = ({
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Order Items</h2>
         <div className="space-y-3 sm:space-y-4">
-          {cartItems.map((item, index) => {
+          {displayItems.map((item, index) => {
             const itemPrice = parseFloat(item.price);
             const itemTotal = itemPrice * item.quantity;
 

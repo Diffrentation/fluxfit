@@ -1,11 +1,16 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useCart } from "@/context/CartContext";
 import { isLoggedInForCheckout } from "@/lib/checkout-order";
+import {
+  normalizeProductDetailForPage,
+  findMatchingProductVariant,
+  getVariantAwarePricing,
+} from "@/lib/publicProductsApi";
 import {
   IconArrowLeft,
   IconMapPin,
@@ -14,8 +19,9 @@ import {
   IconChevronRight,
   IconFileText,
   IconLock,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
-import { Button, Steps, message } from "antd";
+import { Button, Steps, message, Spin } from "antd";
 import AddressStep from "@/components/Checkout/AddressStep";
 import PaymentStep from "@/components/Checkout/PaymentStep";
 import ReviewStep from "@/components/Checkout/ReviewStep";
@@ -25,6 +31,7 @@ const { Step } = Steps;
 
 const CheckoutPageContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { cartItems, getCartTotal, getFinalTotal, getDiscountAmount } =
     useCart();
   const [currentStep, setCurrentStep] = useState(0);
@@ -34,6 +41,105 @@ const CheckoutPageContent = () => {
   const [orderData, setOrderData] = useState(null);
   const [realEstimate, setRealEstimate] = useState(null);
 
+  // Buy Now: a direct, single-product checkout that never reads or touches
+  // the user's real cart. Triggered by /checkout?mode=buy-now&productId=...
+  const isBuyNow = searchParams.get("mode") === "buy-now";
+  const [buyNow, setBuyNow] = useState({
+    loading: isBuyNow,
+    error: "",
+    product: null,
+    variant: null,
+    pricing: null,
+    quantity: 1,
+  });
+
+  useEffect(() => {
+    if (!isBuyNow) return;
+
+    const productId = searchParams.get("productId") || "";
+    const size = searchParams.get("size") || "";
+    const color = searchParams.get("color") || "";
+    const qtyParam = parseInt(searchParams.get("quantity"), 10);
+    const quantity = Number.isFinite(qtyParam) && qtyParam > 0 ? qtyParam : 1;
+
+    if (!productId) {
+      setBuyNow((s) => ({ ...s, loading: false, error: "Missing product for Buy Now." }));
+      return;
+    }
+
+    let cancelled = false;
+    setBuyNow((s) => ({ ...s, loading: true, error: "" }));
+
+    axios
+      .get(`/api/products/${encodeURIComponent(productId)}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const raw = data?.success ? data.data?.product : null;
+        const product = raw ? normalizeProductDetailForPage(raw) : null;
+        if (!product) {
+          setBuyNow((s) => ({
+            ...s,
+            loading: false,
+            error: "This product is no longer available.",
+          }));
+          return;
+        }
+
+        const variant = findMatchingProductVariant(product.variants, size, color);
+        const pricing = getVariantAwarePricing(product, variant);
+
+        if (!pricing.inStock) {
+          setBuyNow((s) => ({
+            ...s,
+            loading: false,
+            error: "The selected item is out of stock.",
+          }));
+          return;
+        }
+        if (pricing.stock < quantity) {
+          setBuyNow((s) => ({
+            ...s,
+            loading: false,
+            error: `Only ${pricing.stock} item${pricing.stock === 1 ? "" : "s"} available for this item.`,
+          }));
+          return;
+        }
+
+        setBuyNow({ loading: false, error: "", product, variant, pricing, quantity });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBuyNow((s) => ({
+            ...s,
+            loading: false,
+            error: "Failed to load this product for checkout.",
+          }));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // Query params are fixed for the lifetime of this page instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBuyNow]);
+
+  const buyNowItem = useMemo(() => {
+    if (!isBuyNow || !buyNow.product) return null;
+    const { product, variant, pricing, quantity } = buyNow;
+    return {
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      image: product.images?.[0],
+      price: pricing.price,
+      originalPrice: pricing.originalPrice,
+      size: variant?.size || "",
+      color: variant?.color || "",
+      quantity,
+    };
+  }, [isBuyNow, buyNow]);
+
   // Replace the flat ₹50 + 18% GST guess below with the real
   // ShippingRule/TaxRate-resolved numbers for whichever address the user
   // actually selects — same server logic /api/orders uses at order
@@ -42,13 +148,19 @@ const CheckoutPageContent = () => {
   // `getFinalTotal` in the dependency array, since that function isn't
   // memoized in CartContext and would refire this effect every render.
   useEffect(() => {
-    if (!selectedAddress?.id || cartItems.length === 0) {
+    if (!selectedAddress?.id) {
+      setRealEstimate(null);
+      return;
+    }
+    if (!isBuyNow && cartItems.length === 0) {
       setRealEstimate(null);
       return;
     }
     const token = localStorage.getItem("token");
     if (!token) return;
-    const orderValue = getFinalTotal();
+    const orderValue = isBuyNow
+      ? (buyNowItem ? buyNowItem.price * buyNowItem.quantity : 0)
+      : getFinalTotal();
     if (!(orderValue > 0)) return;
 
     let cancelled = false;
@@ -70,23 +182,26 @@ const CheckoutPageContent = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAddress, cartItems]);
+  }, [selectedAddress, cartItems, isBuyNow, buyNowItem]);
 
-  // Redirect if cart is empty
+  // Redirect if cart is empty — never applies to Buy Now, which doesn't
+  // require (or touch) the real cart at all.
   useEffect(() => {
+    if (isBuyNow) return;
     if (cartItems.length === 0) {
       message.warning("Your cart is empty. Please add items to checkout.");
       router.push("/cart");
     }
-  }, [cartItems, router]);
+  }, [isBuyNow, cartItems, router]);
 
   useEffect(() => {
-    if (cartItems.length === 0) return;
+    if (!isBuyNow && cartItems.length === 0) return;
     if (!isLoggedInForCheckout()) {
       message.info("Sign in to complete checkout and sync your cart with your account.");
-      router.push("/auth/login?returnUrl=/checkout");
+      const qs = typeof window !== "undefined" ? window.location.search : "";
+      router.push(`/auth/login?returnUrl=${encodeURIComponent(`/checkout${qs}`)}`);
     }
-  }, [cartItems.length, router]);
+  }, [isBuyNow, cartItems.length, router]);
 
   const steps = [
     {
@@ -133,6 +248,10 @@ const CheckoutPageContent = () => {
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    } else if (isBuyNow) {
+      // Buy Now never came from the cart — send them back to wherever they
+      // triggered checkout from (the product page), not to /cart.
+      router.back();
     } else {
       router.push("/cart");
     }
@@ -154,14 +273,52 @@ const CheckoutPageContent = () => {
     setCurrentStep(2);
   };
 
-  if (cartItems.length === 0) {
+  if (!isBuyNow && cartItems.length === 0) {
     return null;
   }
 
-  // All prices are in INR
-  const subtotal = getCartTotal().toFixed(2);
-  const discount = getDiscountAmount().toFixed(2);
-  const finalTotal = getFinalTotal().toFixed(2);
+  if (isBuyNow && buyNow.loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-24 pb-12 flex items-center justify-center">
+        <Spin size="large" tip="Loading your item…" />
+      </div>
+    );
+  }
+
+  if (isBuyNow && (buyNow.error || !buyNowItem)) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-24 pb-12 flex items-center justify-center px-4">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 max-w-md w-full text-center">
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <IconAlertTriangle className="w-7 h-7 text-red-500" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">
+            Can&apos;t check out this item
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            {buyNow.error || "This product could not be loaded."}
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="w-full py-3 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl font-bold transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // All prices are in INR. Buy Now never applies a coupon, so discount is
+  // always 0 there — the per-item price already reflects any variant
+  // discount, it's just not a separate coupon line.
+  const subtotal = (
+    isBuyNow
+      ? buyNowItem.price * buyNowItem.quantity
+      : getCartTotal()
+  ).toFixed(2);
+  const discount = (isBuyNow ? 0 : getDiscountAmount()).toFixed(2);
+  const finalTotal = (isBuyNow ? parseFloat(subtotal) : getFinalTotal()).toFixed(2);
 
   // Flat fallback (₹50 + 18% GST) used until the real ShippingRule/TaxRate
   // estimate for the selected address comes back from /api/orders/estimate.
@@ -198,13 +355,15 @@ const CheckoutPageContent = () => {
             className="flex items-center gap-2 text-[#1e9a58] font-bold hover:text-green-700 transition-colors mb-4"
           >
             <IconArrowLeft className="w-4 h-4" />
-            Back to Cart
+            {isBuyNow ? "Back" : "Back to Cart"}
           </button>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#111827] mb-2 tracking-tight">
             Checkout
           </h1>
           <p className="text-sm sm:text-base text-gray-500 font-medium">
-            Complete your purchase in a few simple steps
+            {isBuyNow
+              ? "Complete your purchase for this item"
+              : "Complete your purchase in a few simple steps"}
           </p>
         </motion.div>
 
@@ -300,6 +459,7 @@ const CheckoutPageContent = () => {
                     paymentDetails={paymentDetails}
                     onOrderPlace={handleOrderPlace}
                     onBack={() => setCurrentStep(1)}
+                    buyNowItem={isBuyNow ? buyNowItem : null}
                     orderSummary={{
                       subtotal: parseFloat(subtotal),
                       discount: parseFloat(discount),
@@ -333,7 +493,7 @@ const CheckoutPageContent = () => {
               </div>
               <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                 <div className="flex justify-between text-sm sm:text-base text-gray-700 dark:text-gray-300">
-                  <span>Subtotal ({cartItems.length} items)</span>
+                  <span>Subtotal ({isBuyNow ? 1 : cartItems.length} item{(isBuyNow ? 1 : cartItems.length) === 1 ? "" : "s"})</span>
                   <span>
                     ₹
                     {parseFloat(subtotal).toLocaleString("en-IN", {
@@ -416,7 +576,13 @@ const CheckoutPageContent = () => {
                   className="w-full flex items-center justify-center gap-2 py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-bold text-base transition-colors"
                 >
                   <IconArrowLeft className="w-4 h-4" />
-                  {currentStep === 0 ? "Back to Cart" : currentStep === 1 ? "Back to Address" : "Back to Payment"}
+                  {currentStep === 0
+                    ? isBuyNow
+                      ? "Back"
+                      : "Back to Cart"
+                    : currentStep === 1
+                      ? "Back to Address"
+                      : "Back to Payment"}
                 </button>
               </div>
             </motion.div>
@@ -430,7 +596,15 @@ const CheckoutPageContent = () => {
 export default function CheckoutPage() {
   return (
     <ProtectedRoute>
-      <CheckoutPageContent />
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-gray-50 pt-24 pb-12 flex items-center justify-center">
+            <Spin size="large" />
+          </div>
+        }
+      >
+        <CheckoutPageContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }

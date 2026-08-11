@@ -109,3 +109,40 @@ export async function createOrderFromServerCart({
 
   return data.data.order;
 }
+
+/**
+ * POST /api/orders in "Buy Now" mode — creates an order for exactly one
+ * product/variant via `directItem`, without ever reading, syncing, or
+ * clearing the user's real server cart (contrast with
+ * createOrderFromServerCart, which always operates on the cart).
+ */
+export async function createDirectOrder({
+  shippingAddressId,
+  paymentMethod,
+  directItem,
+}) {
+  const headers = getCheckoutAuthHeaders();
+  if (!headers.Authorization) {
+    const err = new Error("Please sign in to place an order.");
+    err.code = "LOGIN_REQUIRED";
+    throw err;
+  }
+
+  const { data } = await axios.post(
+    "/api/orders",
+    {
+      shippingAddressId,
+      paymentMethod,
+      directItem,
+    },
+    { headers },
+  );
+
+  if (!data?.success) {
+    const err = new Error(data?.message || "Failed to create order");
+    err.response = { data };
+    throw err;
+  }
+
+  return data.data.order;
+}
