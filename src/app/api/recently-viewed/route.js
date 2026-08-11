@@ -33,7 +33,7 @@ export async function GET(request) {
     let recentlyViewed = await RecentlyViewed.findOne({ user: user._id })
       .populate({
         path: "products.product",
-        select: "name slug basePrice originalPrice discount images stock inStock category brand tags description",
+        select: "name slug basePrice originalPrice discount images stock inStock category brand tags description variants colors sizes color",
         populate: [
           { path: "category", select: "name slug" },
           { path: "brand", select: "name slug" },
@@ -104,6 +104,10 @@ export async function GET(request) {
           : null,
         tags: product.tags || [],
         description: product.description,
+        variants: product.variants || [],
+        colors: product.colors || [],
+        sizes: product.sizes || [],
+        color: product.color || null,
         viewedAt: item.viewedAt,
       };
     });
@@ -210,7 +214,7 @@ export async function POST(request) {
     recentlyViewed = await RecentlyViewed.findById(recentlyViewed._id)
       .populate({
         path: "products.product",
-        select: "name slug basePrice originalPrice discount images stock inStock category brand tags description",
+        select: "name slug basePrice originalPrice discount images stock inStock category brand tags description variants colors sizes color",
         populate: [
           { path: "category", select: "name slug" },
           { path: "brand", select: "name slug" },
@@ -264,6 +268,10 @@ export async function POST(request) {
         : null,
       tags: productData.tags || [],
       description: productData.description,
+      variants: productData.variants || [],
+      colors: productData.colors || [],
+      sizes: productData.sizes || [],
+      color: productData.color || null,
       viewedAt: addedProduct.viewedAt,
     };
 

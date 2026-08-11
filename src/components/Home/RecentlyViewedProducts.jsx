@@ -24,6 +24,10 @@ function mapToCardProduct(p) {
     images: p.image ? [p.image] : [],
     inStock: p.inStock,
     stock: p.stock,
+    variants: p.variants || [],
+    colors: p.colors || [],
+    sizes: p.sizes || [],
+    color: p.color || null,
   };
 }
 
@@ -36,12 +40,12 @@ function RecentlyViewedProducts() {
 
   // Calculate how many products to show based on screen size
   const getProductsPerView = () => {
-    if (typeof window === "undefined") return 4;
+    if (typeof window === "undefined") return 5;
     const width = window.innerWidth;
-    if (width < 640) return 1; // Mobile
-    if (width < 1024) return 2; // Tablet
-    if (width < 1280) return 3; // Small desktop
-    return 4; // Large desktop
+    if (width < 768) return 2; // Mobile (< md)
+    if (width < 1024) return 3; // Tablet (< lg)
+    if (width < 1280) return 4; // Small desktop (< xl)
+    return 5; // Large desktop
   };
 
   const [productsPerView, setProductsPerView] = useState(getProductsPerView());
@@ -176,7 +180,7 @@ function RecentlyViewedProducts() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.4 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5"
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6 xl:gap-8"
             >
               {recentProducts
                 .slice(currentIndex, currentIndex + productsPerView)
@@ -190,6 +194,7 @@ function RecentlyViewedProducts() {
                       delay: index * 0.1,
                       ease: "easeOut",
                     }}
+                    className="h-full flex flex-col"
                   >
                     <ProductCard
                       product={product}

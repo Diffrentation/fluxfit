@@ -7,6 +7,7 @@ import { authenticateUser } from "@/lib/auth";
 import { isStrictMongoObjectIdString } from "@/lib/mongoose-id";
 import { ACTIVE_PAYMENT_METHODS } from "@/lib/paymentMethods";
 import { resolveShippingCost, resolveTaxRatePercent } from "@/lib/pricing";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 /**
  * Same rules as Order.calculateTotals — computed on the server from line items + cart coupon + shipping.
@@ -857,7 +858,7 @@ export async function POST(request) {
 
     // Best-effort order confirmation email — never fail order creation
     // because the customer's mailbox/SMTP hiccups.
-    sendOrderConfirmationEmail(user.email, {
+    await sendOrderConfirmationEmail(user.email, {
       customerName: `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Customer",
       orderId: newOrder.orderNumber,
       orderDate: newOrder.createdAt?.toLocaleDateString?.() || new Date().toLocaleDateString(),

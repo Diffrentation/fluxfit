@@ -418,6 +418,7 @@ function ProductOverview() {
                       delay: index * 0.05,
                       ease: [0.25, 0.1, 0.25, 1.0],
                     }}
+                    className="h-full flex flex-col"
                   >
                     <ProductCard product={product} onQuickView={handleQuickView} />
                   </motion.div>

@@ -187,12 +187,6 @@ function ProductDetails() {
 
   const scrollToSection = (id) => {
     setActiveSection(id);
-    const element = document.getElementById(id);
-    if (element) {
-      const yOffset = -120; // Account for sticky navbar
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
   };
 
   const isOtherThanCurrentProduct = (p, routeParam, excludeProduct) => {
@@ -779,13 +773,13 @@ function ProductDetails() {
             >
               {/* Thumbnail rail: below main image on mobile, left of it from sm+ */}
               {displayImages.length > 1 && (
-                <div className="flex sm:flex-col gap-2 sm:gap-3 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto sm:max-h-[440px] lg:max-h-[540px] pb-1 sm:pb-0 sm:pr-1">
+                <div className="flex sm:flex-col gap-2 sm:gap-3 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto sm:max-h-[600px] lg:max-h-[750px] pb-1 sm:pb-0 sm:pr-1">
                   {displayImages.map((img, idx) => (
                     <button
                       key={img + idx}
                       type="button"
                       onClick={() => setSelectedImage(idx)}
-                      className={`relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg border-2 overflow-hidden bg-[#fafcfb] transition-all ${
+                      className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-[24px] border-2 overflow-hidden bg-[#fafcfb] transition-all ${
                         selectedImage === idx
                           ? "border-[#1e9a58] ring-1 ring-[#1e9a58]"
                           : "border-gray-200 hover:border-gray-300"
@@ -793,7 +787,7 @@ function ProductDetails() {
                       aria-label={`View image ${idx + 1}`}
                       aria-pressed={selectedImage === idx}
                     >
-                      <Image src={img} alt="" fill className="object-contain" />
+                      <Image src={img} alt="" fill className="object-cover" />
                     </button>
                   ))}
                 </div>
@@ -806,10 +800,10 @@ function ProductDetails() {
                 onMouseEnter={() => canHoverZoom && setIsZooming(true)}
                 onMouseLeave={() => setIsZooming(false)}
                 onMouseMove={canHoverZoom ? handleImageMouseMove : undefined}
-                className="relative w-full sm:flex-1 bg-[#fafcfb] rounded-2xl p-4 sm:p-6 lg:p-10 flex flex-col items-center justify-center h-[320px] sm:h-[420px] lg:h-[540px] overflow-hidden shrink-0"
+                className="relative w-full sm:flex-1 bg-[#fafcfb] rounded-[32px] p-0 flex flex-col items-center justify-center h-[420px] sm:h-[600px] lg:h-[750px] overflow-hidden shrink-0"
               >
                 {displayPricing.discountPercent > 0 && (
-                  <div className="absolute top-6 left-6 z-10 bg-[#1e9a58] text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                  <div className="absolute top-6 left-6 z-20 bg-[#1e9a58] text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm">
                     -{displayPricing.discountPercent}%
                   </div>
                 )}
@@ -825,33 +819,68 @@ function ProductDetails() {
                     src={displayImages[selectedImage] || displayImages[0]}
                     alt={product.name}
                     fill
-                    className="object-contain drop-shadow-2xl"
+                    className="object-cover drop-shadow-2xl rounded-[32px]"
                     priority
                   />
                 </motion.div>
 
-                {/* Amazon-style hover magnifier — desktop/tablet with a mouse only */}
+                {/* Lens over the image for desktop */}
+                {canHoverZoom && isZooming && (
+                  <div
+                    className="hidden lg:block absolute pointer-events-none bg-blue-400/20 border border-blue-400/50"
+                    style={{
+                      width: '20%',
+                      height: '20%',
+                      left: `${zoomPos.x}%`,
+                      top: `${zoomPos.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                      boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+                      backdropFilter: 'blur(2px)',
+                      WebkitBackdropFilter: 'blur(2px)',
+                    }}
+                  />
+                )}
+
+                {/* Fallback internal hover magnifier for tablet (sm but not lg) */}
                 {canHoverZoom && isZooming && (
                   <div
                     data-testid="pdp-zoom-overlay"
-                    className="hidden sm:block absolute inset-0 pointer-events-none bg-no-repeat rounded-2xl"
+                    className="hidden sm:block lg:hidden absolute inset-0 pointer-events-none bg-no-repeat rounded-[32px] z-10"
                     style={{
                       backgroundImage: `url(${displayImages[selectedImage] || displayImages[0]})`,
-                      backgroundSize: "220%",
+                      backgroundSize: "400%",
                       backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
                     }}
                   />
                 )}
               </div>
+
+              {/* Amazon-style Magnifier Box for lg screens */}
+              {canHoverZoom && isZooming && (
+                <div
+                  className="hidden lg:block absolute z-[100] bg-white border border-gray-100 shadow-2xl rounded-[32px] pointer-events-none overflow-hidden"
+                  style={{
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    left: '105%',
+                    width: '500px',
+                    height: '600px',
+                    backgroundImage: `url(${displayImages[selectedImage] || displayImages[0]})`,
+                    backgroundSize: "500%",
+                    backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                    backgroundRepeat: "no-repeat"
+                  }}
+                />
+              )}
             </motion.div>
 
             {/* Right Column (Info) */}
             <motion.div
               ref={infoSectionRef}
               initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-              className="lg:col-span-6 flex flex-col space-y-6"
+              animate={{ opacity: (canHoverZoom && isZooming) ? 0 : 1, x: 0 }}
+              transition={{ duration: 0.2 }}
+              className="lg:col-span-6 flex flex-col space-y-6 relative z-0"
             >
               {/* Badges Row */}
               <div className="flex items-center justify-between">
@@ -1154,8 +1183,8 @@ function ProductDetails() {
                   </div>
 
                   {/* Right Content */}
-                  <div className="lg:col-span-3 space-y-16">
-                    <div id="overview" className="flex flex-col lg:flex-row gap-10">
+                  <div className="lg:col-span-3 flex flex-col gap-16 lg:block">
+                    <div id="overview" className={`flex flex-col lg:flex-row gap-10 ${activeSection === 'overview' ? 'lg:flex' : 'lg:hidden'}`}>
                       <div className="flex-1 space-y-8">
                         <div>
                           <h2 className="text-3xl lg:text-4xl font-extrabold text-[#0d1c2f] mb-2 leading-tight">
@@ -1196,7 +1225,7 @@ function ProductDetails() {
 
                     {/* Product Story */}
                     {product.details?.story && (
-                    <div id="product-story" className="flex flex-col lg:flex-row gap-8 items-center bg-gray-50 rounded-2xl p-6 lg:p-8">
+                    <div id="product-story" className={`flex flex-col lg:flex-row gap-8 items-center bg-gray-50 rounded-2xl p-6 lg:p-8 ${activeSection === 'product-story' ? 'lg:flex' : 'lg:hidden'}`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-4">
                           <div className="w-1.5 h-6 bg-[#1e9a58] rounded-full"></div>
@@ -1211,6 +1240,87 @@ function ProductDetails() {
                       </div>
                     </div>
                     )}
+                    {/* Key Highlights */}
+                    {product.keyHighlights && product.keyHighlights.length > 0 && (
+                    <div id="key-highlights" className={`space-y-4 ${activeSection === 'key-highlights' ? 'lg:block' : 'lg:hidden'}`}>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-1.5 h-6 bg-[#1e9a58] rounded-full"></div>
+                        <h3 className="text-xl font-bold text-[#0d1c2f]">Key Highlights</h3>
+                      </div>
+                      <ul className="list-disc pl-5 text-gray-600 space-y-2 font-medium">
+                        {product.keyHighlights.map((highlight, index) => (
+                          <li key={index}>{highlight}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    )}
+
+                    {/* Material & Care */}
+                    {((product.details?.material) || (product.details?.washingInstructions)) && (
+                    <div id="material-care" className={`space-y-4 ${activeSection === 'material-care' ? 'lg:block' : 'lg:hidden'}`}>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-1.5 h-6 bg-[#1e9a58] rounded-full"></div>
+                        <h3 className="text-xl font-bold text-[#0d1c2f]">Material & Care</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {product.details?.material && (
+                        <div className="bg-white border border-gray-100 p-4 rounded-xl">
+                          <h4 className="font-bold text-[#1e9a58] mb-1">Materials</h4>
+                          <p className="text-sm text-gray-500">{product.details.material}</p>
+                        </div>
+                        )}
+                        {product.details?.washingInstructions && (
+                        <div className="bg-white border border-gray-100 p-4 rounded-xl">
+                          <h4 className="font-bold text-[#1e9a58] mb-1">Washing Instructions</h4>
+                          <p className="text-sm text-gray-500">{product.details.washingInstructions}</p>
+                        </div>
+                        )}
+                      </div>
+                    </div>
+                    )}
+
+                    {/* Size & Fit */}
+                    {product.details?.sizeAndFit && (
+                    <div id="size-fit" className={`space-y-4 ${activeSection === 'size-fit' ? 'lg:block' : 'lg:hidden'}`}>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-1.5 h-6 bg-[#1e9a58] rounded-full"></div>
+                        <h3 className="text-xl font-bold text-[#0d1c2f]">Size & Fit</h3>
+                      </div>
+                      <p className="text-gray-600 font-medium whitespace-pre-wrap">{product.details.sizeAndFit}</p>
+                    </div>
+                    )}
+
+                    {/* More Information */}
+                    <div id="more-info" className={`grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-100 ${activeSection === 'more-info' ? 'lg:grid' : 'lg:hidden'}`}>
+                      {/* Specifications */}
+                      {product.specifications && product.specifications.length > 0 && (
+                      <div className="lg:col-span-2">
+                        <h3 className="font-bold text-[#0d1c2f] mb-4">Product Specifications</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                          {product.specifications.map((spec, i) => (
+                            <div key={i} className="flex justify-between items-center border-b border-gray-100 py-2">
+                              <span className="text-sm text-gray-500 font-medium">{spec.label}</span>
+                              <span className="text-sm font-bold text-[#0d1c2f]">{spec.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      )}
+
+                      {/* Authenticity Verified */}
+                      <div className="lg:col-span-1 bg-[#f4faf7] rounded-2xl p-6 flex flex-col justify-center border border-[#e4f7ed]">
+                        <div className="flex items-start gap-3 mb-4">
+                          <IconShieldCheck className="w-6 h-6 text-[#1e9a58] shrink-0" />
+                          <div>
+                            <h4 className="font-bold text-[#1e9a58]">Authenticity Verified</h4>
+                            <p className="text-xs text-gray-600 mt-1">Every product is 100% original and quality-checked.</p>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 flex items-center justify-center gap-2 border border-[#e4f7ed] text-[#1e9a58] font-bold text-xs cursor-pointer hover:bg-[#1e9a58] hover:text-white transition-colors">
+                          <IconQrcode className="w-4 h-4" /> Scan QR to Verify
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1242,75 +1352,6 @@ function ProductDetails() {
                     })}
                   </div>
                   )}
-
-                  {product.keyHighlights && product.keyHighlights.length > 0 && (
-                  <div id="key-highlights" className="space-y-4">
-                    <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Key Highlights</h3>
-                    <ul className="list-disc pl-5 text-gray-600 space-y-2 font-medium">
-                      {product.keyHighlights.map((highlight, index) => (
-                        <li key={index}>{highlight}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  )}
-
-                  {((product.details?.material) || (product.details?.washingInstructions)) && (
-                  <div id="material-care" className="space-y-4">
-                    <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Material & Care</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {product.details?.material && (
-                      <div className="bg-white border border-gray-100 p-4 rounded-xl">
-                        <h4 className="font-bold text-[#1e9a58] mb-1">Materials</h4>
-                        <p className="text-sm text-gray-500">{product.details.material}</p>
-                      </div>
-                      )}
-                      {product.details?.washingInstructions && (
-                      <div className="bg-white border border-gray-100 p-4 rounded-xl">
-                        <h4 className="font-bold text-[#1e9a58] mb-1">Washing Instructions</h4>
-                        <p className="text-sm text-gray-500">{product.details.washingInstructions}</p>
-                      </div>
-                      )}
-                    </div>
-                  </div>
-                  )}
-
-                  {product.details?.sizeAndFit && (
-                  <div id="size-fit" className="space-y-4">
-                    <h3 className="text-xl font-bold text-[#0d1c2f] border-b border-gray-100 pb-2">Size & Fit</h3>
-                    <p className="text-gray-600 font-medium whitespace-pre-wrap">{product.details.sizeAndFit}</p>
-                  </div>
-                  )}
-
-                  <div id="more-info" className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
-                    {/* Specifications */}
-                    {product.specifications && product.specifications.length > 0 && (
-                    <div className="lg:col-span-2">
-                      <h3 className="font-bold text-[#0d1c2f] mb-4">Product Specifications</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                        {product.specifications.map((spec, i) => (
-                          <div key={i} className="flex justify-between items-center border-b border-gray-100 py-2">
-                            <span className="text-sm text-gray-500 font-medium">{spec.label}</span>
-                            <span className="text-sm font-bold text-[#0d1c2f]">{spec.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    )}
-
-                    {/* Authenticity Verified */}
-                    <div className="lg:col-span-1 bg-[#f4faf7] rounded-2xl p-6 flex flex-col justify-center border border-[#e4f7ed]">
-                      <div className="flex items-start gap-3 mb-4">
-                        <IconShieldCheck className="w-6 h-6 text-[#1e9a58] shrink-0" />
-                        <div>
-                          <h4 className="font-bold text-[#1e9a58]">Authenticity Verified</h4>
-                          <p className="text-xs text-gray-600 mt-1">Every product is 100% original and quality-checked.</p>
-                        </div>
-                      </div>
-                      <div className="bg-white rounded-lg p-3 flex items-center justify-center gap-2 border border-[#e4f7ed] text-[#1e9a58] font-bold text-xs cursor-pointer hover:bg-[#1e9a58] hover:text-white transition-colors">
-                        <IconQrcode className="w-4 h-4" /> Scan QR to Verify
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
               {activeTab === "shipping" && (

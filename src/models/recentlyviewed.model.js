@@ -41,9 +41,10 @@ recentlyViewedSchema.index({ "products.viewedAt": 1 }, { expireAfterSeconds: 259
 
 // Method to add product
 recentlyViewedSchema.methods.addProduct = function (productId) {
+  const idStr = productId.toString();
   // Remove if already exists
   this.products = this.products.filter(
-    (p) => p.product.toString() !== productId.toString()
+    (p) => (p.product._id ? p.product._id.toString() : p.product.toString()) !== idStr
   );
 
   // Add to beginning
@@ -63,8 +64,9 @@ recentlyViewedSchema.methods.addProduct = function (productId) {
 
 // Method to remove product
 recentlyViewedSchema.methods.removeProduct = function (productId) {
+  const idStr = productId.toString();
   this.products = this.products.filter(
-    (p) => p.product.toString() !== productId.toString()
+    (p) => (p.product._id ? p.product._id.toString() : p.product.toString()) !== idStr
   );
   this.lastUpdated = new Date();
   return this.save();
