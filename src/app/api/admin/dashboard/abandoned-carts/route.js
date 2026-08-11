@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Cart from "@/models/cart.model";
+import Product from "@/models/product.model";
 import { authenticateAdmin } from "@/lib/auth";
 
 /**

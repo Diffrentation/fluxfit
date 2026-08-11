@@ -7,9 +7,16 @@ import safeFormatDate from "@/lib/dateFormatter";
 const { Title, Text, Paragraph } = Typography;
 
 const ProductDetailsModal = ({ visible, product, onClose }) => {
+  const [activeImage, setActiveImage] = React.useState(null);
+
+  React.useEffect(() => {
+    setActiveImage(null);
+  }, [product]);
+
   if (!product) return null;
 
-  const primaryImage = product.primaryImage || product.images?.[0]?.url || product.image || "";
+  const defaultImage = product.primaryImage || product.images?.[0]?.url || product.image || "";
+  const displayImage = activeImage || defaultImage;
 
   // Calculate total inventory value
   const totalStockValue = product.variants && product.variants.length > 0
@@ -29,18 +36,18 @@ const ProductDetailsModal = ({ visible, product, onClose }) => {
       open={visible}
       onCancel={onClose}
       footer={null}
-      width="90vw"
-      style={{ top: 20, maxWidth: 1000 }}
+      width="95vw"
+      style={{ top: 20, maxWidth: 1200 }}
       styles={{ body: { height: '80vh', overflowY: 'auto', padding: '24px', background: '#09090b' } }}
       title={<Title level={3} className="!mb-0 !text-white">{product.name}</Title>}
       centered
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 mt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 mt-4">
         {/* Left Side: Images */}
-        <div className="flex flex-col gap-4">
-          <div className="w-full aspect-[4/3] relative rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 shadow-md">
-            {primaryImage ? (
-              <Image src={primaryImage} alt={product.name} fill className="object-contain p-4" />
+        <div className="flex flex-col gap-4 lg:col-span-7">
+          <div className="w-full aspect-square md:aspect-[4/3] lg:aspect-square xl:aspect-[4/3] relative rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 shadow-md">
+            {displayImage ? (
+              <Image src={displayImage} alt={product.name} fill className="object-contain p-4" />
             ) : (
               <div className="flex items-center justify-center w-full h-full text-zinc-500">No Image Available</div>
             )}
@@ -51,72 +58,29 @@ const ProductDetailsModal = ({ visible, product, onClose }) => {
               {product.images.map((img, idx) => {
                 const url = typeof img === 'string' ? img : img.url;
                 if (!url) return null;
+                const isSelected = displayImage === url;
                 return (
-                  <div key={idx} className="relative w-24 h-24 rounded-lg border border-zinc-800 overflow-hidden shrink-0 shadow-sm hover:border-emerald-500 transition-colors cursor-pointer bg-zinc-900">
+                  <div 
+                    key={idx} 
+                    onClick={() => setActiveImage(url)}
+                    className={`relative w-24 h-24 rounded-lg border overflow-hidden shrink-0 shadow-sm transition-colors cursor-pointer bg-zinc-900 ${isSelected ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-zinc-800 hover:border-zinc-600'}`}
+                  >
                     <Image src={url} alt="" fill className="object-cover" />
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
 
-        {/* Right Side: Details */}
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between mb-6 bg-zinc-900 p-4 rounded-lg border border-zinc-800">
-            <div>
-              <Text className="block text-xs uppercase tracking-wider font-semibold mb-1 text-zinc-400">Base Price</Text>
-              <Title level={2} className="!mb-0 !text-emerald-400">₹{formatPrice(product.basePrice || product.price || 0)}</Title>
-            </div>
-            <div className="text-right">
-              <Text className="block text-xs uppercase tracking-wider font-semibold mb-1 text-zinc-400">Availability</Text>
-              <Tag color={product.inStock ? 'success' : 'error'} className="text-sm px-4 py-1 m-0 rounded-full font-bold">
-                {product.inStock ? 'IN STOCK' : 'OUT OF STOCK'}
-              </Tag>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-blue-950/20 p-4 rounded-lg border border-blue-900/30 flex flex-col justify-center items-center">
-              <Text className="block mb-1 font-medium text-blue-300">Total Stock</Text>
-              <Text strong className="text-2xl text-blue-400">{product.stock || 0}</Text>
-            </div>
-            <div className="bg-emerald-950/20 p-4 rounded-lg border border-emerald-900/30 flex flex-col justify-center items-center">
-              <Text className="block mb-1 font-medium text-emerald-300 text-center">Stock Value</Text>
-              <Text strong className="text-xl text-emerald-400 text-center truncate w-full">₹{formatPrice(totalStockValue)}</Text>
-            </div>
-            <div className="bg-purple-950/20 p-4 rounded-lg border border-purple-900/30 flex flex-col justify-center items-center">
-              <Text className="block mb-1 font-medium text-purple-300">Category</Text>
-              <Text strong className="text-lg text-purple-400 capitalize text-center line-clamp-1">{product.category?.name || product.category || 'N/A'}</Text>
-            </div>
-          </div>
-
-          <Divider titlePlacement="left" className="!mt-0 !mb-4 border-zinc-800">Description</Divider>
-          <div className="bg-zinc-900 p-4 rounded-lg border border-zinc-800 mb-6">
+          {/* Moved from right side for balance */}
+          <Divider titlePlacement="left" className="!mt-2 !mb-4 border-zinc-800">Description</Divider>
+          <div className="bg-zinc-900 p-4 rounded-lg border border-zinc-800 mb-2">
             <Paragraph className="!text-zinc-300 whitespace-pre-wrap m-0">
               {product.description || "No description provided for this product."}
             </Paragraph>
           </div>
 
-          <Divider titlePlacement="left" className="!mt-0 !mb-4 border-zinc-800">Variants</Divider>
-          <div className="mb-6 flex-1">
-            {product.variants && product.variants.length > 0 ? (
-              <Table 
-                dataSource={product.variants.map((v, i) => ({ ...v, key: i }))} 
-                columns={variantsColumns} 
-                pagination={false}
-                size="middle"
-                bordered
-                className="shadow-sm rounded-lg overflow-hidden border-zinc-800"
-              />
-            ) : (
-              <div className="bg-zinc-900 p-8 rounded-lg border border-zinc-800 flex items-center justify-center">
-                <Text className="text-center text-zinc-400">No variants (sizes/colors) configured for this product.</Text>
-              </div>
-            )}
-          </div>
-
-          <Divider titlePlacement="left" className="!mt-0 !mb-4 border-zinc-800">Details & Metadata</Divider>
+          <Divider titlePlacement="left" className="!mt-4 !mb-4 border-zinc-800">Details & Metadata</Divider>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm text-zinc-400 bg-zinc-900 p-4 rounded-lg border border-zinc-800 shadow-inner">
             <div><Text strong className="!text-zinc-300">Status: </Text> <span className="capitalize text-zinc-200">{product.status}</span></div>
             <div className="truncate"><Text strong className="!text-zinc-300">Product ID: </Text> <span className="text-zinc-200" title={product.id || product._id}>{product.id || product._id}</span></div>
@@ -147,6 +111,59 @@ const ProductDetailsModal = ({ visible, product, onClose }) => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Right Side: Details */}
+        <div className="flex flex-col h-full lg:col-span-5">
+          <div className="flex items-center justify-between mb-6 bg-zinc-900 p-4 rounded-lg border border-zinc-800">
+            <div>
+              <Text className="block text-xs uppercase tracking-wider font-semibold mb-1 text-zinc-400">Base Price</Text>
+              <Title level={2} className="!mb-0 !text-emerald-400">₹{formatPrice(product.basePrice || product.price || 0)}</Title>
+            </div>
+            <div className="text-right">
+              <Text className="block text-xs uppercase tracking-wider font-semibold mb-1 text-zinc-400">Availability</Text>
+              <Tag color={product.inStock ? 'success' : 'error'} className="text-sm px-4 py-1 m-0 rounded-full font-bold">
+                {product.inStock ? 'IN STOCK' : 'OUT OF STOCK'}
+              </Tag>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="bg-blue-950/20 p-4 rounded-lg border border-blue-900/30 flex flex-col justify-center items-center text-center">
+              <Text className="block mb-1 font-medium text-blue-300">Total Stock</Text>
+              <Text strong className="text-xl md:text-2xl text-blue-400 break-words w-full">{product.stock || 0}</Text>
+            </div>
+            <div className="bg-emerald-950/20 p-4 rounded-lg border border-emerald-900/30 flex flex-col justify-center items-center text-center">
+              <Text className="block mb-1 font-medium text-emerald-300">Stock Value</Text>
+              <Text strong className="text-lg md:text-xl text-emerald-400 break-words w-full">₹{formatPrice(totalStockValue)}</Text>
+            </div>
+            <div className="bg-purple-950/20 p-4 rounded-lg border border-purple-900/30 flex flex-col justify-center items-center text-center">
+              <Text className="block mb-1 font-medium text-purple-300">Category</Text>
+              <Text strong className="text-base md:text-lg text-purple-400 capitalize break-words w-full">{product.category?.name || product.category || 'N/A'}</Text>
+            </div>
+          </div>
+
+
+
+          <Divider titlePlacement="left" className="!mt-0 !mb-4 border-zinc-800">Variants</Divider>
+          <div className="mb-6 flex-1">
+            {product.variants && product.variants.length > 0 ? (
+              <Table 
+                dataSource={product.variants.map((v, i) => ({ ...v, key: i }))} 
+                columns={variantsColumns} 
+                pagination={false}
+                size="middle"
+                bordered
+                className="shadow-sm rounded-lg overflow-hidden border-zinc-800"
+              />
+            ) : (
+              <div className="bg-zinc-900 p-8 rounded-lg border border-zinc-800 flex items-center justify-center">
+                <Text className="text-center text-zinc-400">No variants (sizes/colors) configured for this product.</Text>
+              </div>
+            )}
+          </div>
+
+
 
           <Divider titlePlacement="left" className="!mb-4 border-zinc-800">System Information</Divider>
           <div className="flex justify-between items-center bg-zinc-900 p-4 rounded-lg border border-zinc-800 text-xs text-zinc-400">
