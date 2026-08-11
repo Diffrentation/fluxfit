@@ -107,6 +107,7 @@ export function AuthProvider({ children }) {
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        localStorage.removeItem("admin_user_view_mode");
         localStorage.setItem(AUTH_LOGOUT_STORAGE_KEY, String(Date.now()));
       }
       try {

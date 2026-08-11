@@ -198,7 +198,7 @@ export function Nav() {
                 Cart
               </NavbarButton>
             </Link>
-            {isUserViewMode && (
+            {isAuthenticated && isUserViewMode && (
               <NavbarButton
                 onClick={() => {
                   localStorage.removeItem("admin_user_view_mode");
