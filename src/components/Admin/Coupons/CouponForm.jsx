@@ -35,7 +35,6 @@ const KNOWN_FIELDS = [
   "applicableTo",
   "categories",
   "products",
-  "brands",
   "isActive",
 ];
 
@@ -47,8 +46,6 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
 
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-  const [brandOptions, setBrandOptions] = useState([]);
-  const [brandsLoading, setBrandsLoading] = useState(false);
   const [productOptions, setProductOptions] = useState([]);
   const [productsSearching, setProductsSearching] = useState(false);
   const productSearchTimeout = useRef(null);
@@ -63,17 +60,12 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
         value: String(c.id || c._id),
         label: c.name,
       }));
-      const initialBrands = (coupon.brands || []).map((b) => ({
-        value: String(b.id || b._id),
-        label: b.name,
-      }));
       const initialProducts = (coupon.products || []).map((p) => ({
         value: String(p.id || p._id),
         label: p.name,
       }));
 
       setCategoryOptions((prev) => mergeOptions(prev, initialCategories));
-      setBrandOptions((prev) => mergeOptions(prev, initialBrands));
       setProductOptions((prev) => mergeOptions(prev, initialProducts));
 
       form.setFieldsValue({
@@ -94,7 +86,6 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
         applicableTo: coupon.applicableTo || "all",
         categories: initialCategories.map((o) => o.value),
         products: initialProducts.map((o) => o.value),
-        brands: initialBrands.map((o) => o.value),
         isActive: coupon.isActive ?? true,
       });
       setDiscountType(coupon.type || "percentage");
@@ -112,7 +103,6 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
         isActive: true,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coupon, visible, form]);
 
   const mergeOptions = (prev, next) => {
@@ -141,31 +131,7 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
     } finally {
       setCategoriesLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryOptions.length, categoriesLoading]);
-
-  const loadBrandOptions = useCallback(async () => {
-    if (brandOptions.length > 0 || brandsLoading) return;
-    try {
-      setBrandsLoading(true);
-      const { data } = await axios.get("/api/brands", {
-        params: { includeInactive: false },
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      if (!data?.success) throw new Error(data?.message);
-      const opts = (data.data.brands || []).map((b) => ({
-        value: String(b.id || b._id),
-        label: b.name,
-      }));
-      setBrandOptions((prev) => mergeOptions(prev, opts));
-    } catch (error) {
-      console.error("Load brands error:", error);
-      message.error("Failed to load brands");
-    } finally {
-      setBrandsLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandOptions.length, brandsLoading]);
 
   const handleProductSearch = (searchText) => {
     if (productSearchTimeout.current) {
@@ -196,7 +162,6 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
 
   useEffect(() => {
     if (applicableTo === "categories") loadCategoryOptions();
-    if (applicableTo === "brands") loadBrandOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicableTo]);
 
@@ -227,7 +192,6 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
           values.applicableTo === "categories" ? values.categories || [] : [],
         products:
           values.applicableTo === "products" ? values.products || [] : [],
-        brands: values.applicableTo === "brands" ? values.brands || [] : [],
         isActive: values.isActive ?? true,
       };
 
@@ -432,7 +396,6 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
                 <Option value="all">All Products</Option>
                 <Option value="categories">Specific Categories</Option>
                 <Option value="products">Specific Products</Option>
-                <Option value="brands">Specific Brands</Option>
               </Select>
             </Form.Item>
 
@@ -450,24 +413,6 @@ const CouponForm = ({ visible, coupon, onClose, onSave }) => {
                   showSearch
                   optionFilterProp="label"
                   notFoundContent={categoriesLoading ? <Spin size="small" /> : null}
-                />
-              </Form.Item>
-            )}
-
-            {applicableTo === "brands" && (
-              <Form.Item
-                name="brands"
-                label="Brands"
-                rules={[{ required: true, message: "Please select at least one brand" }]}
-              >
-                <Select
-                  mode="multiple"
-                  placeholder="Select brands"
-                  loading={brandsLoading}
-                  options={brandOptions}
-                  showSearch
-                  optionFilterProp="label"
-                  notFoundContent={brandsLoading ? <Spin size="small" /> : null}
                 />
               </Form.Item>
             )}

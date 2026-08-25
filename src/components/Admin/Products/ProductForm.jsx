@@ -12,7 +12,6 @@ import {
   Button,
   Upload,
   Tabs,
-  Popover,
   message,
   Divider,
   Space,
@@ -26,40 +25,73 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 import { uploadImage } from "@/lib/upload-client";
-import { HexColorInput, HexColorPicker } from "react-colorful";
 import slugify from "slugify";
 
 const { TextArea } = Input;
 const { Option } = Select;
-const COLOR_PRESETS = [
-  { label: "Black", value: "#111827" },
-  { label: "White", value: "#F9FAFB" },
-  { label: "Red", value: "#DC2626" },
-  { label: "Blue", value: "#2563EB" },
-  { label: "Green", value: "#16A34A" },
-  { label: "Yellow", value: "#EAB308" },
-  { label: "Orange", value: "#EA580C" },
-  { label: "Purple", value: "#7C3AED" },
-  { label: "Pink", value: "#EC4899" },
-  { label: "Gray", value: "#6B7280" },
-];
+
+const normaliseColors = (variant) => {
+  const raw = Array.isArray(variant?.colors)
+    ? variant.colors
+    : variant?.color
+      ? [variant.color]
+      : [];
+
+  return [...new Set(raw.map((color) => String(color || "").trim()).filter(Boolean))];
+};
+
+// The database stores one color per variant. The editor may group multiple
+// colors in one row, so expand those groups immediately before validation/save.
+const expandVariantGroups = (groups) => {
+  const seen = new Set();
+  const duplicateKeys = [];
+  const expanded = [];
+
+  (groups || []).forEach((group) => {
+    const colors = normaliseColors(group);
+    colors.forEach((color) => {
+      const size = String(group.size || "").trim();
+      const key = `${size.toLowerCase()}::${color.toLowerCase()}`;
+      if (seen.has(key)) {
+        duplicateKeys.push(`${size} / ${color}`);
+        return;
+      }
+      seen.add(key);
+
+      const { colors: _colors, _randSuffix, ...variant } = group;
+      // A grouped row needs a distinct SKU for each color. Let the model
+      // generate these safely rather than duplicating the row's preview SKU.
+      if (colors.length > 1) delete variant.sku;
+      expanded.push({ ...variant, size, color });
+    });
+  });
+
+  return { expanded, duplicateKeys };
+};
 
 const ProductForm = ({ visible, product, onClose, onSave }) => {
-  // Early return if not visible to prevent useForm warning
-  // The form hook should only be created when the Modal is actually rendered
-  if (!visible) {
-    return null;
-  }
-
   const [form] = Form.useForm();
-  const watchedValues = Form.useWatch([], form) || {};
+  const watchedValues = Form.useWatch([], form);
   const [imageList, setImageList] = useState([]);
   const [variants, setVariants] = useState([]);
+  const [colorDrafts, setColorDrafts] = useState({});
   const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [nameValue, setNameValue] = useState("");
   const [metaTitleValue, setMetaTitleValue] = useState("");
+  const newVariantGroup = useCallback(
+    () => ({
+      size: "One Size",
+      color: "",
+      colors: [],
+      price: Number(form.getFieldValue("basePrice")) || 0,
+      stock: 0,
+      sku: "",
+      _randSuffix: Math.floor(1000 + Math.random() * 9000),
+    }),
+    [form],
+  );
   const buildCategoryTreeData = useCallback(() => {
     const nodeById = new Map();
     const childrenByParentId = new Map();
@@ -206,11 +238,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   }, []);
 
   useEffect(() => {
+    if (!visible) return;
     fetchCategories();
-  }, [fetchCategories]);
+  }, [fetchCategories, visible]);
 
   /* ---------------- PREFILL WHEN EDITING ---------------- */
   useEffect(() => {
+    if (!visible) return;
+
     const fetchProductDetails = async () => {
       const productId = product?._id || product?.id;
       if (productId) {
@@ -293,14 +328,16 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         form.resetFields();
         initialEditSlugRef.current = "";
         setImageList([]);
-        setVariants([]);
+        // Start a new product with the complete variant editor already
+        // visible—admins never need to create an empty row first.
+        setVariants([newVariantGroup()]);
         setNameValue("");
         setMetaTitleValue("");
       }
     };
 
     fetchProductDetails();
-  }, [product, form]);
+  }, [visible, product, form, newVariantGroup, normalizeCategoryId]);
 
   /* ---------------- SLUG GENERATOR ---------------- */
   const generateSlug = useCallback((value) => {
@@ -323,7 +360,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   );
 
   const computedStock = useMemo(
-    () => variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0),
+    () =>
+      variants.reduce(
+        (sum, variant) => sum + (Number(variant.stock) || 0) * normaliseColors(variant).length,
+        0,
+      ),
     [variants],
   );
 
@@ -361,12 +402,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
   /* ---------------- VARIANTS ---------------- */
   const handleAddVariant = useCallback(() => {
-    const currentBasePrice = form.getFieldValue("basePrice") || 0;
-    setVariants((prev) => [
-      ...prev,
-      { size: "", color: "", price: currentBasePrice, stock: 0, sku: "", _randSuffix: Math.floor(1000 + Math.random() * 9000) },
-    ]);
-  }, [form]);
+    setVariants((prev) => [...prev, newVariantGroup()]);
+  }, [newVariantGroup]);
 
   const handleVariantChange = useCallback((index, field, value) => {
     setVariants((prev) => {
@@ -380,60 +417,19 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     setVariants((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const renderColorPickerContent = useCallback(
-    (variant, index) => (
-      <div className="w-64 space-y-3">
-        <div>
-          <p className="text-xs font-medium text-zinc-400 mb-2">Preset colors</p>
-          <div className="grid grid-cols-5 gap-2">
-            {COLOR_PRESETS.map((color) => (
-              <button
-                key={color.value}
-                type="button"
-                aria-label={color.label}
-                title={color.label}
-                className={`h-8 w-8 rounded-full border-2 transition ${
-                  String(variant.color || "").toLowerCase() === color.value.toLowerCase()
-                    ? "border-white scale-105"
-                    : "border-zinc-800"
-                }`}
-                style={{ backgroundColor: color.value }}
-                onClick={() => handleVariantChange(index, "color", color.value)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-xs font-medium text-zinc-400 mb-2">Custom color</p>
-          <div className="space-y-3">
-            <div className="flex justify-center rounded-lg border border-zinc-800 !bg-zinc-950 p-3">
-              <HexColorPicker
-                color={variant.color || "#1677ff"}
-                onChange={(value) => handleVariantChange(index, "color", value)}
-              />
-            </div>
-            <HexColorInput
-              color={variant.color || "#1677ff"}
-              onChange={(value) => handleVariantChange(index, "color", value)}
-              prefixed
-              className="w-full rounded-md border border-zinc-800 bg-zinc-950 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
-            />
-          </div>
-        </div>
-
-        <div>
-          <p className="text-xs font-medium text-zinc-400 mb-2">Color value</p>
-          <Input
-            value={variant.color}
-            onChange={(e) => handleVariantChange(index, "color", e.target.value)}
-            placeholder="#111827 or black"
-          />
-        </div>
-      </div>
-    ),
-    [handleVariantChange],
-  );
+  const handleVariantColorsChange = useCallback((index, colors) => {
+    const nextColors = [...new Set((colors || []).map((color) => String(color).trim()).filter(Boolean))];
+    setVariants((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        colors: nextColors,
+        // Keep a representative color for backwards-compatible previews.
+        color: nextColors[0] || "",
+      };
+      return updated;
+    });
+  }, []);
 
   /* ---------------- FORM SUBMIT ---------------- */
   const handleSubmit = useCallback(
@@ -443,15 +439,21 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
         const editingId = product?._id || product?.id;
         const isEdit = !!editingId;
+        const { expanded: savedVariants, duplicateKeys } = expandVariantGroups(variants);
+
+        if (duplicateKeys.length > 0) {
+          message.error(`Duplicate size/color combinations: ${duplicateKeys.join(", ")}`);
+          return;
+        }
 
         const derivedColors = [
           ...new Set(
-            variants.map((v) => v.color).filter(Boolean).map((c) => String(c).trim())
+            savedVariants.map((v) => v.color).filter(Boolean).map((c) => String(c).trim())
           ),
         ];
         const derivedSizes = [
           ...new Set(
-            variants.map((v) => v.size).filter(Boolean).map((s) => String(s).trim())
+            savedVariants.map((v) => v.size).filter(Boolean).map((s) => String(s).trim())
           ),
         ];
 
@@ -463,7 +465,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           basePrice: values.basePrice,
           originalPrice: values.originalPrice,
           images: imageList.map((url, i) => ({ url, isPrimary: i === 0 })),
-          variants,
+          variants: savedVariants,
           colors: derivedColors,
           sizes: derivedSizes,
           details: values.details,
@@ -522,7 +524,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         setLoading(false);
       }
     },
-    [autoSlug, imageList, initialEditSlugRef, onClose, onSave, product, variants],
+    [autoSlug, form, imageList, initialEditSlugRef, onClose, onSave, product, variants],
   );
 
   const uploadFileList = useMemo(
@@ -542,13 +544,13 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
   const isBasicStepComplete = useMemo(() => {
     return Boolean(
-      watchedValues.name?.trim() &&
-      watchedValues.category &&
-      watchedValues.status &&
-      watchedValues.description?.trim() &&
-      watchedValues.description.trim().length <= 200 &&
-      watchedValues.basePrice !== undefined &&
-      watchedValues.basePrice !== null,
+      watchedValues?.name?.trim() &&
+      watchedValues?.category &&
+      watchedValues?.status &&
+      watchedValues?.description?.trim() &&
+      watchedValues?.description.trim().length <= 200 &&
+      watchedValues?.basePrice !== undefined &&
+      watchedValues?.basePrice !== null,
     );
   }, [watchedValues]);
 
@@ -560,7 +562,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       variants.every(
         (variant) =>
           variant.size?.trim() &&
-          variant.color?.trim() &&
+          normaliseColors(variant).length > 0 &&
           variant.price !== undefined &&
           variant.price !== null &&
           Number(variant.price) >= 0 &&
@@ -572,14 +574,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   }, [variants]);
 
   const isInventoryStepComplete = useMemo(() => {
-    return watchedValues.lowStockThreshold === undefined
+    return watchedValues?.lowStockThreshold === undefined
       ? true
-      : Number(watchedValues.lowStockThreshold) >= 0;
-  }, [watchedValues.lowStockThreshold]);
+      : Number(watchedValues?.lowStockThreshold) >= 0;
+  }, [watchedValues?.lowStockThreshold]);
 
   const isSeoStepComplete = useMemo(() => {
-    return Boolean(watchedValues.metaTitle?.trim() && autoSlug);
-  }, [autoSlug, watchedValues.metaTitle]);
+    return Boolean(watchedValues?.metaTitle?.trim() && autoSlug);
+  }, [autoSlug, watchedValues?.metaTitle]);
 
   const createStepOrder = useMemo(
     () => ["basic", "images", "variants", "inventory", "details", "seo"],
@@ -638,7 +640,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       const hasInvalidVariant = variants.some(
         (variant) =>
           !variant.size?.trim() ||
-          !variant.color?.trim() ||
+          normaliseColors(variant).length === 0 ||
           variant.price === undefined ||
           variant.price === null ||
           Number(variant.price) < 0 ||
@@ -955,7 +957,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
           {variants.length === 0 ? (
             <div className="text-center py-8 text-zinc-500 border-2 border-dashed border-zinc-800 rounded-lg">
-              No variants added. Click "Add Variant" to create product
+              No variants added. Click &quot;Add Variant&quot; to create product
               variations.
             </div>
           ) : (
@@ -987,34 +989,68 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-zinc-300 mb-1">
-                        Color
+                        Colors
                       </label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={variant.color}
-                          onChange={(e) =>
-                            handleVariantChange(index, "color", e.target.value)
+                      <div className="flex h-[42px] items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-950 px-3">
+                        <input
+                          type="color"
+                          value={colorDrafts[index] || "#000000"}
+                          onChange={(event) =>
+                            setColorDrafts((previous) => ({
+                              ...previous,
+                              [index]: event.target.value,
+                            }))
                           }
-                          placeholder="#111827 or black"
+                          aria-label="Pick a colour"
+                          className="h-7 w-10 cursor-pointer rounded border-0 bg-transparent p-0"
                         />
-                        <Popover
-                          trigger="click"
-                          placement="bottomRight"
-                          content={renderColorPickerContent(variant, index)}
+                        <span className="text-xs text-zinc-400">
+                          Pick a colour
+                        </span>
+                        <Button
+                          type="text"
+                          size="small"
+                          onClick={() =>
+                            handleVariantColorsChange(index, [
+                              ...normaliseColors(variant),
+                              colorDrafts[index] || "#000000",
+                            ])
+                          }
+                          className="ml-auto !text-[#22c55e]"
                         >
-                          <Button
-                            type="default"
-                            className="shrink-0"
-                            style={{
-                              backgroundColor: variant.color || "transparent",
-                              color: variant.color ? "#ffffff" : undefined,
-                              borderColor: variant.color || undefined,
-                            }}
-                          >
-                            Pick
-                          </Button>
-                        </Popover>
+                          Add
+                        </Button>
                       </div>
+                      {normaliseColors(variant).length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {normaliseColors(variant).map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() =>
+                                handleVariantColorsChange(
+                                  index,
+                                  normaliseColors(variant).filter(
+                                    (selectedColor) => selectedColor !== color,
+                                  ),
+                                )
+                              }
+                              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900 py-1 pl-1 pr-2 text-xs text-zinc-200 transition hover:border-red-500 hover:text-red-300"
+                              title="Remove colour"
+                            >
+                              <span
+                                className="h-4 w-4 rounded-full border border-zinc-500"
+                                style={{ backgroundColor: color }}
+                              />
+                              {color}
+                              <IconX className="h-3 w-3" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <p className="mt-1 text-[11px] text-zinc-500">
+                        Choose any custom colour, then add it. Each picked colour becomes its own sellable variant.
+                      </p>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-zinc-300 mb-1">
@@ -1056,13 +1092,15 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                   </div>
                   {/* Auto-SKU preview */}
                   <div className="mt-3 grid gap-2 md:grid-cols-[120px_1fr] md:items-center">
-                    <span className="text-xs text-zinc-400">Auto SKU</span>
+                    <span className="text-xs text-zinc-400">Generated variants</span>
                     <Input
                       readOnly
                       value={
-                        variant.sku && !variant._randSuffix
-                          ? variant.sku
-                          : autoSkuForVariant(variant)
+                        normaliseColors(variant).length > 1
+                          ? `${normaliseColors(variant).length} SKUs will be generated (${variant.size || "Size"} × selected colours)`
+                          : variant.sku && !variant._randSuffix
+                            ? variant.sku
+                            : autoSkuForVariant({ ...variant, color: normaliseColors(variant)[0] || "" })
                       }
                     />
                   </div>
@@ -1124,9 +1162,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 {variants.map((v, i) => (
                   <div key={i} className="flex justify-between text-xs text-zinc-400">
                     <span>
-                      {v.size || "—"} / {v.color || "—"}
+                      {v.size || "—"} / {normaliseColors(v).join(", ") || "—"}
                     </span>
-                    <span className="font-medium">{Number(v.stock) || 0} units</span>
+                    <span className="font-medium">
+                      {(Number(v.stock) || 0) * normaliseColors(v).length} units
+                    </span>
                   </div>
                 ))}
               </div>
@@ -1326,6 +1366,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       ),
     },
   ];
+
+  if (!visible) return null;
 
   return (
     <Modal

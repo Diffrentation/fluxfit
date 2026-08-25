@@ -3,21 +3,15 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import AdminContent from "@/components/Admin/AdminContent";
 import CategoryTree from "@/components/Admin/Categories/CategoryTree";
-import BrandList from "@/components/Admin/Categories/BrandList";
 import CategoryForm from "@/components/Admin/Categories/CategoryForm";
-import BrandForm from "@/components/Admin/Categories/BrandForm";
-import { Button, Tabs, message, Modal } from "antd";
-import { IconPlus, IconTag } from "@tabler/icons-react";
+import { Button, message, Modal } from "antd";
+import { IconPlus } from "@tabler/icons-react";
 import axios from "axios";
 
 const CategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [isCategoryFormVisible, setIsCategoryFormVisible] = useState(false);
-  const [isBrandFormVisible, setIsBrandFormVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedBrand, setSelectedBrand] = useState(null);
-  const [activeTab, setActiveTab] = useState("categories");
 
   const loadCategories = useCallback(async () => {
     try {
@@ -36,26 +30,8 @@ const CategoryManagementPage = () => {
     }
   }, []);
 
-  const loadBrands = useCallback(async () => {
-    try {
-      const { data } = await axios.get("/api/brands", {
-        params: { limit: 100, includeInactive: true },
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      if (!data?.success) throw new Error(data?.message || "Failed to load brands");
-      setBrands(data.data.brands || []);
-    } catch (error) {
-      console.error("Load brands error:", error);
-      message.error(error.response?.data?.message || "Failed to load brands");
-    }
-  }, []);
-
   useEffect(() => {
     loadCategories();
-    loadBrands();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -181,50 +157,6 @@ const CategoryManagementPage = () => {
     }
   };
 
-  const handleAddBrand = () => {
-    setSelectedBrand(null);
-    setIsBrandFormVisible(true);
-  };
-
-  const handleEditBrand = (brand) => {
-    setSelectedBrand(brand);
-    setIsBrandFormVisible(true);
-  };
-
-  const handleDeleteBrand = (brandId) => {
-    Modal.confirm({
-      title: "Delete Brand",
-      content:
-        "Are you sure you want to delete this brand? This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          const { data } = await axios.delete(`/api/brands/${brandId}`, {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          });
-          if (!data?.success) throw new Error(data?.message || "Failed to delete brand");
-          message.success("Brand deleted successfully");
-          await loadBrands();
-        } catch (error) {
-          message.error(error.response?.data?.message || "Failed to delete brand");
-        }
-      },
-    });
-  };
-
-  // BrandForm performs the real create/update API call itself — this just
-  // needs to close the modal and refresh the list.
-  const handleSaveBrand = () => {
-    setIsBrandFormVisible(false);
-    setSelectedBrand(null);
-    loadBrands();
-  };
-
   return (
     <div className="min-h-screen bg-transparent transition-colors duration-300">
       <div className="flex">
@@ -238,90 +170,36 @@ const CategoryManagementPage = () => {
               <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                 <div>
                   <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-                    Category & Brand Management
+                    Category Management
                   </h1>
                   <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300">
-                    Manage product categories, subcategories, and brands
+                    Manage product categories and subcategories
                   </p>
                 </div>
               </div>
 
-              <Tabs
-                activeKey={activeTab}
-                onChange={setActiveTab}
-                className="category-tabs"
-                items={[
-                  {
-                    key: "categories",
-                    label: (
-                      <span className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm md:text-base">
-                        <IconTag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden sm:inline">Categories</span>
-                        <span className="sm:hidden">Cats</span>
-                      </span>
-                    ),
-                    children: (
-                      <div className="mt-2 sm:mt-3 md:mt-4">
-                        <div className="flex justify-end mb-2 sm:mb-3 md:mb-4">
-                          <Button
-                            type="primary"
-                            icon={<IconPlus className="w-4 h-4" />}
-                            onClick={handleAddCategory}
-                            size="large"
-                            className="w-full sm:w-auto"
-                          >
-                            <span className="hidden sm:inline">
-                              Add Category
-                            </span>
-                            <span className="sm:hidden">Add</span>
-                          </Button>
-                        </div>
-                        <CategoryTree
-                          categories={categories}
-                          onEdit={handleEditCategory}
-                          onDelete={handleDeleteCategory}
-                          onAddSubcategory={handleAddCategory}
-                          onMoveUp={(categoryId) =>
-                            handleMoveCategory(categoryId, "up")
-                          }
-                          onMoveDown={(categoryId) =>
-                            handleMoveCategory(categoryId, "down")
-                          }
-                        />
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "brands",
-                    label: (
-                      <span className="text-xs sm:text-sm md:text-base">
-                        Brands
-                      </span>
-                    ),
-                    children: (
-                      <div className="mt-2 sm:mt-3 md:mt-4">
-                        <div className="flex justify-end mb-2 sm:mb-3 md:mb-4">
-                          <Button
-                            type="primary"
-                            icon={<IconPlus className="w-4 h-4" />}
-                            onClick={handleAddBrand}
-                            size="large"
-                            className="w-full sm:w-auto"
-                          >
-                            <span className="hidden sm:inline">Add Brand</span>
-                            <span className="sm:hidden">Add</span>
-                          </Button>
-                        </div>
-                        <BrandList
-                          brands={brands}
-                          onEdit={handleEditBrand}
-                          onDelete={handleDeleteBrand}
-                        />
-                      </div>
-                    ),
-                  },
-                ]}
-              />
+              <div className="mt-2 sm:mt-3 md:mt-4">
+                <div className="flex justify-end mb-2 sm:mb-3 md:mb-4">
+                  <Button
+                    type="primary"
+                    icon={<IconPlus className="w-4 h-4" />}
+                    onClick={handleAddCategory}
+                    size="large"
+                    className="w-full sm:w-auto"
+                  >
+                    <span className="hidden sm:inline">Add Category</span>
+                    <span className="sm:hidden">Add</span>
+                  </Button>
+                </div>
+                <CategoryTree
+                  categories={categories}
+                  onEdit={handleEditCategory}
+                  onDelete={handleDeleteCategory}
+                  onAddSubcategory={handleAddCategory}
+                  onMoveUp={(categoryId) => handleMoveCategory(categoryId, "up")}
+                  onMoveDown={(categoryId) => handleMoveCategory(categoryId, "down")}
+                />
+              </div>
             </motion.div>
           </div>
         </AdminContent>
@@ -336,16 +214,6 @@ const CategoryManagementPage = () => {
           setSelectedCategory(null);
         }}
         onSave={handleSaveCategory}
-      />
-
-      <BrandForm
-        visible={isBrandFormVisible}
-        brand={selectedBrand}
-        onClose={() => {
-          setIsBrandFormVisible(false);
-          setSelectedBrand(null);
-        }}
-        onSave={handleSaveBrand}
       />
     </div>
   );

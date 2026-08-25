@@ -108,7 +108,7 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
     },
     {
       id: "categories",
-      label: "Categories & Brands",
+      label: "Categories",
       icon: IconTags,
       path: "/admin/categories",
     },

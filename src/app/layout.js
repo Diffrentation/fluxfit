@@ -10,13 +10,8 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { CustomDesignProvider } from "@/context/CustomDesignContext";
 import AppToasterShell from "@/components/providers/AppToasterShell";
+import IntroVideoLoader from "@/components/IntroVideoLoader/IntroVideoLoader";
 import RouteGuard from "@/components/RouteGuard";
-import { Outfit } from "next/font/google";
-
-const outfit = Outfit({ 
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-});
 
 export const metadata = {
   title: {
@@ -45,9 +40,10 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body
-        className={`${outfit.className} antialiased`}
+        className="antialiased"
         suppressHydrationWarning
       >
+        <IntroVideoLoader />
         <ConfigProvider
           theme={{
             token: {

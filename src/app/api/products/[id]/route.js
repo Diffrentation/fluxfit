@@ -686,7 +686,7 @@ export async function PUT(request, { params }) {
 
 /**
  * DELETE /api/products/:id
- * Delete product (Admin only) - Soft delete
+ * Delete product (Admin only) - Permanent delete
  */
 export async function DELETE(request, { params }) {
   try {
@@ -706,9 +706,9 @@ export async function DELETE(request, { params }) {
 
     let query;
     if (mongoose.Types.ObjectId.isValid(id)) {
-      query = { _id: id, isDeleted: false };
+      query = { _id: id };
     } else {
-      query = { slug: id, isDeleted: false };
+      query = { slug: id };
     }
 
     const product = await Product.findOne(query);
@@ -716,9 +716,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
     }
 
-    product.isDeleted = true;
-    product.deletedAt = new Date();
-    await product.save();
+    await product.deleteOne();
 
     return NextResponse.json({
       success: true,

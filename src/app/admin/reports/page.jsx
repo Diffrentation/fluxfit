@@ -202,7 +202,6 @@ function SalesReportTab() {
             { value: "month", label: "Group by Month" },
             { value: "product", label: "Group by Product" },
             { value: "category", label: "Group by Category" },
-            { value: "brand", label: "Group by Brand" },
           ]}
         />
         <Button type="primary" loading={loading} onClick={load}>
@@ -367,9 +366,7 @@ function ProductsReportTab() {
   const [includeSales, setIncludeSales] = useState(false);
   const [range, setRange] = useState([dayjs().subtract(29, "day"), dayjs()]);
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [category, setCategory] = useState(undefined);
-  const [brand, setBrand] = useState(undefined);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [rows, setRows] = useState([]);
@@ -381,16 +378,10 @@ function ProductsReportTab() {
         setCategories((data?.data?.categories || []).map((c) => ({ value: c.id || c._id, label: c.name })))
       )
       .catch(() => {});
-    axios
-      .get("/api/brands")
-      .then(({ data }) =>
-        setBrands((data?.data?.brands || []).map((b) => ({ value: b.id || b._id, label: b.name })))
-      )
-      .catch(() => {});
   }, []);
 
   const params = useMemo(() => {
-    const p = { status, category, brand };
+    const p = { status, category };
     if (inStock !== undefined) p.inStock = String(inStock);
     if (includeSales) {
       p.includeSales = "true";
@@ -398,7 +389,7 @@ function ProductsReportTab() {
       p.endDate = range[1].endOf("day").toISOString();
     }
     return p;
-  }, [status, category, brand, inStock, includeSales, range]);
+  }, [status, category, inStock, includeSales, range]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -418,7 +409,6 @@ function ProductsReportTab() {
           inStock: p.inStock ? "Yes" : "No",
           status: p.status,
           category: p.category?.name || "",
-          brand: p.brand?.name || "",
           ...(includeSales
             ? {
                 salesQuantity: p.sales?.quantity || 0,
@@ -476,16 +466,6 @@ function ProductsReportTab() {
           style={{ width: 170 }}
           options={categories}
         />
-        <Select
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          placeholder="Brand"
-          value={brand}
-          onChange={setBrand}
-          style={{ width: 170 }}
-          options={brands}
-        />
         <Checkbox
           checked={includeSales}
           onChange={(e) => setIncludeSales(e.target.checked)}
@@ -540,7 +520,6 @@ function ProductsReportTab() {
 
 const CUSTOM_REPORT_TYPES = [
   { value: "sales-by-category", label: "Sales by Category", needsDates: true },
-  { value: "sales-by-brand", label: "Sales by Brand", needsDates: true },
   { value: "customer-orders", label: "Top Customers by Orders", needsDates: true },
   { value: "product-performance", label: "Product Performance", needsDates: false },
   { value: "revenue-trends", label: "Revenue Trends", needsDates: true },
