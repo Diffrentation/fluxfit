@@ -11,6 +11,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CustomDesignProvider } from "@/context/CustomDesignContext";
 import AppToasterShell from "@/components/providers/AppToasterShell";
 import RouteGuard from "@/components/RouteGuard";
+import GsapSmoothScroll from "@/components/GsapSmoothScroll";
 
 export const metadata = {
   title: {
@@ -76,9 +77,14 @@ export default function RootLayout({ children }) {
                 <CartProvider>
                   <WishlistProvider>
                     <RouteGuard>
+                      {/* Nav is position:fixed — it must stay outside the
+                          smooth-scroll wrapper, or the transform GSAP applies
+                          to smooth the page would break its fixed positioning. */}
                       <Nav />
-                      {children}
-                      <ConditionalFooter />
+                      <GsapSmoothScroll>
+                        {children}
+                        <ConditionalFooter />
+                      </GsapSmoothScroll>
                     </RouteGuard>
                   </WishlistProvider>
                 </CartProvider>

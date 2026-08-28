@@ -23,6 +23,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.19",
     "framer-motion": "^12.23.26",
+    "gsap": "^3.15.0",
     "jose": "^6.2.2",
     "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.3",

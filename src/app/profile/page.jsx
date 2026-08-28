@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import axios from "axios";
@@ -909,7 +910,10 @@ function ProfileContent() {
 
       </div>
 
-      {/* Custom Address Modal */}
+      {/* Custom Address Modal — portaled to <body> so its fixed positioning
+          anchors to the real viewport, not the smooth-scroll wrapper. */}
+      {typeof document !== "undefined" &&
+        createPortal(
       <AnimatePresence>
         {addressModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1010,7 +1014,9 @@ function ProfileContent() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+          document.body
+        )}
 
     </div>
   );

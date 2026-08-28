@@ -5,6 +5,7 @@ import { IconHeart, IconShoppingCart, IconEye } from "@tabler/icons-react";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { getVariantAwarePricing } from "@/lib/publicProductsApi";
 import { message } from "antd";
 
 const ProductCard = ({ product, onQuickView }) => {
@@ -69,6 +70,7 @@ const ProductCard = ({ product, onQuickView }) => {
   };
 
   const price = parseFloat(product.price).toFixed(2);
+  const discountPercent = getVariantAwarePricing(product, null).discountPercent;
 
   return (
     <div
@@ -94,6 +96,13 @@ const ProductCard = ({ product, onQuickView }) => {
           )}
           {/* Inner gradient overlay for bottom text if needed, but the design is white bg */}
         </div>
+
+        {/* Discount Badge */}
+        {discountPercent > 0 && (
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 bg-[#1e9a58] text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md shadow-sm">
+            -{discountPercent}%
+          </div>
+        )}
 
         {/* Wishlist Icon */}
         <button

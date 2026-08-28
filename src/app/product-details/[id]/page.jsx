@@ -1,8 +1,10 @@
 "use client";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { ScrollSmoother } from "gsap/ScrollSmoother";
 import {
   IconHeart,
   IconShoppingCart,
@@ -665,7 +667,12 @@ function ProductDetails() {
   };
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const smoother = ScrollSmoother.get?.();
+    if (smoother) {
+      smoother.scrollTo(0, true);
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const productWishlisted = product ? isInWishlist(product.id) : false;
@@ -1087,23 +1094,28 @@ function ProductDetails() {
           </div>
         </motion.div>
 
-        {/* Scroll to Top Button */}
-        <AnimatePresence>
-          {showScrollTop && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0, rotate: -180 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              exit={{ opacity: 0, scale: 0, rotate: 180 }}
-              whileHover={{ scale: 1.1, y: -2 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={scrollToTop}
-              className="fixed bottom-8 right-8 z-50 p-3 bg-[#1e9a58] text-white rounded-full shadow-lg hover:bg-green-700 transition-colors"
-              aria-label="Scroll to top"
-            >
-              <IconArrowUp className="w-6 h-6" />
-            </motion.button>
+        {/* Scroll to Top Button — portaled to <body> so its fixed positioning
+            anchors to the real viewport, not the smooth-scroll wrapper. */}
+        {typeof document !== "undefined" &&
+          createPortal(
+            <AnimatePresence>
+              {showScrollTop && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0, rotate: -180 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  exit={{ opacity: 0, scale: 0, rotate: 180 }}
+                  whileHover={{ scale: 1.1, y: -2 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={scrollToTop}
+                  className="fixed bottom-8 right-8 z-50 p-3 bg-[#1e9a58] text-white rounded-full shadow-lg hover:bg-green-700 transition-colors"
+                  aria-label="Scroll to top"
+                >
+                  <IconArrowUp className="w-6 h-6" />
+                </motion.button>
+              )}
+            </AnimatePresence>,
+            document.body
           )}
-        </AnimatePresence>
 
         {/* Product Details Tabs */}
         <motion.div

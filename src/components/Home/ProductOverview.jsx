@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "@/components/ui/ProductCard";
 import CategoryNav from "@/components/ui/CategoryNav";
@@ -288,33 +289,39 @@ function ProductOverview() {
         </svg>
       </div>
 
-      {/* Centered Modal Popup moved to top level for proper z-index */}
-      <AnimatePresence>
-        {showFilters && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            {/* Dark Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-              onClick={() => setShowFilters(false)}
-            />
-            
-            {/* Popup Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative w-full max-w-[360px] lg:max-w-[1000px] max-h-[85vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-            >
-              {FilterContent}
-            </motion.div>
-          </div>
+      {/* Rendered via portal straight to <body> — position:fixed only anchors
+          to the real viewport when it's outside the GSAP smooth-scroll
+          wrapper's transformed content, so this can't live inline here. */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {showFilters && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                {/* Dark Overlay */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                  onClick={() => setShowFilters(false)}
+                />
+
+                {/* Popup Modal */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="relative w-full max-w-[360px] lg:max-w-[1000px] max-h-[85vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                >
+                  {FilterContent}
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
 
       <div className="relative z-10 w-full">
         {/* Top Header */}

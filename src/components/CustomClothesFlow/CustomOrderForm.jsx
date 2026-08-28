@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import ImageUploadZone from "./ImageUploadZone";
@@ -527,8 +528,11 @@ export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", pr
         </motion.div>
       </div>
 
-      {/* Preview Modal */}
-      {previewModalImage && (
+      {/* Preview Modal — portaled to <body> so its fixed positioning anchors
+          to the real viewport, not the smooth-scroll wrapper. */}
+      {typeof document !== "undefined" &&
+        previewModalImage &&
+        createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm" onClick={() => setPreviewModalImage(null)}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -565,10 +569,15 @@ export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", pr
               }}
             />
           </motion.div>
-        </div>
-      )}
-      {/* Image Lightbox Popup */}
-      {imagePopupOpen && previewImage && (
+        </div>,
+        document.body
+        )}
+      {/* Image Lightbox Popup — portaled to <body> so its fixed positioning
+          anchors to the real viewport, not the smooth-scroll wrapper. */}
+      {typeof document !== "undefined" &&
+        imagePopupOpen &&
+        previewImage &&
+        createPortal(
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
           onClick={() => setImagePopupOpen(false)}
@@ -609,8 +618,9 @@ export default function CustomOrderForm({ onSubmitSuccess, previewImage = "", pr
               <p className="text-xs text-gray-400">This is your selected product for customization</p>
             </div>
           </motion.div>
-        </div>
-      )}
+        </div>,
+        document.body
+        )}
     </form>
   );
 }
