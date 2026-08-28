@@ -182,6 +182,11 @@ export async function GET(request) {
       default: sortObj.createdAt = -1;
     }
     if (search?.trim()) sortObj.score = { $meta: "textScore" };
+    // Tie-breaker: without a unique final sort key, documents that tie on the
+    // primary field (e.g. bulk-uploaded products sharing a createdAt) have no
+    // stable order, so $skip/$limit pagination reshuffles them between pages —
+    // the same products reappear while others never show up.
+    sortObj._id = -1;
 
     // 3. Execute Unified Pipeline
     const skip = (page - 1) * limit;
@@ -251,6 +256,7 @@ export async function GET(request) {
                 isNew: 1,
                 isPopular: 1,
                 isCustomizable: 1,
+                status: 1,
                 createdAt: 1,
                 updatedAt: 1,
 

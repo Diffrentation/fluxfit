@@ -39,6 +39,10 @@ const productVariantSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    images: {
+      type: [String],
+      default: [],
+    },
     isActive: {
       type: Boolean,
       default: true,

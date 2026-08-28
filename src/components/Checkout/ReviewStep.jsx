@@ -18,7 +18,7 @@ import {
   IconFileText,
   IconLock,
 } from "@tabler/icons-react";
-import { Button, Card, message, Checkbox } from "antd";
+import { Button, Card, message } from "antd";
 import Image from "next/image";
 
 const ReviewStep = ({
@@ -36,7 +36,6 @@ const ReviewStep = ({
   const router = useRouter();
   const { cartItems, clearCart, appliedCoupon } = useCart();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
 
   const isBuyNow = Boolean(buyNowItem);
   const displayItems = isBuyNow ? [buyNowItem] : cartItems;
@@ -55,11 +54,6 @@ const ReviewStep = ({
   };
 
   const handlePlaceOrder = async () => {
-    if (!agreeToTerms) {
-      message.warning("Please agree to the terms and conditions");
-      return;
-    }
-
     if (!isLoggedInForCheckout()) {
       message.warning("Please sign in to place your order");
       router.push("/auth/login?returnUrl=/checkout");
@@ -221,31 +215,11 @@ const ReviewStep = ({
         </div>
       </div>
 
-      {/* Terms and Conditions */}
-      <div className="bg-[#f4fbf7] border border-green-100 rounded-2xl p-4">
-        <Checkbox
-          checked={agreeToTerms}
-          onChange={(e) => setAgreeToTerms(e.target.checked)}
-          className="w-full"
-        >
-          <span className="text-xs sm:text-sm text-gray-700">
-            I agree to the{" "}
-            <a href="#" className="text-[#1e9a58] hover:text-green-700 hover:underline">
-              Terms and Conditions
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-[#1e9a58] hover:text-green-700 hover:underline">
-              Privacy Policy
-            </a>
-          </span>
-        </Checkbox>
-      </div>
-
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6">
         <button
           onClick={handlePlaceOrder}
-          disabled={!agreeToTerms || isPlacingOrder}
+          disabled={isPlacingOrder}
           className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#1e9a58] hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
         >
           <IconLock className="w-5 h-5" />

@@ -135,6 +135,28 @@ function Herobanner({ initialSlides = [], initialPageData = null }) {
                   {slide.description}
                 </p>
 
+                {/* Price */}
+                {(slide.salePrice != null || slide.originalPrice != null || slide.discountText) && (
+                  <div className="flex items-center flex-wrap gap-3 -mt-4 mb-6 sm:-mt-8 sm:mb-10">
+                    {slide.salePrice != null && (
+                      <span className="text-2xl sm:text-3xl font-extrabold text-[#0d1c2f]">
+                        ₹{Number(slide.salePrice).toLocaleString("en-IN")}
+                      </span>
+                    )}
+                    {slide.originalPrice != null &&
+                      Number(slide.originalPrice) > Number(slide.salePrice ?? 0) && (
+                        <span className="text-base sm:text-lg text-gray-400 line-through font-medium">
+                          ₹{Number(slide.originalPrice).toLocaleString("en-IN")}
+                        </span>
+                      )}
+                    {slide.discountText && (
+                      <span className="px-2.5 py-1 bg-green-50 border border-green-100 text-green-700 rounded-full text-xs sm:text-sm font-bold">
+                        {slide.discountText}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Buttons — stack on very small screens, wrap on medium */}
                 <div className="flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-3 sm:gap-4 mb-8 sm:mb-12 lg:mb-16 w-full">
                   <Link

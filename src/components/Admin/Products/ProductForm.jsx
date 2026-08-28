@@ -15,10 +15,8 @@ import {
   message,
   Divider,
   Space,
-  Image,
 } from "antd";
 import {
-  IconUpload,
   IconX,
   IconPlus,
   IconTrash,
@@ -40,8 +38,19 @@ const normaliseColors = (variant) => {
   return [...new Set(raw.map((color) => String(color || "").trim()).filter(Boolean))];
 };
 
-// The database stores one color per variant. The editor may group multiple
-// colors in one row, so expand those groups immediately before validation/save.
+const normaliseSizes = (variant) => {
+  const raw = Array.isArray(variant?.sizes)
+    ? variant.sizes
+    : variant?.size
+      ? [variant.size]
+      : [];
+
+  return [...new Set(raw.map((size) => String(size || "").trim()).filter(Boolean))];
+};
+
+// The database stores one size/color combination per variant. The editor lets
+// one row cover several sizes and colors (sharing price, stock and images),
+// so expand those groups immediately before validation/save.
 const expandVariantGroups = (groups) => {
   const seen = new Set();
   const duplicateKeys = [];
@@ -49,30 +58,48 @@ const expandVariantGroups = (groups) => {
 
   (groups || []).forEach((group) => {
     const colors = normaliseColors(group);
-    colors.forEach((color) => {
-      const size = String(group.size || "").trim();
-      const key = `${size.toLowerCase()}::${color.toLowerCase()}`;
-      if (seen.has(key)) {
-        duplicateKeys.push(`${size} / ${color}`);
-        return;
-      }
-      seen.add(key);
+    const sizes = normaliseSizes(group);
+    const isGrouped = colors.length > 1 || sizes.length > 1;
 
-      const { colors: _colors, _randSuffix, ...variant } = group;
-      // A grouped row needs a distinct SKU for each color. Let the model
-      // generate these safely rather than duplicating the row's preview SKU.
-      if (colors.length > 1) delete variant.sku;
-      expanded.push({ ...variant, size, color });
+    sizes.forEach((size) => {
+      colors.forEach((color) => {
+        const key = `${size.toLowerCase()}::${color.toLowerCase()}`;
+        if (seen.has(key)) {
+          duplicateKeys.push(`${size} / ${color}`);
+          return;
+        }
+        seen.add(key);
+
+        const { colors: _colors, sizes: _sizes, _randSuffix, ...variant } = group;
+        // A grouped row needs a distinct SKU for each combination. Let the
+        // model generate these safely rather than duplicating the preview SKU.
+        if (isGrouped) delete variant.sku;
+        expanded.push({ ...variant, size, color });
+      });
     });
   });
 
   return { expanded, duplicateKeys };
 };
 
+// Older products only had a top-level image gallery (no per-variant images).
+// When editing one of those, seed each variant with that gallery so photos
+// already uploaded stay visible instead of appearing to have vanished.
+const backfillVariantImages = (productLike) => {
+  const legacyImages = (productLike?.images || [])
+    .map((img) => (typeof img === "string" ? img : img?.url))
+    .filter(Boolean);
+
+  return (productLike?.variants || []).map((variant) => {
+    if (Array.isArray(variant.images) && variant.images.length) return variant;
+    if (variant.image) return { ...variant, images: [variant.image] };
+    return { ...variant, images: legacyImages };
+  });
+};
+
 const ProductForm = ({ visible, product, onClose, onSave }) => {
   const [form] = Form.useForm();
   const watchedValues = Form.useWatch([], form);
-  const [imageList, setImageList] = useState([]);
   const [variants, setVariants] = useState([]);
   const [colorDrafts, setColorDrafts] = useState({});
   const [activeTab, setActiveTab] = useState("basic");
@@ -83,10 +110,12 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   const newVariantGroup = useCallback(
     () => ({
       size: "One Size",
+      sizes: ["One Size"],
       color: "",
       colors: [],
       price: Number(form.getFieldValue("basePrice")) || 0,
       stock: 0,
+      images: [],
       sku: "",
       _randSuffix: Math.floor(1000 + Math.random() * 9000),
     }),
@@ -279,12 +308,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             )
               .trim()
               .toLowerCase();
-            setImageList(
-              productData.images?.map((img) =>
-                typeof img === "string" ? img : img.url,
-              ) || [],
-            );
-            setVariants(productData.variants || []);
+            setVariants(backfillVariantImages(productData));
             setNameValue(productData.name || "");
             setMetaTitleValue(productData.metaTitle || "");
           }
@@ -299,12 +323,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           initialEditSlugRef.current = String(product?.slug || "")
             .trim()
             .toLowerCase();
-          setImageList(
-            product.images?.map((img) =>
-              typeof img === "string" ? img : img.url,
-            ) || [],
-          );
-          setVariants(product.variants || []);
+          setVariants(backfillVariantImages(product));
           setNameValue(product.name || "");
           setMetaTitleValue(product.metaTitle || "");
         } finally {
@@ -320,14 +339,12 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         initialEditSlugRef.current = String(product?.slug || "")
           .trim()
           .toLowerCase();
-        setImageList(product.images || []);
-        setVariants(product.variants || []);
+        setVariants(backfillVariantImages(product));
         setNameValue(product.name || "");
         setMetaTitleValue(product.metaTitle || "");
       } else {
         form.resetFields();
         initialEditSlugRef.current = "";
-        setImageList([]);
         // Start a new product with the complete variant editor already
         // visible—admins never need to create an empty row first.
         setVariants([newVariantGroup()]);
@@ -362,7 +379,11 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   const computedStock = useMemo(
     () =>
       variants.reduce(
-        (sum, variant) => sum + (Number(variant.stock) || 0) * normaliseColors(variant).length,
+        (sum, variant) =>
+          sum +
+          (Number(variant.stock) || 0) *
+            normaliseColors(variant).length *
+            normaliseSizes(variant).length,
         0,
       ),
     [variants],
@@ -378,27 +399,6 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     },
     [nameValue],
   );
-
-  /* ---------------- IMAGE UPLOAD ---------------- */
-  const handleImageUpload = useCallback(async (info) => {
-    if (!info.file.originFileObj) return;
-    try {
-      const result = await uploadImage(info.file.originFileObj, {
-        folder: "fluxfit/products",
-      });
-      // Ensure we're storing the URL as a string
-      const imageUrl = typeof result === "string" ? result : result.url;
-      setImageList((prev) => [...prev, imageUrl]);
-      message.success("Image uploaded successfully");
-    } catch (error) {
-      console.error("Image upload error:", error);
-      message.error("Failed to upload image");
-    }
-  }, []);
-
-  const handleRemoveImage = useCallback((index) => {
-    setImageList((prev) => prev.filter((_, i) => i !== index));
-  }, []);
 
   /* ---------------- VARIANTS ---------------- */
   const handleAddVariant = useCallback(() => {
@@ -431,6 +431,49 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     });
   }, []);
 
+  const handleVariantSizesChange = useCallback((index, sizes) => {
+    const nextSizes = [...new Set((sizes || []).map((size) => String(size).trim()).filter(Boolean))];
+    setVariants((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        sizes: nextSizes,
+        // Keep a representative size for backwards-compatible previews.
+        size: nextSizes[0] || "",
+      };
+      return updated;
+    });
+  }, []);
+
+  const handleVariantImageUpload = useCallback(async (index, info) => {
+    if (!info.file.originFileObj) return;
+    try {
+      const result = await uploadImage(info.file.originFileObj, {
+        folder: "fluxfit/products",
+      });
+      const imageUrl = typeof result === "string" ? result : result.url;
+      setVariants((prev) => {
+        const updated = [...prev];
+        const existing = Array.isArray(updated[index].images) ? updated[index].images : [];
+        updated[index] = { ...updated[index], images: [...existing, imageUrl] };
+        return updated;
+      });
+      message.success("Image uploaded successfully");
+    } catch (error) {
+      console.error("Image upload error:", error);
+      message.error("Failed to upload image");
+    }
+  }, []);
+
+  const handleRemoveVariantImage = useCallback((index, imageIndex) => {
+    setVariants((prev) => {
+      const updated = [...prev];
+      const existing = Array.isArray(updated[index].images) ? updated[index].images : [];
+      updated[index] = { ...updated[index], images: existing.filter((_, i) => i !== imageIndex) };
+      return updated;
+    });
+  }, []);
+
   /* ---------------- FORM SUBMIT ---------------- */
   const handleSubmit = useCallback(
     async (values) => {
@@ -456,6 +499,13 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             savedVariants.map((v) => v.size).filter(Boolean).map((s) => String(s).trim())
           ),
         ];
+        const derivedImages = [
+          ...new Set(
+            savedVariants
+              .flatMap((v) => (Array.isArray(v.images) ? v.images : []))
+              .filter(Boolean)
+          ),
+        ];
 
         const payload = {
           name: values.name,
@@ -464,7 +514,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           category: values.category,
           basePrice: values.basePrice,
           originalPrice: values.originalPrice,
-          images: imageList.map((url, i) => ({ url, isPrimary: i === 0 })),
+          images: derivedImages.map((url, i) => ({ url, isPrimary: i === 0 })),
           variants: savedVariants,
           colors: derivedColors,
           sizes: derivedSizes,
@@ -524,22 +574,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         setLoading(false);
       }
     },
-    [autoSlug, form, imageList, initialEditSlugRef, onClose, onSave, product, variants],
-  );
-
-  const uploadFileList = useMemo(
-    () =>
-      imageList.map((url, index) => {
-        // Ensure url is a string
-        const urlString = typeof url === "string" ? url : url?.url || "";
-        return {
-          uid: index.toString(),
-          name: `image-${index}.jpg`,
-          status: "done",
-          url: urlString,
-        };
-      }),
-    [imageList],
+    [autoSlug, form, initialEditSlugRef, onClose, onSave, product, variants],
   );
 
   const isBasicStepComplete = useMemo(() => {
@@ -554,14 +589,13 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     );
   }, [watchedValues]);
 
-  const areImagesStepComplete = imageList.length > 0;
-
   const areVariantsStepComplete = useMemo(() => {
     return (
       variants.length > 0 &&
+      variants.some((variant) => Array.isArray(variant.images) && variant.images.length > 0) &&
       variants.every(
         (variant) =>
-          variant.size?.trim() &&
+          normaliseSizes(variant).length > 0 &&
           normaliseColors(variant).length > 0 &&
           variant.price !== undefined &&
           variant.price !== null &&
@@ -584,21 +618,19 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
   }, [autoSlug, watchedValues?.metaTitle]);
 
   const createStepOrder = useMemo(
-    () => ["basic", "images", "variants", "inventory", "details", "seo"],
+    () => ["basic", "variants", "inventory", "details", "seo"],
     [],
   );
 
   const stepCompletion = useMemo(
     () => ({
       basic: isBasicStepComplete,
-      images: areImagesStepComplete,
       variants: areVariantsStepComplete,
       inventory: isInventoryStepComplete,
       details: true,
       seo: isSeoStepComplete,
     }),
     [
-      areImagesStepComplete,
       areVariantsStepComplete,
       isBasicStepComplete,
       isInventoryStepComplete,
@@ -623,14 +655,6 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       return true;
     }
 
-    if (activeTab === "images") {
-      if (!imageList.length) {
-        message.error("Please upload at least one product image");
-        return false;
-      }
-      return true;
-    }
-
     if (activeTab === "variants") {
       if (!variants.length) {
         message.error("Please add at least one variant");
@@ -639,7 +663,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
       const hasInvalidVariant = variants.some(
         (variant) =>
-          !variant.size?.trim() ||
+          normaliseSizes(variant).length === 0 ||
           normaliseColors(variant).length === 0 ||
           variant.price === undefined ||
           variant.price === null ||
@@ -651,6 +675,14 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
 
       if (hasInvalidVariant) {
         message.error("Please complete all variant fields before continuing");
+        return false;
+      }
+
+      const hasAnyImages = variants.some(
+        (variant) => Array.isArray(variant.images) && variant.images.length > 0,
+      );
+      if (!hasAnyImages) {
+        message.error("Please upload at least one image for a variant");
         return false;
       }
       return true;
@@ -667,7 +699,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
     }
 
     return true;
-  }, [activeTab, autoSlug, form, imageList.length, variants]);
+  }, [activeTab, autoSlug, form, variants]);
 
   const handlePrimaryAction = useCallback(async () => {
     const isEdit = Boolean(product?._id || product?.id);
@@ -848,93 +880,6 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
       ),
     },
     {
-      key: "images",
-      label: "Images",
-      children: (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
-              Product Images
-            </label>
-            <Upload
-              listType="picture-card"
-              fileList={uploadFileList}
-              onChange={handleImageUpload}
-              onRemove={(file) => {
-                // Handle both string URLs and file objects
-                const fileUrl =
-                  typeof file === "string"
-                    ? file
-                    : file.url || file.response?.url;
-                const index = imageList.findIndex((url) => {
-                  const urlString = typeof url === "string" ? url : url?.url;
-                  return urlString === fileUrl;
-                });
-                if (index !== -1) {
-                  handleRemoveImage(index);
-                }
-              }}
-              accept="image/*"
-              multiple
-            >
-              {imageList.length < 5 && (
-                <div>
-                  <IconPlus className="w-6 h-6" />
-                  <div className="mt-2">Upload</div>
-                </div>
-              )}
-            </Upload>
-            <p className="text-xs text-zinc-500 mt-2">
-              Upload up to 5 images. First image will be the main product image.
-            </p>
-          </div>
-
-          {imageList.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
-                Image Preview
-              </label>
-              <div className="grid grid-cols-5 gap-4">
-                {imageList.map((url, index) => {
-                  // Ensure url is a string for the img src
-                  const imageUrl =
-                    typeof url === "string" ? url : url?.url || "";
-
-                  return (
-                    <div key={index} className="relative group">
-                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center">
-                        <Image
-                          src={imageUrl}
-                          alt={`Product image ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          fallback='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E'
-                          preview={{
-                            mask: <div className="text-white text-xs bg-black/50 w-full h-full flex items-center justify-center">Preview</div>
-                          }}
-                        />
-                      </div>
-                      {index === 0 && (
-                        <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                          Main
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <IconX className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
       key: "variants",
       label: "Variants",
       children: (
@@ -943,7 +888,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             <div>
               <h3 className="font-semibold text-zinc-100">Product Variants</h3>
               <p className="text-sm text-zinc-400">
-                Manage different sizes, colors, and pricing for this product
+                Manage sizes, colors, pricing and photos for this product. Each variant&apos;s
+                images apply to every size selected in that row.
               </p>
             </div>
             <Button
@@ -962,20 +908,30 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             </div>
           ) : (
             <div className="space-y-4">
-              {variants.map((variant, index) => (
+              {variants.map((variant, index) => {
+                const variantImages = Array.isArray(variant.images) ? variant.images : [];
+                const variantFileList = variantImages.map((url, i) => ({
+                  uid: `${index}-${i}`,
+                  name: `image-${i}.jpg`,
+                  status: "done",
+                  url,
+                }));
+
+                return (
                 <div key={index}>
                   <div className="p-4 border border-zinc-800 rounded-lg bg-zinc-900/40">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-zinc-300 mb-1">
-                        Size
+                        Sizes
                       </label>
                       <Select
-                        value={variant.size}
+                        mode="multiple"
+                        value={normaliseSizes(variant)}
                         onChange={(value) =>
-                          handleVariantChange(index, "size", value)
+                          handleVariantSizesChange(index, value)
                         }
-                        placeholder="Size"
+                        placeholder="Sizes"
                         style={{ width: "100%" }}
                       >
                         <Option value="XS">XS</Option>
@@ -986,6 +942,9 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                         <Option value="XXL">XXL</Option>
                         <Option value="One Size">One Size</Option>
                       </Select>
+                      <p className="mt-1 text-[11px] text-zinc-500">
+                        Pick every size that shares this row&apos;s colours, price and photos.
+                      </p>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-zinc-300 mb-1">
@@ -1090,17 +1049,55 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                       />
                     </div>
                   </div>
+
+                  <div className="mt-4">
+                    <label className="block text-xs font-medium text-zinc-300 mb-1">
+                      Variant Images
+                    </label>
+                    <Upload
+                      listType="picture-card"
+                      fileList={variantFileList}
+                      onChange={(info) => handleVariantImageUpload(index, info)}
+                      onRemove={(file) => {
+                        const fileUrl =
+                          typeof file === "string"
+                            ? file
+                            : file.url || file.response?.url;
+                        const imageIndex = variantImages.findIndex((url) => url === fileUrl);
+                        if (imageIndex !== -1) {
+                          handleRemoveVariantImage(index, imageIndex);
+                        }
+                      }}
+                      accept="image/*"
+                      multiple
+                    >
+                      {variantImages.length < 5 && (
+                        <div>
+                          <IconPlus className="w-6 h-6" />
+                          <div className="mt-2">Upload</div>
+                        </div>
+                      )}
+                    </Upload>
+                    <p className="mt-1 text-[11px] text-zinc-500">
+                      Upload up to 5 images for this variant. They&apos;ll be shown for every size selected above.
+                    </p>
+                  </div>
+
                   {/* Auto-SKU preview */}
                   <div className="mt-3 grid gap-2 md:grid-cols-[120px_1fr] md:items-center">
                     <span className="text-xs text-zinc-400">Generated variants</span>
                     <Input
                       readOnly
                       value={
-                        normaliseColors(variant).length > 1
-                          ? `${normaliseColors(variant).length} SKUs will be generated (${variant.size || "Size"} × selected colours)`
+                        normaliseColors(variant).length * normaliseSizes(variant).length > 1
+                          ? `${normaliseColors(variant).length * normaliseSizes(variant).length} SKUs will be generated (${normaliseSizes(variant).length || 0} size(s) × ${normaliseColors(variant).length || 0} colour(s))`
                           : variant.sku && !variant._randSuffix
                             ? variant.sku
-                            : autoSkuForVariant({ ...variant, color: normaliseColors(variant)[0] || "" })
+                            : autoSkuForVariant({
+                                ...variant,
+                                size: normaliseSizes(variant)[0] || "",
+                                color: normaliseColors(variant)[0] || "",
+                              })
                       }
                     />
                   </div>
@@ -1115,7 +1112,8 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                   </Button>
                 </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1162,10 +1160,10 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
                 {variants.map((v, i) => (
                   <div key={i} className="flex justify-between text-xs text-zinc-400">
                     <span>
-                      {v.size || "—"} / {normaliseColors(v).join(", ") || "—"}
+                      {normaliseSizes(v).join(", ") || "—"} / {normaliseColors(v).join(", ") || "—"}
                     </span>
                     <span className="font-medium">
-                      {(Number(v.stock) || 0) * normaliseColors(v).length} units
+                      {(Number(v.stock) || 0) * normaliseColors(v).length * normaliseSizes(v).length} units
                     </span>
                   </div>
                 ))}

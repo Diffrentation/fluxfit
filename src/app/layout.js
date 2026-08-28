@@ -10,7 +10,6 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { CustomDesignProvider } from "@/context/CustomDesignContext";
 import AppToasterShell from "@/components/providers/AppToasterShell";
-import IntroVideoLoader from "@/components/IntroVideoLoader/IntroVideoLoader";
 import RouteGuard from "@/components/RouteGuard";
 
 export const metadata = {
@@ -43,7 +42,6 @@ export default function RootLayout({ children }) {
         className="antialiased"
         suppressHydrationWarning
       >
-        <IntroVideoLoader />
         <ConfigProvider
           theme={{
             token: {

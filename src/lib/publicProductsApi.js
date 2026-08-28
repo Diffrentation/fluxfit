@@ -72,7 +72,14 @@ export function getProductDetailPath(product) {
   return "/product-list";
 }
 
-export function findMatchingProductVariant(variants, size, color) {
+/**
+ * @param {{ prefer?: "size" | "color" }} [options] - When the exact
+ *   size+color combo isn't sold, which axis to honor first. Pass "color"
+ *   right after the shopper clicks a color swatch (so the variant actually
+ *   switches to that color, adapting size, instead of silently keeping the
+ *   old size's variant) and "size" right after they click a size.
+ */
+export function findMatchingProductVariant(variants, size, color, options = {}) {
   if (!Array.isArray(variants) || variants.length === 0) return null;
   const s = String(size ?? "").trim();
   const c = String(color ?? "").trim().toLowerCase();
@@ -86,18 +93,20 @@ export function findMatchingProductVariant(variants, size, color) {
   );
   if (exact) return exact;
 
-  if (s && s !== "One Size") {
-    const bySize = list.find((v) => String(v.size ?? "").trim() === s);
-    if (bySize) return bySize;
-  }
-  if (c && c !== "default" && c !== "") {
-    const byColor = list.find(
-      (v) => String(v.color ?? "").trim().toLowerCase() === c
-    );
-    if (byColor) return byColor;
-  }
+  const bySize = () =>
+    s && s !== "One Size"
+      ? list.find((v) => String(v.size ?? "").trim() === s)
+      : null;
+  const byColor = () =>
+    c && c !== "default" && c !== ""
+      ? list.find((v) => String(v.color ?? "").trim().toLowerCase() === c)
+      : null;
 
-  return list[0] || null;
+  const [first, second] = options.prefer === "color"
+    ? [byColor, bySize]
+    : [bySize, byColor];
+
+  return first() || second() || list[0] || null;
 }
 
 export function getVariantAwarePricing(product, selectedVariant) {

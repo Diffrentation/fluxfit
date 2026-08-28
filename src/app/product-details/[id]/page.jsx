@@ -506,20 +506,26 @@ function ProductDetails() {
   );
 
   const handleSizeSelect = (size) => {
+    // Size is the axis the shopper just picked, so it wins; color adapts to
+    // whatever's actually sold in that size, shifting price/photos with it.
+    const variant = findMatchingProductVariant(product?.variants, size, selectedColor, { prefer: "size" });
     setSelectedSize(size);
-    const variant = findMatchingProductVariant(product?.variants, size, selectedColor);
+    if (variant?.color !== undefined) setSelectedColor(variant.color || "");
     const tempPricing = getVariantAwarePricing(product, variant);
     if (!tempPricing.inStock) {
-      message.warning(`The selected variant (${size}, ${selectedColor || "default"}) is out of stock.`);
+      message.warning(`The selected variant (${size}, ${variant?.color || selectedColor || "default"}) is out of stock.`);
     }
   };
 
   const handleColorSelect = (color) => {
+    // Color is the axis the shopper just picked, so it wins; size adapts to
+    // whatever's actually sold in that color, shifting price/photos with it.
+    const variant = findMatchingProductVariant(product?.variants, selectedSize, color, { prefer: "color" });
     setSelectedColor(color);
-    const variant = findMatchingProductVariant(product?.variants, selectedSize, color);
+    if (variant?.size !== undefined) setSelectedSize(variant.size || "");
     const tempPricing = getVariantAwarePricing(product, variant);
     if (!tempPricing.inStock) {
-      message.warning(`The selected variant (${selectedSize || "One Size"}, ${color}) is out of stock.`);
+      message.warning(`The selected variant (${variant?.size || selectedSize || "One Size"}, ${color}) is out of stock.`);
     }
   };
 
@@ -601,12 +607,21 @@ function ProductDetails() {
 
   const variantImageUrl = product ? getVariantImage(selectedVariant) : "";
   const displayImages = useMemo(() => {
+    // Prefer the selected variant's own photos so the gallery reflects only
+    // the size/color the shopper picked, not every variant's images merged.
+    const variantImages = Array.isArray(selectedVariant?.images)
+      ? selectedVariant.images.filter((url) => typeof url === "string" && url)
+      : [];
+    if (variantImages.length > 0) return variantImages;
+
+    // Legacy variants without their own gallery fall back to the product's
+    // full image set, at least leading with the variant's resolved image.
     const base = product?.images || [];
     if (variantImageUrl && !base.includes(variantImageUrl)) {
       return [variantImageUrl, ...base];
     }
     return base;
-  }, [variantImageUrl, product?.images]);
+  }, [selectedVariant, variantImageUrl, product?.images]);
 
   // Jump back to the variant's own image (or the first shot) whenever the
   // selected variant changes, so the gallery doesn't keep showing an image
