@@ -1,17 +1,38 @@
 "use client";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
-import { Table, Tag, Button, Input, Select, DatePicker, Dropdown, Badge, Card, Pagination, Modal, message } from "antd";
+import { Tag, Button, Input, Select, DatePicker, Dropdown, Badge, Card, Pagination, Modal, message } from "antd";
 import { IconSearch, IconDots, IconEye, IconAlertTriangle } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { Search } = Input;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setIsClient(true), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -184,108 +205,102 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
     </motion.div>
   );
 
-  const columns = [
-    {
-      title: "Transaction ID",
-      dataIndex: "transactionId",
-      key: "transactionId",
-      width: 150,
-      render: (id) => (
-        <span className="font-mono text-sm text-blue-600 dark:text-blue-400">#{id}</span>
-      ),
-    },
-    {
-      title: "Order ID",
-      dataIndex: "orderId",
-      key: "orderId",
-      width: 120,
-      render: (id) => (
-        <span className="font-mono text-sm">#{id}</span>
-      ),
-    },
-    {
-      title: "Customer",
-      dataIndex: "customer",
-      key: "customer",
-      width: 150,
-    },
-    {
-      title: "Amount",
-      dataIndex: "amount",
-      key: "amount",
-      width: 120,
-      render: (amount) => (
-        <span className="font-semibold">₹{formatPrice(amount)}</span>
-      ),
-    },
-    {
-      title: "Payment Method",
-      dataIndex: "method",
-      key: "method",
-      width: 130,
-      render: (method) => <Tag color="blue">{getMethodLabel(method)}</Tag>,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 100,
-      render: (status, record) => (
-        <div className="flex items-center gap-2">
-          <Tag color={getStatusColor(status)} className="capitalize">
-            {status}
-          </Tag>
-          {record.fraudFlag && (
-            <Badge
-              count={<IconAlertTriangle className="w-3 h-3 text-red-500" />}
-              title="Fraud Flagged"
-            />
-          )}
-        </div>
-      ),
-    },
-    {
-      title: "Date",
-      dataIndex: "date",
-      key: "date",
-      width: 120,
-      render: (date) => format(new Date(date), "MMM dd, yyyy"),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 100,
-      fixed: "right",
-      render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "view",
-                label: "View Details",
-                icon: <IconEye className="w-4 h-4" />,
-                onClick: () => handleViewDetails(record),
-              },
-              record.fraudFlag && {
-                key: "review",
-                label: "Review Fraud",
-                icon: <IconAlertTriangle className="w-4 h-4" />,
-                danger: true,
-                onClick: () => handleReviewFraud(record),
-              },
-            ].filter(Boolean),
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            type="text"
-            icon={<IconDots className="w-4 h-4" />}
-            className="flex items-center justify-center"
-          />
-        </Dropdown>
-      ),
-    },
-  ];
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Transaction ID",
+        field: "transactionId",
+        width: 150,
+        cellRenderer: (p) => (
+          <span className="font-mono text-sm text-blue-600 dark:text-blue-400">#{p.value}</span>
+        ),
+      },
+      {
+        headerName: "Order ID",
+        field: "orderId",
+        width: 120,
+        cellRenderer: (p) => <span className="font-mono text-sm">#{p.value}</span>,
+      },
+      {
+        headerName: "Customer",
+        field: "customer",
+        width: 150,
+      },
+      {
+        headerName: "Amount",
+        field: "amount",
+        width: 120,
+        cellRenderer: (p) => <span className="font-semibold">₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "Payment Method",
+        field: "method",
+        width: 130,
+        cellRenderer: (p) => <Tag color="blue">{getMethodLabel(p.value)}</Tag>,
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 100,
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center gap-2">
+            <Tag color={getStatusColor(p.value)} className="capitalize">
+              {p.value}
+            </Tag>
+            {p.data.fraudFlag && (
+              <Badge
+                count={<IconAlertTriangle className="w-3 h-3 text-red-500" />}
+                title="Fraud Flagged"
+              />
+            )}
+          </div>
+        ),
+      },
+      {
+        headerName: "Date",
+        field: "date",
+        width: 120,
+        cellRenderer: (p) => format(new Date(p.value), "MMM dd, yyyy"),
+      },
+      {
+        headerName: "Actions",
+        width: 100,
+        pinned: "right",
+        cellRenderer: (p) => {
+          const record = p.data;
+          return (
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "view",
+                    label: "View Details",
+                    icon: <IconEye className="w-4 h-4" />,
+                    onClick: () => handleViewDetails(record),
+                  },
+                  record.fraudFlag && {
+                    key: "review",
+                    label: "Review Fraud",
+                    icon: <IconAlertTriangle className="w-4 h-4" />,
+                    danger: true,
+                    onClick: () => handleReviewFraud(record),
+                  },
+                ].filter(Boolean),
+              }}
+              trigger={["click"]}
+            >
+              <Button
+                type="text"
+                icon={<IconDots className="w-4 h-4" />}
+                className="flex items-center justify-center"
+              />
+            </Dropdown>
+          );
+        },
+      },
+    ],
+    [handleViewDetails, handleReviewFraud]
+  );
 
   return (
     <motion.div
@@ -339,28 +354,46 @@ const PaymentHistory = ({ payments = [], onUpdatePayments }) => {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
-          <Table
-            dataSource={paginatedPayments.map((p) => ({ ...p, key: p.id }))}
-            columns={columns}
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: filteredPayments.length,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} transactions`,
-              onChange: (page, size) => {
+        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden p-2">
+          {isClient ? (
+            <div style={{ width: "100%", height: 560 }}>
+              <AgGridReact
+                theme={myDarkTheme}
+                modules={[AllCommunityModule]}
+                rowData={paginatedPayments}
+                columnDefs={columnDefs}
+                defaultColDef={{ sortable: true, resizable: true }}
+                getRowId={(p) => String(p.data.id)}
+                animateRows
+                rowHeight={56}
+                headerHeight={44}
+                suppressCellFocus
+                overlayNoRowsTemplate="No payments found"
+              />
+            </div>
+          ) : (
+            <div className="h-[560px]" />
+          )}
+        </div>
+        {filteredPayments.length > 0 && (
+          <div className="flex justify-end pt-3">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={filteredPayments.length}
+              showSizeChanger
+              showTotal={(total) => `Total ${total} transactions`}
+              onChange={(page, size) => {
                 setCurrentPage(page);
                 setPageSize(size);
-              },
-              onShowSizeChange: (current, size) => {
+              }}
+              onShowSizeChange={(current, size) => {
                 setCurrentPage(1);
                 setPageSize(size);
-              },
-            }}
-            scroll={{ x: 1000 }}
-          />
-        </div>
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols, md: 2 cols */}

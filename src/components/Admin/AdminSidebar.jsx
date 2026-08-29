@@ -28,6 +28,7 @@ import {
   IconShirt,
   IconPin,
   IconBrowser,
+  IconFlame,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -141,6 +142,12 @@ const AdminSidebar = ({ activeItem = "dashboard" }) => {
       label: "Users",
       icon: IconUsers,
       path: "/admin/users",
+    },
+    {
+      id: "5k-challenge",
+      label: "5K Challenge",
+      icon: IconFlame,
+      path: "/admin/5k-challenge",
     },
     {
       id: "coupons",

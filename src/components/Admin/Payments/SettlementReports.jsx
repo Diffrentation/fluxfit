@@ -1,15 +1,36 @@
 "use client";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Table, Tag, Button, Select, DatePicker, Card, Statistic, Row, Col, Pagination, message } from "antd";
+import { Tag, Button, Select, DatePicker, Card, Statistic, Row, Col, Pagination, message } from "antd";
 import { IconDownload, IconCurrencyRupee } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setIsClient(true), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [vendorFilter, setVendorFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
@@ -173,102 +194,98 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
     </motion.div>
   );
 
-  const columns = [
-    {
-      title: "Vendor ID",
-      dataIndex: "vendorId",
-      key: "vendorId",
-      width: 100,
-      render: (id) => <span className="font-mono">#{id}</span>,
-    },
-    {
-      title: "Vendor Name",
-      dataIndex: "vendorName",
-      key: "vendorName",
-      width: 150,
-    },
-    {
-      title: "Period",
-      dataIndex: "period",
-      key: "period",
-      width: 120,
-    },
-    {
-      title: "Total Sales",
-      dataIndex: "totalSales",
-      key: "totalSales",
-      width: 120,
-      render: (amount) => <span className="font-semibold">₹{formatPrice(amount)}</span>,
-    },
-    {
-      title: "Commission (10%)",
-      dataIndex: "commission",
-      key: "commission",
-      width: 130,
-      render: (amount) => <span className="text-gray-600">₹{formatPrice(amount)}</span>,
-    },
-    {
-      title: "Tax (GST)",
-      dataIndex: "tax",
-      key: "tax",
-      width: 120,
-      render: (amount) => <span className="text-gray-600">₹{formatPrice(amount)}</span>,
-    },
-    {
-      title: "Settlement Amount",
-      dataIndex: "settlement",
-      key: "settlement",
-      width: 150,
-      render: (amount) => (
-        <span className="font-semibold text-green-600">₹{formatPrice(amount)}</span>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (status) => (
-        <Tag color={getStatusColor(status)} className="capitalize">
-          {status}
-        </Tag>
-      ),
-    },
-    {
-      title: "Due Date",
-      dataIndex: "dueDate",
-      key: "dueDate",
-      width: 120,
-      render: (date) => format(new Date(date), "MMM dd, yyyy"),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 150,
-      fixed: "right",
-      render: (_, record) => (
-        <div className="flex gap-2">
-          {record.status === "pending" && (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => handleProcessSettlement(record)}
-            >
-              Process
-            </Button>
-          )}
-          <Button
-            type="text"
-            size="small"
-            icon={<IconDownload className="w-4 h-4" />}
-            onClick={() => handleExport(record)}
-          >
-            Export
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Vendor ID",
+        field: "vendorId",
+        width: 100,
+        cellRenderer: (p) => <span className="font-mono">#{p.value}</span>,
+      },
+      {
+        headerName: "Vendor Name",
+        field: "vendorName",
+        width: 150,
+      },
+      {
+        headerName: "Period",
+        field: "period",
+        width: 120,
+      },
+      {
+        headerName: "Total Sales",
+        field: "totalSales",
+        width: 120,
+        cellRenderer: (p) => <span className="font-semibold">₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "Commission (10%)",
+        field: "commission",
+        width: 130,
+        cellRenderer: (p) => <span className="text-gray-600">₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "Tax (GST)",
+        field: "tax",
+        width: 120,
+        cellRenderer: (p) => <span className="text-gray-600">₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "Settlement Amount",
+        field: "settlement",
+        width: 150,
+        cellRenderer: (p) => (
+          <span className="font-semibold text-green-600">₹{formatPrice(p.value)}</span>
+        ),
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 120,
+        cellRenderer: (p) => (
+          <Tag color={getStatusColor(p.value)} className="capitalize">
+            {p.value}
+          </Tag>
+        ),
+      },
+      {
+        headerName: "Due Date",
+        field: "dueDate",
+        width: 120,
+        cellRenderer: (p) => format(new Date(p.value), "MMM dd, yyyy"),
+      },
+      {
+        headerName: "Actions",
+        width: 170,
+        pinned: "right",
+        cellRenderer: (p) => {
+          const record = p.data;
+          return (
+            <div className="h-full flex items-center gap-2">
+              {record.status === "pending" && (
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => handleProcessSettlement(record)}
+                >
+                  Process
+                </Button>
+              )}
+              <Button
+                type="text"
+                size="small"
+                icon={<IconDownload className="w-4 h-4" />}
+                onClick={() => handleExport(record)}
+              >
+                Export
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    [handleProcessSettlement, handleExport]
+  );
 
   const uniqueVendors = useMemo(() => {
     const vendors = new Set(settlements.map((s) => s.vendorId));
@@ -361,28 +378,46 @@ const SettlementReports = ({ settlements = [], onUpdateSettlements }) => {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
-          <Table
-            dataSource={paginatedSettlements.map((s) => ({ ...s, key: s.id }))}
-            columns={columns}
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: filteredSettlements.length,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} settlements`,
-              onChange: (page, size) => {
+        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden p-2">
+          {isClient ? (
+            <div style={{ width: "100%", height: 560 }}>
+              <AgGridReact
+                theme={myDarkTheme}
+                modules={[AllCommunityModule]}
+                rowData={paginatedSettlements}
+                columnDefs={columnDefs}
+                defaultColDef={{ sortable: true, resizable: true }}
+                getRowId={(p) => String(p.data.id)}
+                animateRows
+                rowHeight={56}
+                headerHeight={44}
+                suppressCellFocus
+                overlayNoRowsTemplate="No settlements found"
+              />
+            </div>
+          ) : (
+            <div className="h-[560px]" />
+          )}
+        </div>
+        {filteredSettlements.length > 0 && (
+          <div className="flex justify-end pt-3">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={filteredSettlements.length}
+              showSizeChanger
+              showTotal={(total) => `Total ${total} settlements`}
+              onChange={(page, size) => {
                 setCurrentPage(page);
                 setPageSize(size);
-              },
-              onShowSizeChange: (current, size) => {
+              }}
+              onShowSizeChange={(current, size) => {
                 setCurrentPage(1);
                 setPageSize(size);
-              },
-            }}
-            scroll={{ x: 1200 }}
-          />
-        </div>
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols, md: 2 cols */}

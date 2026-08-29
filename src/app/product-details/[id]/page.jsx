@@ -1029,8 +1029,19 @@ function ProductDetails() {
                 </div>
               )}
 
+              {/* 5K Challenge Badge */}
+              <div className="py-3 w-full">
+                <div className="w-full bg-[#f4fbf7] border border-[#1e9a58] rounded-xl p-3 flex items-center gap-3 shadow-sm">
+                  <span className="text-2xl shrink-0">🔥</span>
+                  <div>
+                    <h4 className="font-bold text-[#1e9a58] text-sm">5K Challenge Eligible</h4>
+                    <p className="text-xs text-gray-500 font-medium">Get 100% Cashback. <a href="/5k-challenge" className="underline font-bold text-[#1e9a58]">Learn more</a></p>
+                  </div>
+                </div>
+              </div>
+
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3 pt-4 w-full">
+              <div className="grid grid-cols-2 gap-3 pt-2 w-full">
                 <button
                   onClick={handleAddToCart}
                   disabled={!displayPricing.inStock}

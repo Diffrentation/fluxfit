@@ -1,8 +1,24 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
-import { Card, Select, Row, Col, Statistic, Table, Empty, message } from "antd";
+import { Card, Select, Row, Col, Statistic, message } from "antd";
 import { formatPrice } from "@/lib/formatPrice";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -14,6 +30,11 @@ const authHeaders = () => ({
 // real /api/admin/finance/commissions endpoint returns rather than mocking
 // numbers, so it reads as "no data yet" instead of fake activity.
 const CommissionTracking = () => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setIsClient(true), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [period, setPeriod] = useState("month");
   const [groupBy, setGroupBy] = useState("vendor");
   const [loading, setLoading] = useState(false);
@@ -43,77 +64,96 @@ const CommissionTracking = () => {
     load();
   }, [load]);
 
-  const columns = useMemo(() => {
+  const columnDefs = useMemo(() => {
     if (groupBy === "vendor") {
       return [
         {
-          title: "Vendor",
-          dataIndex: "vendor",
-          render: (v) => v?.name || "Platform",
+          headerName: "Vendor",
+          field: "vendor",
+          flex: 1,
+          cellRenderer: (p) => p.value?.name || "Platform",
         },
         {
-          title: "Total Sales",
-          dataIndex: "totalSales",
-          render: (v) => `₹${formatPrice(v)}`,
+          headerName: "Total Sales",
+          field: "totalSales",
+          flex: 1,
+          cellRenderer: (p) => `₹${formatPrice(p.value)}`,
         },
         {
-          title: "Commission",
-          dataIndex: "totalCommission",
-          render: (v) => `₹${formatPrice(v)}`,
+          headerName: "Commission",
+          field: "totalCommission",
+          flex: 1,
+          cellRenderer: (p) => `₹${formatPrice(p.value)}`,
         },
-        { title: "Orders", dataIndex: "totalOrders" },
+        { headerName: "Orders", field: "totalOrders", flex: 1 },
         {
-          title: "Avg Rate",
-          dataIndex: "averageCommissionRate",
-          render: (v) => `${v}%`,
+          headerName: "Avg Rate",
+          field: "averageCommissionRate",
+          flex: 1,
+          cellRenderer: (p) => `${p.value}%`,
         },
-        { title: "Settlements", dataIndex: "settlementCount" },
+        { headerName: "Settlements", field: "settlementCount", flex: 1 },
       ];
     }
     if (groupBy === "settlement") {
       return [
         {
-          title: "Vendor",
-          dataIndex: "vendor",
-          render: (v) => v?.name || "Platform",
+          headerName: "Vendor",
+          field: "vendor",
+          flex: 1,
+          cellRenderer: (p) => p.value?.name || "Platform",
         },
         {
-          title: "Period",
-          dataIndex: "period",
-          render: (p) =>
-            p?.startDate
-              ? `${new Date(p.startDate).toLocaleDateString()} – ${new Date(p.endDate).toLocaleDateString()}`
+          headerName: "Period",
+          field: "period",
+          flex: 1,
+          cellRenderer: (p) =>
+            p.value?.startDate
+              ? `${new Date(p.value.startDate).toLocaleDateString()} – ${new Date(p.value.endDate).toLocaleDateString()}`
               : "",
         },
         {
-          title: "Total Sales",
-          dataIndex: "totalSales",
-          render: (v) => `₹${formatPrice(v)}`,
+          headerName: "Total Sales",
+          field: "totalSales",
+          flex: 1,
+          cellRenderer: (p) => `₹${formatPrice(p.value)}`,
         },
         {
-          title: "Commission",
-          dataIndex: "totalCommission",
-          render: (v) => `₹${formatPrice(v)}`,
+          headerName: "Commission",
+          field: "totalCommission",
+          flex: 1,
+          cellRenderer: (p) => `₹${formatPrice(p.value)}`,
         },
-        { title: "Status", dataIndex: "status" },
+        { headerName: "Status", field: "status", flex: 1 },
       ];
     }
     return [
-      { title: "Period", dataIndex: "period" },
+      { headerName: "Period", field: "period", flex: 1 },
       {
-        title: "Total Sales",
-        dataIndex: "totalSales",
-        render: (v) => `₹${formatPrice(v)}`,
+        headerName: "Total Sales",
+        field: "totalSales",
+        flex: 1,
+        cellRenderer: (p) => `₹${formatPrice(p.value)}`,
       },
       {
-        title: "Commission",
-        dataIndex: "totalCommission",
-        render: (v) => `₹${formatPrice(v)}`,
+        headerName: "Commission",
+        field: "totalCommission",
+        flex: 1,
+        cellRenderer: (p) => `₹${formatPrice(p.value)}`,
       },
-      { title: "Orders", dataIndex: "totalOrders" },
-      { title: "Settlements", dataIndex: "settlementCount" },
+      { headerName: "Orders", field: "totalOrders", flex: 1 },
+      { headerName: "Settlements", field: "settlementCount", flex: 1 },
     ];
   }, [groupBy]);
+
+  const rowData = useMemo(
+    () =>
+      rows.map((r, i) => ({
+        ...r,
+        __rowKey: String(r.vendor?.id || r.settlementId || r.period || i),
+      })),
+    [rows]
+  );
 
   return (
     <div className="space-y-4">
@@ -179,20 +219,26 @@ const CommissionTracking = () => {
       )}
 
       <Card>
-        <Table
-          rowKey={(r, i) => r.vendor?.id || r.settlementId || r.period || i}
-          columns={columns}
-          dataSource={rows}
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          locale={{
-            emptyText: (
-              <Empty
-                description="No vendor settlement/commission records yet — FluxFit currently sells only its own catalog, so this fills in once a multi-vendor settlement flow is used"
-              />
-            ),
-          }}
-        />
+        {isClient ? (
+          <div style={{ width: "100%", height: 400 }}>
+            <AgGridReact
+              theme={myDarkTheme}
+              modules={[AllCommunityModule]}
+              rowData={rowData}
+              columnDefs={columnDefs}
+              defaultColDef={{ sortable: true, resizable: true }}
+              getRowId={(p) => p.data.__rowKey}
+              animateRows
+              rowHeight={48}
+              headerHeight={40}
+              loading={loading}
+              suppressCellFocus
+              overlayNoRowsTemplate="No vendor settlement/commission records yet — FluxFit currently sells only its own catalog, so this fills in once a multi-vendor settlement flow is used"
+            />
+          </div>
+        ) : (
+          <div className="h-[400px]" />
+        )}
       </Card>
     </div>
   );

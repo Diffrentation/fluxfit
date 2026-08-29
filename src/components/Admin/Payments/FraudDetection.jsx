@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import {
   Card,
@@ -7,7 +7,6 @@ import {
   Row,
   Col,
   Statistic,
-  Table,
   Tag,
   message,
   Descriptions,
@@ -15,8 +14,24 @@ import {
   Modal,
   Input,
 } from "antd";
-import { IconShieldExclamation, IconCheck } from "@tabler/icons-react";
+import { IconShieldExclamation, IconCheck, IconEye } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { TextArea } = Input;
 
@@ -53,6 +68,11 @@ const REVIEW_ACTIONS = [
 ];
 
 const FraudDetection = () => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setIsClient(true), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [severity, setSeverity] = useState(undefined);
   const [status, setStatus] = useState(undefined);
   const [loading, setLoading] = useState(false);
@@ -61,6 +81,7 @@ const FraudDetection = () => {
   const [reviewTarget, setReviewTarget] = useState(null); // { alert, status }
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [detailsTarget, setDetailsTarget] = useState(null); // alert whose details are shown
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,70 +131,93 @@ const FraudDetection = () => {
     }
   };
 
-  const columns = [
-    {
-      title: "Severity",
-      dataIndex: "severity",
-      width: 100,
-      render: (v) => (
-        <Tag color={severityColor[v] || "default"} className="capitalize">
-          {v}
-        </Tag>
-      ),
-    },
-    {
-      title: "Alert",
-      dataIndex: "title",
-      render: (v, r) => (
-        <div>
-          <div className="font-medium">{v}</div>
-          <div className="text-xs text-gray-500">{TYPE_LABELS[r.type] || r.type}</div>
-        </div>
-      ),
-    },
-    { title: "Description", dataIndex: "description" },
-    {
-      title: "Status",
-      dataIndex: "status",
-      width: 130,
-      render: (v, r) => (
-        <div>
-          <Tag color={statusColor[v] || "default"} className="capitalize">
-            {v.replace("-", " ")}
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Severity",
+        field: "severity",
+        width: 110,
+        cellRenderer: (p) => (
+          <Tag color={severityColor[p.value] || "default"} className="capitalize">
+            {p.value}
           </Tag>
-          {r.review?.reviewedBy && (
-            <div className="text-[10px] text-gray-500 mt-1">
-              by {r.review.reviewedBy.name}
+        ),
+      },
+      {
+        headerName: "Alert",
+        field: "title",
+        flex: 1,
+        minWidth: 180,
+        cellRenderer: (p) => (
+          <div className="h-full flex flex-col justify-center">
+            <div className="font-medium">{p.value}</div>
+            <div className="text-xs text-gray-500">
+              {TYPE_LABELS[p.data.type] || p.data.type}
             </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: "Detected",
-      dataIndex: "detectedAt",
-      width: 160,
-      render: (v) => new Date(v).toLocaleString(),
-    },
-    {
-      title: "Actions",
-      width: 260,
-      render: (_, r) => (
-        <div className="flex flex-wrap gap-1.5">
-          {REVIEW_ACTIONS.filter((a) => a.status !== r.status).map((a) => (
-            <Button
-              key={a.status}
-              size="small"
-              icon={a.status === "resolved" ? <IconCheck className="w-3.5 h-3.5" /> : undefined}
-              onClick={() => openReviewModal(r, a.status)}
-            >
-              {a.label}
-            </Button>
-          ))}
-        </div>
-      ),
-    },
-  ];
+          </div>
+        ),
+      },
+      {
+        headerName: "Description",
+        field: "description",
+        flex: 1,
+        minWidth: 200,
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 140,
+        cellRenderer: (p) => (
+          <div className="h-full flex flex-col justify-center">
+            <Tag color={statusColor[p.value] || "default"} className="capitalize">
+              {p.value.replace("-", " ")}
+            </Tag>
+            {p.data.review?.reviewedBy && (
+              <div className="text-[10px] text-gray-500 mt-1">
+                by {p.data.review.reviewedBy.name}
+              </div>
+            )}
+          </div>
+        ),
+      },
+      {
+        headerName: "Detected",
+        field: "detectedAt",
+        width: 170,
+        cellRenderer: (p) => new Date(p.value).toLocaleString(),
+      },
+      {
+        headerName: "Actions",
+        width: 320,
+        pinned: "right",
+        cellRenderer: (p) => {
+          const r = p.data;
+          return (
+            <div className="h-full flex flex-wrap items-center gap-1.5">
+              <Button
+                size="small"
+                icon={<IconEye className="w-3.5 h-3.5" />}
+                onClick={() => setDetailsTarget(r)}
+              >
+                Details
+              </Button>
+              {REVIEW_ACTIONS.filter((a) => a.status !== r.status).map((a) => (
+                <Button
+                  key={a.status}
+                  size="small"
+                  icon={a.status === "resolved" ? <IconCheck className="w-3.5 h-3.5" /> : undefined}
+                  onClick={() => openReviewModal(r, a.status)}
+                >
+                  {a.label}
+                </Button>
+              ))}
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-4">
@@ -242,37 +286,63 @@ const FraudDetection = () => {
       )}
 
       <Card>
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={alerts}
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          expandable={{
-            expandedRowRender: (r) => (
-              <div className="space-y-3">
-                <Descriptions size="small" column={2} bordered>
-                  {Object.entries(r.details || {}).map(([k, v]) => (
-                    <Descriptions.Item key={k} label={k}>
-                      {Array.isArray(v)
-                        ? v.length
-                        : typeof v === "number" && /amount|total/i.test(k)
-                          ? `₹${formatPrice(v)}`
-                          : String(v)}
-                    </Descriptions.Item>
-                  ))}
-                </Descriptions>
-                {r.review?.notes && (
-                  <div className="text-xs bg-zinc-900 border border-zinc-800 rounded-lg p-2.5">
-                    <span className="text-gray-400">Review notes: </span>
-                    {r.review.notes}
-                  </div>
-                )}
-              </div>
-            ),
-          }}
-        />
+        {isClient ? (
+          <div style={{ width: "100%", height: 560 }}>
+            <AgGridReact
+              theme={myDarkTheme}
+              modules={[AllCommunityModule]}
+              rowData={alerts}
+              columnDefs={columnDefs}
+              defaultColDef={{ sortable: true, resizable: true }}
+              getRowId={(p) => String(p.data.id)}
+              animateRows
+              rowHeight={64}
+              headerHeight={44}
+              loading={loading}
+              suppressCellFocus
+              overlayNoRowsTemplate="No fraud alerts found"
+            />
+          </div>
+        ) : (
+          <div className="h-[560px]" />
+        )}
       </Card>
+
+      {/* Alert Details Modal — replaces the antd Table's inline expandable
+          row (not available in AG Grid Community) with an equivalent
+          on-demand details view. */}
+      <Modal
+        title={detailsTarget?.title}
+        open={!!detailsTarget}
+        onCancel={() => setDetailsTarget(null)}
+        footer={[
+          <Button key="close" onClick={() => setDetailsTarget(null)}>
+            Close
+          </Button>,
+        ]}
+      >
+        {detailsTarget && (
+          <div className="space-y-3">
+            <Descriptions size="small" column={2} bordered>
+              {Object.entries(detailsTarget.details || {}).map(([k, v]) => (
+                <Descriptions.Item key={k} label={k}>
+                  {Array.isArray(v)
+                    ? v.length
+                    : typeof v === "number" && /amount|total/i.test(k)
+                      ? `₹${formatPrice(v)}`
+                      : String(v)}
+                </Descriptions.Item>
+              ))}
+            </Descriptions>
+            {detailsTarget.review?.notes && (
+              <div className="text-xs bg-zinc-900 border border-zinc-800 rounded-lg p-2.5">
+                <span className="text-gray-400">Review notes: </span>
+                {detailsTarget.review.notes}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       <Modal
         title={reviewTarget ? REVIEW_ACTIONS.find((a) => a.status === reviewTarget.status)?.label : ""}

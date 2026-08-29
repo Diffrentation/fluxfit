@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { Tree, Button, Dropdown, Tag, message, Card, Spin } from "antd";
+import { Button, Dropdown, Tag, message, Card, Spin } from "antd";
 import {
   IconEdit,
   IconTrash,
@@ -13,6 +13,22 @@ import {
   IconArrowUp,
   IconArrowDown,
 } from "@tabler/icons-react";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const CategoryTree = ({
   categories: categoriesProp,
@@ -24,11 +40,15 @@ const CategoryTree = ({
 }) => {
   const [fetchedCategories, setFetchedCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [expandedKeys, setExpandedKeys] = useState([]);
-  const [selectedKeys, setSelectedKeys] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState({});
+  const [isClient, setIsClient] = useState(false);
 
-  const categories = fetchedCategories.length > 0 ? fetchedCategories : (categoriesProp || []);
+  useEffect(() => setIsClient(true), []);
+
+  const categories = useMemo(
+    () => (fetchedCategories.length > 0 ? fetchedCategories : (categoriesProp || [])),
+    [fetchedCategories, categoriesProp]
+  );
   const getCategoryId = useCallback((category) => category?.id ?? category?._id, []);
 
   const getCategoryActionItems = useCallback(
@@ -119,50 +139,90 @@ const CategoryTree = ({
     };
   }, [fetchCategories]);
 
-  /* ---------------- DESKTOP TREE VIEW ---------------- */
-  const buildTreeData = (cats) =>
-    cats.map((category) => ({
-      title: (
-        <div className="flex items-center justify-between group hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded transition-colors">
-          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-            <span className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
-              {category.name}
-            </span>
+  /* ---------------- DESKTOP GRID VIEW ----------------
+   * AG Grid Community has no tree/hierarchical row-grouping support
+   * (that's Enterprise-only), so the nested category tree is flattened
+   * into a single depth-first array here. Hierarchy is then conveyed
+   * visually via indentation (+ a small connector) in the Name column's
+   * cellRenderer rather than via real grid grouping. */
+  const flattenTree = useCallback(
+    (cats, depth = 0) => {
+      const rows = [];
+      (cats || []).forEach((category) => {
+        rows.push({ ...category, depth });
+        if (category.children && category.children.length > 0) {
+          rows.push(...flattenTree(category.children, depth + 1));
+        }
+      });
+      return rows;
+    },
+    []
+  );
 
-            <Tag color="blue" className="text-xs sm:text-sm">
-              {category.slug}
-            </Tag>
+  const flatRows = useMemo(() => flattenTree(categories), [flattenTree, categories]);
 
-            {category.productCount !== undefined && (
-              <Tag color="green" className="hidden sm:inline-flex text-xs sm:text-sm">
-                {category.productCount} products
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Name",
+        field: "name",
+        flex: 1,
+        minWidth: 260,
+        sortable: false,
+        cellRenderer: (p) => {
+          const category = p.data;
+          const depth = category.depth || 0;
+          return (
+            <div
+              className="h-full flex items-center gap-2 sm:gap-3 min-w-0"
+              style={{ paddingLeft: depth * 20 }}
+            >
+              {depth > 0 && (
+                <span className="text-gray-500 dark:text-gray-600 shrink-0">└─</span>
+              )}
+              <span className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
+                {category.name}
+              </span>
+              <Tag color="blue" className="text-xs sm:text-sm shrink-0">
+                {category.slug}
               </Tag>
-            )}
-
-            {category.children?.length > 0 && (
-              <Tag color="gray" className="hidden sm:inline-flex text-xs sm:text-sm">
-                {category.children.length} subcategories
-              </Tag>
-            )}
-          </div>
-
-          <Dropdown menu={{ items: getCategoryActionItems(category) }} trigger={["click"]}>
-            <Button
-              type="text"
-              icon={<IconDots className="w-4 h-4" />}
-              className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
-            />
+              {category.children?.length > 0 && (
+                <Tag color="gray" className="hidden sm:inline-flex text-xs sm:text-sm shrink-0">
+                  {category.children.length} subcategories
+                </Tag>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Product Count",
+        width: 160,
+        valueGetter: (p) => p.data.productCount ?? 0,
+        cellRenderer: (p) => <Tag color="green">{p.value} products</Tag>,
+      },
+      {
+        headerName: "Status",
+        width: 130,
+        valueGetter: (p) => (p.data.isActive ? "Active" : "Inactive"),
+        cellRenderer: (p) => (
+          <Tag color={p.data.isActive ? "green" : "default"}>{p.value}</Tag>
+        ),
+      },
+      {
+        headerName: "Actions",
+        width: 90,
+        pinned: "right",
+        sortable: false,
+        cellRenderer: (p) => (
+          <Dropdown menu={{ items: getCategoryActionItems(p.data) }} trigger={["click"]}>
+            <Button type="text" icon={<IconDots className="w-4 h-4" />} />
           </Dropdown>
-        </div>
-      ),
-      key: getCategoryId(category).toString(),
-      children:
-        category.children && category.children.length > 0
-          ? buildTreeData(category.children)
-          : undefined,
-    }));
-
-  const treeData = buildTreeData(categories);
+        ),
+      },
+    ],
+    [getCategoryActionItems]
+  );
 
   /* ---------------- MOBILE CARD VIEW ---------------- */
   const toggleCategoryExpand = (categoryId) => {
@@ -246,19 +306,30 @@ const CategoryTree = ({
         </div>
       ) : (
         <>
-          {/* Desktop Tree */}
+          {/* Desktop Grid */}
           <div className="hidden lg:block">
-            <Tree
-              showLine
-              switcherIcon={({ expanded }) =>
-                expanded ? <IconChevronDown /> : <IconChevronRight />
-              }
-              expandedKeys={expandedKeys}
-              selectedKeys={selectedKeys}
-              onExpand={setExpandedKeys}
-              onSelect={setSelectedKeys}
-              treeData={treeData}
-            />
+            {isClient ? (
+              <div style={{ width: "100%", height: 560 }}>
+                <AgGridReact
+                  theme={myDarkTheme}
+                  modules={[AllCommunityModule]}
+                  rowData={flatRows}
+                  columnDefs={columnDefs}
+                  // Rows are a fixed depth-first tree order (indentation
+                  // conveys parent/child) — sorting any column would scatter
+                  // that order and make the hierarchy display misleading.
+                  defaultColDef={{ sortable: false, resizable: true }}
+                  getRowId={(p) => String(getCategoryId(p.data))}
+                  animateRows
+                  rowHeight={56}
+                  headerHeight={44}
+                  suppressCellFocus
+                  overlayNoRowsTemplate="No categories found"
+                />
+              </div>
+            ) : (
+              <div className="h-[560px]" />
+            )}
           </div>
 
           {/* Mobile Cards */}

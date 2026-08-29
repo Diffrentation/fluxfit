@@ -12,11 +12,26 @@ import {
   Pagination,
   Select,
   Spin,
-  Table,
   Tag,
 } from "antd";
 import { IconBrandWhatsapp, IconMail } from "@tabler/icons-react";
 import AdminContent from "@/components/Admin/AdminContent";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { Option } = Select;
 
@@ -93,6 +108,24 @@ export default function AdminContactsPage() {
     totalPages: 1,
   });
   const [actionId, setActionId] = useState(null);
+  const [isClient, setIsClient] = useState(false);
+  // The old antd Table hid "Received" below the `lg` breakpoint via
+  // `responsive: ["lg"]`; AG Grid has no built-in equivalent, so track it
+  // ourselves and hide that column at the same width.
+  const [isLgUp, setIsLgUp] = useState(true);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    setIsLgUp(mql.matches);
+    const handleChange = (e) => setIsLgUp(e.matches);
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []);
 
   const statusParam = statusFilter === "all" ? undefined : statusFilter;
 
@@ -262,83 +295,77 @@ export default function AdminContactsPage() {
     [actionId, deleteQuery, openEmail, openWhatsApp, updateContactStatus]
   );
 
-  const columns = useMemo(
+  const columnDefs = useMemo(
     () => [
       {
-        title: "From",
-        key: "from",
-        width: 180,
-        ellipsis: true,
-        render: (_, row) => (
-          <div className="min-w-0">
+        headerName: "From",
+        width: 200,
+        cellRenderer: (p) => (
+          <div className="min-w-0 py-2">
             <div className="font-medium text-gray-900 dark:text-white truncate">
-              {row.name}
+              {p.data.name}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 break-all">
-              {row.email}
+              {p.data.email}
             </div>
-            {row.phone ? (
+            {p.data.phone ? (
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {row.phone}
+                {p.data.phone}
               </div>
             ) : null}
           </div>
         ),
       },
       {
-        title: "Subject",
-        dataIndex: "subject",
-        key: "subject",
-        width: 160,
-        ellipsis: true,
-        render: (t) => (
-          <div className="min-w-0 max-w-[200px] whitespace-pre-wrap wrap-anywhere text-sm text-gray-800 dark:text-gray-200 leading-snug">
-            {t}
+        headerName: "Subject",
+        field: "subject",
+        width: 180,
+        cellRenderer: (p) => (
+          <div className="min-w-0 max-w-[200px] whitespace-pre-wrap wrap-anywhere text-sm text-gray-800 dark:text-gray-200 leading-snug py-2">
+            {p.value}
           </div>
         ),
       },
       {
-        title: "Message",
-        dataIndex: "message",
-        key: "message",
-        width: 280,
-        render: (t) => (
+        headerName: "Message",
+        field: "message",
+        width: 300,
+        cellRenderer: (p) => (
           <div
-            className="max-h-52 min-h-10 w-full min-w-[200px] max-w-[min(100%,360px)] overflow-y-auto overflow-x-hidden whitespace-pre-wrap wrap-anywhere text-sm leading-relaxed text-gray-700 dark:text-gray-200"
+            className="max-h-52 min-h-10 my-2 w-full min-w-[200px] max-w-[min(100%,360px)] overflow-y-auto overflow-x-hidden whitespace-pre-wrap wrap-anywhere text-sm leading-relaxed text-gray-700 dark:text-gray-200"
             tabIndex={0}
           >
-            {t}
+            {p.value}
           </div>
         ),
       },
       {
-        title: "Status",
-        dataIndex: "status",
-        key: "status",
-        width: 100,
-        render: (s) => statusTag(s),
+        headerName: "Status",
+        field: "status",
+        width: 110,
+        cellRenderer: (p) => statusTag(p.value),
       },
       {
-        title: "Received",
-        dataIndex: "createdAt",
-        key: "createdAt",
-        width: 108,
-        responsive: ["lg"],
-        render: (d) => (
+        headerName: "Received",
+        field: "createdAt",
+        width: 120,
+        // Matches the old antd Table's `responsive: ["lg"]` — hidden below
+        // the `lg` breakpoint to save space on tablet-width viewports.
+        hide: !isLgUp,
+        cellRenderer: (p) => (
           <span className="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-            {formatReceived(d)}
+            {formatReceived(p.value)}
           </span>
         ),
       },
       {
-        title: "Actions",
-        key: "actions",
+        headerName: "Actions",
         width: 340,
-        fixed: "right",
-        render: (_, row) => renderActionBlock(row, false),
+        pinned: "right",
+        cellRenderer: (p) => renderActionBlock(p.data, false),
       },
     ],
-    [renderActionBlock]
+    [renderActionBlock, isLgUp]
   );
 
   const emptyState = !loading && tableRows.length === 0;
@@ -384,38 +411,48 @@ export default function AdminContactsPage() {
             {/* Main content: card shells full width; inner table scrolls on md+ */}
             <section className="min-w-0 rounded-xl border shadow-sm border-zinc-800 !bg-zinc-950">
               <Spin spinning={loading}>
-                {/* Desktop / tablet: data table */}
-                <div className="hidden min-w-0 md:block">
-                  <div className="w-full min-w-0 overflow-x-auto">
-                    <Table
-                      className="min-w-[900px] [&_.ant-table-cell]:align-top"
-                      columns={columns}
-                      dataSource={tableRows}
-                      pagination={{
-                        current: page,
-                        pageSize: limit,
-                        total: pagination.total,
-                        showSizeChanger: false,
-                        onChange: (p) => setPage(p),
-                        responsive: true,
-                        showTotal: (t) => `${t} queries`,
-                      }}
-                      scroll={{ x: "max-content" }}
-                      tableLayout="auto"
-                      locale={{
-                        emptyText: loading ? (
-                          <span />
-                        ) : (
-                          <Empty description="No contact queries yet" />
-                        ),
-                      }}
-                      rowClassName={(record) =>
-                        record.status === "pending"
-                          ? "bg-amber-50/80 dark:bg-amber-950/25"
-                          : ""
-                      }
-                    />
-                  </div>
+                {/* Desktop / tablet: data grid */}
+                <div className="hidden min-w-0 md:block p-2">
+                  {emptyState ? (
+                    <Empty description="No contact queries yet" className="py-12" />
+                  ) : isClient ? (
+                    <div style={{ width: "100%", height: 560 }}>
+                      <AgGridReact
+                        theme={myDarkTheme}
+                        modules={[AllCommunityModule]}
+                        rowData={tableRows}
+                        columnDefs={columnDefs}
+                        defaultColDef={{ sortable: true, resizable: true }}
+                        getRowId={(p) => String(p.data.id)}
+                        animateRows
+                        rowHeight={72}
+                        headerHeight={44}
+                        loading={loading}
+                        suppressCellFocus
+                        overlayNoRowsTemplate="No contact queries yet"
+                        getRowClass={(p) =>
+                          p.data.status === "pending"
+                            ? "bg-amber-50/80 dark:bg-amber-950/25"
+                            : ""
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-[560px]" />
+                  )}
+                  {!emptyState ? (
+                    <div className="flex justify-center pt-4">
+                      <Pagination
+                        current={page}
+                        pageSize={limit}
+                        total={pagination.total}
+                        onChange={(p) => setPage(p)}
+                        showSizeChanger={false}
+                        showTotal={(t) => `${t} queries`}
+                        responsive
+                      />
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Mobile: card grid */}

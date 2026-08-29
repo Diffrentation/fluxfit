@@ -1,9 +1,25 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, message, Spin, Tabs } from "antd";
+import React, { useState, useEffect, useMemo } from "react";
+import { Button, Modal, Form, Input, message, Spin, Tabs } from "antd";
 import { IconEdit, IconPlus } from "@tabler/icons-react";
 import axios from "axios";
 import dynamic from "next/dynamic";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { TextArea } = Input;
 
@@ -13,6 +29,11 @@ export default function PagesManager() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
   const [form] = Form.useForm();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const fetchPages = async () => {
     setLoading(true);
@@ -77,39 +98,50 @@ export default function PagesManager() {
     }
   };
 
-  const columns = [
-    {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
-      className: "font-medium",
-    },
-    {
-      title: "Slug",
-      dataIndex: "slug",
-      key: "slug",
-      render: (slug) => <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded">/{slug}</span>,
-    },
-    {
-      title: "Updated At",
-      dataIndex: "updatedAt",
-      key: "updatedAt",
-      render: (date) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Button
-          type="text"
-          icon={<IconEdit className="w-4 h-4 text-[#1e9a58]" />}
-          onClick={() => openModal(record)}
-        >
-          Edit
-        </Button>
-      ),
-    },
-  ];
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Title",
+        field: "title",
+        flex: 1,
+        minWidth: 160,
+        cellClass: "font-medium",
+      },
+      {
+        headerName: "Slug",
+        field: "slug",
+        flex: 1,
+        minWidth: 160,
+        cellRenderer: (p) => (
+          <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            /{p.value}
+          </span>
+        ),
+      },
+      {
+        headerName: "Updated At",
+        field: "updatedAt",
+        width: 160,
+        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : ""),
+      },
+      {
+        headerName: "Actions",
+        width: 110,
+        pinned: "right",
+        cellRenderer: (p) => (
+          <Button
+            type="text"
+            icon={<IconEdit className="w-4 h-4 text-[#1e9a58]" />}
+            onClick={() => openModal(p.data)}
+          >
+            Edit
+          </Button>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pages]
+  );
 
   return (
     <div className="!bg-zinc-950/80 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-800 p-6 md:p-8">
@@ -128,13 +160,26 @@ export default function PagesManager() {
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={pages}
-        rowKey="_id"
-        loading={loading}
-        pagination={{ pageSize: 10 }}
-      />
+      {isClient ? (
+        <div style={{ width: "100%", height: 560 }}>
+          <AgGridReact
+            theme={myDarkTheme}
+            modules={[AllCommunityModule]}
+            rowData={pages}
+            columnDefs={columnDefs}
+            defaultColDef={{ sortable: true, resizable: true }}
+            getRowId={(p) => String(p.data._id || p.data.id)}
+            animateRows
+            rowHeight={56}
+            headerHeight={44}
+            loading={loading}
+            suppressCellFocus
+            overlayNoRowsTemplate="No pages found"
+          />
+        </div>
+      ) : (
+        <div className="h-[560px]" />
+      )}
 
       <Modal
         title={<span className="text-xl font-bold text-gray-900">{editingPage ? "Edit Page Content" : "Create Page Content"}</span>}

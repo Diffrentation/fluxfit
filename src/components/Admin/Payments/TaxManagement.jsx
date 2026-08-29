@@ -1,15 +1,36 @@
 "use client";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Table, Tag, Button, Select, DatePicker, Statistic, Row, Col, Pagination, message } from "antd";
+import { Card, Tag, Button, Select, DatePicker, Statistic, Row, Col, Pagination, message } from "antd";
 import { IconDownload, IconCalculator } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setIsClient(true), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [stateFilter, setStateFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -121,72 +142,66 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
     </motion.div>
   );
 
-  const columns = [
-    {
-      title: "Order ID",
-      dataIndex: "orderId",
-      key: "orderId",
-      width: 120,
-      render: (id) => <span className="font-mono">#{id}</span>,
-    },
-    {
-      title: "Order Amount",
-      dataIndex: "amount",
-      key: "amount",
-      width: 130,
-      render: (amount) => <span className="font-semibold">₹{formatPrice(amount)}</span>,
-    },
-    {
-      title: "GST Rate",
-      dataIndex: "gstRate",
-      key: "gstRate",
-      width: 100,
-      render: (rate) => <Tag color="blue">{rate}%</Tag>,
-    },
-    {
-      title: "CGST (9%)",
-      dataIndex: "cgst",
-      key: "cgst",
-      width: 120,
-      render: (amount) => <span>₹{formatPrice(amount)}</span>,
-    },
-    {
-      title: "SGST (9%)",
-      dataIndex: "sgst",
-      key: "sgst",
-      width: 120,
-      render: (amount) => <span>₹{formatPrice(amount)}</span>,
-    },
-    {
-      title: "IGST (18%)",
-      dataIndex: "igst",
-      key: "igst",
-      width: 120,
-      render: (amount) => <span>₹{formatPrice(amount)}</span>,
-    },
-    {
-      title: "Total Tax",
-      dataIndex: "totalTax",
-      key: "totalTax",
-      width: 120,
-      render: (amount) => (
-        <span className="font-semibold text-purple-600">₹{formatPrice(amount)}</span>
-      ),
-    },
-    {
-      title: "State",
-      dataIndex: "state",
-      key: "state",
-      width: 150,
-    },
-    {
-      title: "Date",
-      dataIndex: "date",
-      key: "date",
-      width: 120,
-      render: (date) => format(new Date(date), "MMM dd, yyyy"),
-    },
-  ];
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Order ID",
+        field: "orderId",
+        width: 120,
+        cellRenderer: (p) => <span className="font-mono">#{p.value}</span>,
+      },
+      {
+        headerName: "Order Amount",
+        field: "amount",
+        width: 130,
+        cellRenderer: (p) => <span className="font-semibold">₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "GST Rate",
+        field: "gstRate",
+        width: 100,
+        cellRenderer: (p) => <Tag color="blue">{p.value}%</Tag>,
+      },
+      {
+        headerName: "CGST (9%)",
+        field: "cgst",
+        width: 120,
+        cellRenderer: (p) => <span>₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "SGST (9%)",
+        field: "sgst",
+        width: 120,
+        cellRenderer: (p) => <span>₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "IGST (18%)",
+        field: "igst",
+        width: 120,
+        cellRenderer: (p) => <span>₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "Total Tax",
+        field: "totalTax",
+        width: 120,
+        cellRenderer: (p) => (
+          <span className="font-semibold text-purple-600">₹{formatPrice(p.value)}</span>
+        ),
+      },
+      {
+        headerName: "State",
+        field: "state",
+        width: 150,
+      },
+      {
+        headerName: "Date",
+        field: "date",
+        width: 120,
+        cellRenderer: (p) => format(new Date(p.value), "MMM dd, yyyy"),
+      },
+    ],
+    []
+  );
 
   const uniqueStates = useMemo(() => {
     const states = new Set(taxData.map((t) => t.state));
@@ -281,28 +296,46 @@ const TaxManagement = ({ taxData = [], onUpdateTaxData }) => {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
-          <Table
-            dataSource={paginatedTaxData.map((t) => ({ ...t, key: t.id }))}
-            columns={columns}
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: filteredTaxData.length,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} transactions`,
-              onChange: (page, size) => {
+        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden p-2">
+          {isClient ? (
+            <div style={{ width: "100%", height: 560 }}>
+              <AgGridReact
+                theme={myDarkTheme}
+                modules={[AllCommunityModule]}
+                rowData={paginatedTaxData}
+                columnDefs={columnDefs}
+                defaultColDef={{ sortable: true, resizable: true }}
+                getRowId={(p) => String(p.data.id)}
+                animateRows
+                rowHeight={56}
+                headerHeight={44}
+                suppressCellFocus
+                overlayNoRowsTemplate="No tax records found"
+              />
+            </div>
+          ) : (
+            <div className="h-[560px]" />
+          )}
+        </div>
+        {filteredTaxData.length > 0 && (
+          <div className="flex justify-end pt-3">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={filteredTaxData.length}
+              showSizeChanger
+              showTotal={(total) => `Total ${total} transactions`}
+              onChange={(page, size) => {
                 setCurrentPage(page);
                 setPageSize(size);
-              },
-              onShowSizeChange: (current, size) => {
+              }}
+              onShowSizeChange={(current, size) => {
                 setCurrentPage(1);
                 setPageSize(size);
-              },
-            }}
-            scroll={{ x: 1200 }}
-          />
-        </div>
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols, md: 2 cols */}

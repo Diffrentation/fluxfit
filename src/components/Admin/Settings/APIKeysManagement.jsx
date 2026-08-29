@@ -1,9 +1,8 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
-  Table,
   Button,
   Modal,
   Form,
@@ -29,6 +28,22 @@ import {
 } from "@tabler/icons-react";
 import axios from "axios";
 import dayjs from "dayjs";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { Option } = Select;
 
@@ -47,6 +62,11 @@ const APIKeysManagement = ({ onSave }) => {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [revealedCredential, setRevealedCredential] = useState(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -184,73 +204,91 @@ const APIKeysManagement = ({ onSave }) => {
     return colors[type] || "default";
   };
 
-  const columns = [
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      render: (name) => <span className="font-semibold">{name}</span>,
-    },
-    {
-      title: "Key",
-      dataIndex: "key",
-      key: "key",
-      render: (key) => <code className="text-xs">{key}</code>,
-    },
-    {
-      title: "Type",
-      dataIndex: "type",
-      key: "type",
-      render: (type) => <Tag color={getTypeColor(type)} className="capitalize">{type}</Tag>,
-    },
-    {
-      title: "Permissions",
-      dataIndex: "permissions",
-      key: "permissions",
-      render: (perms) => (perms?.length ? perms.join(", ") : "—"),
-    },
-    {
-      title: "Rate Limit",
-      key: "rateLimit",
-      render: (_, record) => `${record.rateLimit?.requests ?? 100}/${record.rateLimit?.period ?? "minute"}`,
-    },
-    {
-      title: "Usage",
-      key: "usage",
-      render: (_, record) => record.usage?.count ?? 0,
-    },
-    {
-      title: "Status",
-      dataIndex: "isValid",
-      key: "isValid",
-      render: (isValid) => (
-        <Tag color={isValid ? "green" : "red"}>{isValid ? "Active" : "Inactive/Expired"}</Tag>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Edit">
-            <Button type="text" icon={<IconEdit className="w-4 h-4" />} onClick={() => handleEdit(record)} />
-          </Tooltip>
-          <Popconfirm
-            title="Regenerate key & secret?"
-            description="The old key/secret stop working immediately."
-            onConfirm={() => handleRegenerate(record.id)}
-          >
-            <Tooltip title="Regenerate">
-              <Button type="text" icon={<IconRefresh className="w-4 h-4" />} />
-            </Tooltip>
-          </Popconfirm>
-          <Popconfirm title="Delete this API key?" onConfirm={() => handleDelete(record.id)}>
-            <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Name",
+        field: "name",
+        flex: 1,
+        minWidth: 140,
+        cellRenderer: (p) => <span className="font-semibold">{p.value}</span>,
+      },
+      {
+        headerName: "Key",
+        field: "key",
+        flex: 1,
+        minWidth: 160,
+        cellRenderer: (p) => <code className="text-xs">{p.value}</code>,
+      },
+      {
+        headerName: "Type",
+        field: "type",
+        width: 110,
+        cellRenderer: (p) => (
+          <Tag color={getTypeColor(p.value)} className="capitalize">
+            {p.value}
+          </Tag>
+        ),
+      },
+      {
+        headerName: "Permissions",
+        field: "permissions",
+        flex: 1,
+        minWidth: 160,
+        valueGetter: (p) => (p.data.permissions?.length ? p.data.permissions.join(", ") : "—"),
+      },
+      {
+        headerName: "Rate Limit",
+        width: 130,
+        valueGetter: (p) => `${p.data.rateLimit?.requests ?? 100}/${p.data.rateLimit?.period ?? "minute"}`,
+      },
+      {
+        headerName: "Usage",
+        width: 90,
+        valueGetter: (p) => p.data.usage?.count ?? 0,
+      },
+      {
+        headerName: "Status",
+        field: "isValid",
+        width: 140,
+        cellRenderer: (p) => (
+          <Tag color={p.value ? "green" : "red"}>{p.value ? "Active" : "Inactive/Expired"}</Tag>
+        ),
+      },
+      {
+        headerName: "Actions",
+        width: 130,
+        pinned: "right",
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center">
+            <Space>
+              <Tooltip title="Edit">
+                <Button
+                  type="text"
+                  icon={<IconEdit className="w-4 h-4" />}
+                  onClick={() => handleEdit(p.data)}
+                />
+              </Tooltip>
+              <Popconfirm
+                title="Regenerate key & secret?"
+                description="The old key/secret stop working immediately."
+                onConfirm={() => handleRegenerate(p.data.id)}
+              >
+                <Tooltip title="Regenerate">
+                  <Button type="text" icon={<IconRefresh className="w-4 h-4" />} />
+                </Tooltip>
+              </Popconfirm>
+              <Popconfirm title="Delete this API key?" onConfirm={() => handleDelete(p.data.id)}>
+                <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} />
+              </Popconfirm>
+            </Space>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [apiKeys]
+  );
 
   if (loading) {
     return (
@@ -290,14 +328,26 @@ const APIKeysManagement = ({ onSave }) => {
         }
         className="w-full min-w-0"
       >
-        <div className="overflow-x-auto">
-          <Table
-            dataSource={apiKeys.map((k) => ({ ...k, key: k.id }))}
-            columns={columns}
-            pagination={false}
-            scroll={{ x: 900 }}
-          />
-        </div>
+        {isClient ? (
+          <div style={{ width: "100%", height: 400 }}>
+            <AgGridReact
+              theme={myDarkTheme}
+              modules={[AllCommunityModule]}
+              rowData={apiKeys}
+              columnDefs={columnDefs}
+              defaultColDef={{ sortable: true, resizable: true }}
+              getRowId={(p) => String(p.data.id)}
+              animateRows
+              rowHeight={52}
+              headerHeight={44}
+              loading={loading}
+              suppressCellFocus
+              overlayNoRowsTemplate="No API keys found"
+            />
+          </div>
+        ) : (
+          <div className="h-[400px]" />
+        )}
       </Card>
 
       <Modal

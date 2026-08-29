@@ -1,11 +1,27 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Button, Input, Switch, Table, message, Upload } from "antd";
+import { Button, Input, Switch, message, Upload } from "antd";
 import { IconUpload, IconTrash, IconSparkles } from "@tabler/icons-react";
 import AdminContent from "@/components/Admin/AdminContent";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const readToken = () => {
   const raw = localStorage.getItem("token");
@@ -21,6 +37,11 @@ export default function CustomClothesDesignsAdminPage() {
   const [name, setName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const authHeaders = useCallback(() => {
     const token = readToken();
@@ -162,54 +183,63 @@ export default function CustomClothesDesignsAdminPage() {
     }
   };
 
-  const columns = [
-    {
-      title: "Preview",
-      dataIndex: "imageUrl",
-      width: 88,
-      render: (url) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={url}
-          alt=""
-          className="h-14 w-14 rounded-lg border border-neutral-200 object-contain bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800"
-        />
-      ),
-    },
-    { title: "Name", dataIndex: "name", ellipsis: true },
-    {
-      title: "Type",
-      dataIndex: "kind",
-      width: 90,
-      render: (k) => (
-        <span className="text-xs uppercase text-neutral-500">
-          {k === "seed" ? "Demo" : "Upload"}
-        </span>
-      ),
-    },
-    {
-      title: "Active",
-      dataIndex: "active",
-      width: 100,
-      render: (active, record) => (
-        <Switch checked={active} onChange={(v) => toggleActive(record, v)} />
-      ),
-    },
-    {
-      title: "",
-      key: "actions",
-      width: 72,
-      render: (_, record) => (
-        <Button
-          type="text"
-          danger
-          icon={<IconTrash className="h-4 w-4" />}
-          onClick={() => remove(record)}
-          aria-label="Delete design"
-        />
-      ),
-    },
-  ];
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Preview",
+        field: "imageUrl",
+        width: 100,
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={p.value}
+              alt=""
+              className="h-14 w-14 rounded-lg border border-neutral-200 object-contain bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800"
+            />
+          </div>
+        ),
+      },
+      { headerName: "Name", field: "name", flex: 1, minWidth: 160 },
+      {
+        headerName: "Type",
+        field: "kind",
+        width: 110,
+        cellRenderer: (p) => (
+          <span className="text-xs uppercase text-neutral-500">
+            {p.value === "seed" ? "Demo" : "Upload"}
+          </span>
+        ),
+      },
+      {
+        headerName: "Active",
+        field: "active",
+        width: 110,
+        cellRenderer: (p) => (
+          <Switch
+            checked={p.value}
+            onChange={(v) => toggleActive(p.data, v)}
+          />
+        ),
+      },
+      {
+        headerName: "",
+        width: 72,
+        pinned: "right",
+        cellRenderer: (p) => (
+          <Button
+            type="text"
+            danger
+            icon={<IconTrash className="h-4 w-4" />}
+            onClick={() => remove(p.data)}
+            aria-label="Delete design"
+          />
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [designs]
+  );
 
   return (
     <div className="flex min-h-screen bg-transparent">
@@ -260,18 +290,27 @@ export default function CustomClothesDesignsAdminPage() {
             </Button>
           </div>
 
-          <div className="mt-8 rounded-xl border border-zinc-800 !bg-zinc-950 p-4">
-            <Table
-              rowKey="id"
-              loading={loading}
-              dataSource={designs}
-              columns={columns}
-              pagination={{ pageSize: 12 }}
-              locale={{
-                emptyText:
-                  "No designs yet. Upload an image to get started (log in as admin).",
-              }}
-            />
+          <div className="mt-8 rounded-xl border border-zinc-800 !bg-zinc-950 p-2">
+            {isClient ? (
+              <div style={{ width: "100%", height: 560 }}>
+                <AgGridReact
+                  theme={myDarkTheme}
+                  modules={[AllCommunityModule]}
+                  rowData={designs}
+                  columnDefs={columnDefs}
+                  defaultColDef={{ sortable: true, resizable: true }}
+                  getRowId={(p) => String(p.data.id || p.data._id)}
+                  animateRows
+                  rowHeight={56}
+                  headerHeight={44}
+                  loading={loading}
+                  suppressCellFocus
+                  overlayNoRowsTemplate="No designs yet. Upload an image to get started (log in as admin)."
+                />
+              </div>
+            ) : (
+              <div className="h-[560px]" />
+            )}
           </div>
         </motion.div>
       </AdminContent>

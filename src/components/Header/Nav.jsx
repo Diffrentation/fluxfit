@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Dropdown, Avatar } from "antd";
+import ChallengeBanner from "@/components/Banner/ChallengeBanner";
 
 export function Nav() {
   const { user, hydrated, isAuthenticated, logout } = useAuth();
@@ -48,6 +49,7 @@ export function Nav() {
       { name: "Shop", link: "/product-list" },
       { name: "Custom clothes", link: "/custom-clothes?reset=true" },
       { name: "Orders", link: "/orders" },
+      { name: "5K Challenge", link: "/5k-challenge" },
       { name: "About", link: "/about" },
       { name: "Contact", link: "/contact" },
     ];
@@ -60,6 +62,7 @@ export function Nav() {
       { name: "Shop", link: "/product-list" },
       { name: "Custom clothes", link: "/custom-clothes?reset=true" },
       { name: "About", link: "/about" },
+      { name: "5K Challenge", link: "/5k-challenge" },
       { name: "Contact", link: "/contact" },
       { name: "Cart", link: "/cart" },
       { name: "Orders", link: "/orders" },
@@ -90,6 +93,7 @@ export function Nav() {
   return (
     <div className="relative w-full">
       <Navbar>
+        <ChallengeBanner />
         <NavBody>
           <NavbarLogo />
           <NavItems items={desktopNavItems} />

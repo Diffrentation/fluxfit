@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -7,7 +7,6 @@ import {
   Select,
   InputNumber,
   Button,
-  Table,
   Tag,
   Modal,
   Input,
@@ -18,6 +17,22 @@ import {
 } from "antd";
 import { IconPlus, IconTrash, IconDeviceFloppy, IconEdit } from "@tabler/icons-react";
 import axios from "axios";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { Option } = Select;
 
@@ -35,6 +50,11 @@ const CurrencyTaxSettings = ({ onSave }) => {
   const [selectedTax, setSelectedTax] = useState(null);
   const [taxForm] = Form.useForm();
   const [savingTax, setSavingTax] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const loadTaxRates = useCallback(async () => {
     try {
@@ -174,60 +194,67 @@ const CurrencyTaxSettings = ({ onSave }) => {
     [selectedTax, taxForm, loadTaxRates]
   );
 
-  const taxColumns = [
-    {
-      title: "Tax Name",
-      dataIndex: "name",
-      key: "name",
-      render: (name) => <span className="font-semibold">{name}</span>,
-    },
-    { title: "Code", dataIndex: "code", key: "code" },
-    {
-      title: "Rate",
-      dataIndex: "rate",
-      key: "rate",
-      render: (rate) => <Tag color="blue">{rate}%</Tag>,
-    },
-    {
-      title: "Type",
-      dataIndex: "type",
-      key: "type",
-      render: (type) => <Tag color="green">{type.toUpperCase()}</Tag>,
-    },
-    {
-      title: "States",
-      dataIndex: "states",
-      key: "states",
-      render: (states) => (states?.length ? states.join(", ") : "All states"),
-    },
-    {
-      title: "Status",
-      dataIndex: "isActive",
-      key: "isActive",
-      render: (isActive) => (
-        <Tag color={isActive ? "green" : "red"}>{isActive ? "Active" : "Inactive"}</Tag>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <div className="flex gap-2">
-          <Button
-            type="text"
-            icon={<IconEdit className="w-4 h-4" />}
-            onClick={() => handleEditTax(record)}
-          />
-          <Popconfirm
-            title="Delete this tax rate?"
-            onConfirm={() => handleDeleteTax(record.id)}
-          >
-            <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} />
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
+  const taxColumnDefs = useMemo(
+    () => [
+      {
+        headerName: "Tax Name",
+        field: "name",
+        flex: 1,
+        minWidth: 160,
+        cellRenderer: (p) => <span className="font-semibold">{p.value}</span>,
+      },
+      { headerName: "Code", field: "code", width: 120 },
+      {
+        headerName: "Rate",
+        field: "rate",
+        width: 100,
+        cellRenderer: (p) => <Tag color="blue">{p.value}%</Tag>,
+      },
+      {
+        headerName: "Type",
+        field: "type",
+        width: 110,
+        cellRenderer: (p) => <Tag color="green">{p.value?.toUpperCase()}</Tag>,
+      },
+      {
+        headerName: "States",
+        field: "states",
+        flex: 1,
+        minWidth: 160,
+        valueGetter: (p) => (p.data.states?.length ? p.data.states.join(", ") : "All states"),
+      },
+      {
+        headerName: "Status",
+        field: "isActive",
+        width: 110,
+        cellRenderer: (p) => (
+          <Tag color={p.value ? "green" : "red"}>{p.value ? "Active" : "Inactive"}</Tag>
+        ),
+      },
+      {
+        headerName: "Actions",
+        width: 100,
+        pinned: "right",
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center gap-2">
+            <Button
+              type="text"
+              icon={<IconEdit className="w-4 h-4" />}
+              onClick={() => handleEditTax(p.data)}
+            />
+            <Popconfirm
+              title="Delete this tax rate?"
+              onConfirm={() => handleDeleteTax(p.data.id)}
+            >
+              <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} />
+            </Popconfirm>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [taxRates]
+  );
 
   if (loading) {
     return (
@@ -337,15 +364,26 @@ const CurrencyTaxSettings = ({ onSave }) => {
         }
         className="mb-3 sm:mb-4 w-full min-w-0"
       >
-        <div className="overflow-x-auto">
-          <Table
-            dataSource={taxRates.map((t) => ({ ...t, key: t.id }))}
-            columns={taxColumns}
-            pagination={false}
-            scroll={{ x: 800 }}
-            locale={{ emptyText: "No state-specific tax rates yet — the default rate above applies everywhere." }}
-          />
-        </div>
+        {isClient ? (
+          <div style={{ width: "100%", height: 400 }}>
+            <AgGridReact
+              theme={myDarkTheme}
+              modules={[AllCommunityModule]}
+              rowData={taxRates}
+              columnDefs={taxColumnDefs}
+              defaultColDef={{ sortable: true, resizable: true }}
+              getRowId={(p) => String(p.data.id)}
+              animateRows
+              rowHeight={52}
+              headerHeight={44}
+              loading={loading}
+              suppressCellFocus
+              overlayNoRowsTemplate="No state-specific tax rates yet — the default rate above applies everywhere."
+            />
+          </div>
+        ) : (
+          <div className="h-[400px]" />
+        )}
       </Card>
 
       <Modal

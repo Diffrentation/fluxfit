@@ -579,6 +579,51 @@ export const sendCartRecoveryEmail = async (email, cartData) => {
   });
 };
 
+export const sendChallengeEmail = async (email, type, challengeData) => {
+  let subject = "";
+  let htmlBody = "";
+
+  if (type === "registration") {
+    subject = "You're officially in! 🔥 5K Challenge";
+    htmlBody = `
+      <h2>You're officially in! 🔥</h2>
+      <p>Hello ${challengeData.name},</p>
+      <p>Your spot for the Fluxfit 5K Challenge has been confirmed.</p>
+      <ul>
+        <li><strong>Challenge ID:</strong> ${challengeData.challengeId}</li>
+        <li><strong>Deadline:</strong> ${new Date(challengeData.deadline).toLocaleDateString()}</li>
+      </ul>
+      <p>Remember to keep your profile public and tag @FluxfitOfficial with #Fluxfit5K.</p>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://fluxfit.com"}/5k-challenge/dashboard">Go to Dashboard</a>
+    `;
+  } else if (type === "reminder-5") {
+    subject = "Day 5 Reminder: 5K Challenge";
+    htmlBody = `<p>Hey ${challengeData.name}, 5 days have passed. Have you posted your Reel yet? Log into your dashboard to submit your link!</p>`;
+  } else if (type === "reminder-10") {
+    subject = "Day 10 Reminder: 5K Challenge";
+    htmlBody = `<p>Hey ${challengeData.name}, only 5 days left in your challenge! Don't miss out on your refund.</p>`;
+  } else if (type === "completion") {
+    subject = "YOU DID IT! 🔥 5K Challenge Completed";
+    htmlBody = `<p>Congratulations ${challengeData.name}! Your views have been verified and your 100% refund is being processed.</p>`;
+  } else if (type === "rejection") {
+    subject = "5K Challenge Update";
+    htmlBody = `<p>Hi ${challengeData.name}, unfortunately your submission was rejected. Reason: ${challengeData.notes?.admin || "Did not meet criteria"}</p>`;
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+      <div style="background: #1e9a58; padding: 20px; text-align: center; color: white;">
+        <h1>Fluxfit 5K Challenge</h1>
+      </div>
+      <div style="padding: 20px; border: 1px solid #e0e0e0; border-top: none;">
+        ${htmlBody}
+      </div>
+    </div>
+  `;
+
+  return await sendEmail({ to: email, subject, html });
+};
+
 const emailService = {
   sendEmail,
   sendOTPEmail,
@@ -588,6 +633,7 @@ const emailService = {
   sendOwnerNotificationEmail,
   sendOrderStatusUpdateEmail,
   sendAdminPasswordResetEmail,
+  sendChallengeEmail,
 };
 
 export default emailService;

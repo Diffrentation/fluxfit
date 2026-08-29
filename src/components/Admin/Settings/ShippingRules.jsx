@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -7,7 +7,6 @@ import {
   Input,
   InputNumber,
   Button,
-  Table,
   Tag,
   Modal,
   Select,
@@ -20,6 +19,22 @@ import {
 import { IconPlus, IconTrash, IconEdit } from "@tabler/icons-react";
 import axios from "axios";
 import { formatPrice } from "@/lib/formatPrice";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const { Option } = Select;
 
@@ -36,6 +51,11 @@ const ShippingRules = ({ onSave }) => {
   const [ruleForm] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const ruleType = Form.useWatch("type", ruleForm);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -159,66 +179,78 @@ const ShippingRules = ({ onSave }) => {
     [selectedRule, ruleForm, load, onSave]
   );
 
-  const ruleColumns = [
-    {
-      title: "Rule Name",
-      dataIndex: "name",
-      key: "name",
-      render: (name) => <span className="font-semibold">{name}</span>,
-    },
-    { title: "Type", dataIndex: "type", key: "type", render: (t) => <Tag>{t}</Tag> },
-    {
-      title: "Base Price",
-      dataIndex: "basePrice",
-      key: "basePrice",
-      render: (cost) => (
-        <span className="font-semibold">
-          {cost === 0 ? <Tag color="green">Free</Tag> : `₹${formatPrice(cost)}`}
-        </span>
-      ),
-    },
-    {
-      title: "Free Above",
-      dataIndex: "freeShippingThreshold",
-      key: "freeShippingThreshold",
-      render: (v) => (v != null ? `₹${formatPrice(v)}` : "—"),
-    },
-    {
-      title: "Zones",
-      dataIndex: "zones",
-      key: "zones",
-      render: (zones) => (zones?.length ? zones.map((z) => z.name).join(", ") : "All destinations"),
-    },
-    {
-      title: "Est. Days",
-      key: "estimatedDays",
-      render: (_, r) => `${r.estimatedDays?.min ?? 3}-${r.estimatedDays?.max ?? 7}`,
-    },
-    {
-      title: "Status",
-      dataIndex: "isActive",
-      key: "isActive",
-      render: (isActive) => (
-        <Tag color={isActive ? "green" : "red"}>{isActive ? "Active" : "Inactive"}</Tag>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <div className="flex gap-2">
-          <Button
-            type="text"
-            icon={<IconEdit className="w-4 h-4" />}
-            onClick={() => handleEditRule(record)}
-          />
-          <Popconfirm title="Delete this shipping rule?" onConfirm={() => handleDeleteRule(record.id)}>
-            <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} />
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
+  const ruleColumnDefs = useMemo(
+    () => [
+      {
+        headerName: "Rule Name",
+        field: "name",
+        flex: 1,
+        minWidth: 150,
+        cellRenderer: (p) => <span className="font-semibold">{p.value}</span>,
+      },
+      {
+        headerName: "Type",
+        field: "type",
+        width: 110,
+        cellRenderer: (p) => <Tag>{p.value}</Tag>,
+      },
+      {
+        headerName: "Base Price",
+        field: "basePrice",
+        width: 120,
+        cellRenderer: (p) => (
+          <span className="font-semibold">
+            {p.value === 0 ? <Tag color="green">Free</Tag> : `₹${formatPrice(p.value)}`}
+          </span>
+        ),
+      },
+      {
+        headerName: "Free Above",
+        field: "freeShippingThreshold",
+        width: 120,
+        valueGetter: (p) => (p.data.freeShippingThreshold != null ? `₹${formatPrice(p.data.freeShippingThreshold)}` : "—"),
+      },
+      {
+        headerName: "Zones",
+        field: "zones",
+        flex: 1,
+        minWidth: 160,
+        valueGetter: (p) => (p.data.zones?.length ? p.data.zones.map((z) => z.name).join(", ") : "All destinations"),
+      },
+      {
+        headerName: "Est. Days",
+        width: 110,
+        valueGetter: (p) => `${p.data.estimatedDays?.min ?? 3}-${p.data.estimatedDays?.max ?? 7}`,
+      },
+      {
+        headerName: "Status",
+        field: "isActive",
+        width: 110,
+        cellRenderer: (p) => (
+          <Tag color={p.value ? "green" : "red"}>{p.value ? "Active" : "Inactive"}</Tag>
+        ),
+      },
+      {
+        headerName: "Actions",
+        width: 100,
+        pinned: "right",
+        cellRenderer: (p) => (
+          <div className="h-full flex items-center gap-2">
+            <Button
+              type="text"
+              icon={<IconEdit className="w-4 h-4" />}
+              onClick={() => handleEditRule(p.data)}
+            />
+            <Popconfirm title="Delete this shipping rule?" onConfirm={() => handleDeleteRule(p.data.id)}>
+              <Button type="text" danger icon={<IconTrash className="w-4 h-4" />} />
+            </Popconfirm>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shippingRules]
+  );
 
   if (loading) {
     return (
@@ -255,15 +287,26 @@ const ShippingRules = ({ onSave }) => {
           (by sort order), or the first rule with no zones configured at all. If nothing matches, a flat
           ₹50 default applies.
         </p>
-        <div className="overflow-x-auto">
-          <Table
-            dataSource={shippingRules.map((r) => ({ ...r, key: r.id }))}
-            columns={ruleColumns}
-            pagination={false}
-            scroll={{ x: 900 }}
-            locale={{ emptyText: "No shipping rules yet — orders will use the ₹50 flat-rate fallback." }}
-          />
-        </div>
+        {isClient ? (
+          <div style={{ width: "100%", height: 400 }}>
+            <AgGridReact
+              theme={myDarkTheme}
+              modules={[AllCommunityModule]}
+              rowData={shippingRules}
+              columnDefs={ruleColumnDefs}
+              defaultColDef={{ sortable: true, resizable: true }}
+              getRowId={(p) => String(p.data.id)}
+              animateRows
+              rowHeight={52}
+              headerHeight={44}
+              loading={loading}
+              suppressCellFocus
+              overlayNoRowsTemplate="No shipping rules yet — orders will use the ₹50 flat-rate fallback."
+            />
+          </div>
+        ) : (
+          <div className="h-[400px]" />
+        )}
       </Card>
 
       <Modal

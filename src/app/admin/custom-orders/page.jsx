@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import {
@@ -29,6 +29,22 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import AdminContent from "@/components/Admin/AdminContent";
 import dayjs from "dayjs";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const STATUS_COLORS = {
   pending_review: { bg: "bg-amber-100 text-amber-700 border-amber-200", label: "Pending Review" },
@@ -293,6 +309,8 @@ export default function AdminCustomOrdersPage() {
   const [search, setSearch] = useState("");
   const [statusCounts, setStatusCounts] = useState({});
   const [reviewingOrder, setReviewingOrder] = useState(null);
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
 
   const fetchOrders = useCallback(async () => {
     const token = getToken();
@@ -328,6 +346,241 @@ export default function AdminCustomOrdersPage() {
     { key: "in_production", label: "In Production", count: statusCounts["in_production"] || 0 },
     { key: "completed", label: "Completed", count: statusCounts["completed"] || 0 },
   ];
+
+  const quickApprove = useCallback(
+    async (order) => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        await axios.patch(
+          `/api/admin/custom-orders/${order.id}`,
+          { status: "approved" },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success("Order approved!");
+        fetchOrders();
+      } catch {
+        toast.error("Failed to approve");
+      }
+    },
+    [fetchOrders]
+  );
+
+  const moveToProduction = useCallback(
+    async (order) => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        await axios.patch(
+          `/api/admin/custom-orders/${order.id}`,
+          { status: "in_production" },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success("Moved to production!");
+        fetchOrders();
+      } catch {
+        toast.error("Failed to update");
+      }
+    },
+    [fetchOrders]
+  );
+
+  const markCompleted = useCallback(
+    async (order) => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        await axios.patch(
+          `/api/admin/custom-orders/${order.id}`,
+          { status: "completed" },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success("Order completed!");
+        fetchOrders();
+      } catch {
+        toast.error("Failed to update");
+      }
+    },
+    [fetchOrders]
+  );
+
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Order",
+        width: 130,
+        cellRenderer: (p) => {
+          const order = p.data;
+          const thumbs = ["front", "back", "leftSleeve", "rightSleeve"].filter(
+            (s) => order.designImages?.[s]
+          );
+          return (
+            <div className="h-full flex flex-col justify-center gap-1 py-1">
+              <div className="flex gap-1">
+                {thumbs.length > 0 ? (
+                  thumbs.slice(0, 2).map((s) => (
+                    <img
+                      key={s}
+                      src={order.designImages[s]}
+                      alt={s}
+                      className="w-10 h-10 rounded-lg border border-zinc-800 object-contain !bg-zinc-900"
+                    />
+                  ))
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 text-xs">
+                    📷
+                  </div>
+                )}
+              </div>
+              <span className="text-[10px] text-gray-400 font-mono">
+                #{order.id?.slice(-8).toUpperCase()}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Customer",
+        flex: 1,
+        minWidth: 160,
+        cellRenderer: (p) => {
+          const order = p.data;
+          return (
+            <div className="h-full flex flex-col justify-center min-w-0">
+              <span className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                {order.user?.name || "Unknown User"}
+              </span>
+              <span className="text-xs text-gray-500 truncate">{order.user?.email}</span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Details",
+        flex: 1.4,
+        minWidth: 240,
+        cellRenderer: (p) => {
+          const order = p.data;
+          return (
+            <div className="h-full flex flex-wrap items-center content-center gap-1.5 py-1">
+              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full font-medium">
+                {order.clothType}
+              </span>
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1"
+                style={{
+                  backgroundColor: order.clothColor?.hex + "22",
+                  color:
+                    order.clothColor?.hex === "#FFFFFF" ? "#374151" : order.clothColor?.hex,
+                }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: order.clothColor?.hex }}
+                />
+                {order.clothColor?.label}
+              </span>
+              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 px-2 py-0.5 rounded-full">
+                Qty: {order.quantity}
+              </span>
+              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 px-2 py-0.5 rounded-full capitalize">
+                {order.printPlacement?.replace(/_/g, " ")}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Quote",
+        width: 130,
+        cellRenderer: (p) => {
+          const order = p.data;
+          return order.quote?.totalAmount != null ? (
+            <span className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full font-semibold border border-emerald-200 dark:border-emerald-800">
+              ₹{order.quote.totalAmount.toLocaleString("en-IN")}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-400">—</span>
+          );
+        },
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 150,
+        cellRenderer: (p) => <StatusBadge status={p.value} />,
+      },
+      {
+        headerName: "Created",
+        field: "createdAt",
+        width: 120,
+        cellRenderer: (p) => (
+          <span className="text-xs text-gray-400">{format(new Date(p.value), "dd MMM yyyy")}</span>
+        ),
+      },
+      {
+        headerName: "Actions",
+        width: 190,
+        pinned: "right",
+        sortable: false,
+        cellRenderer: (p) => {
+          const order = p.data;
+          return (
+            <div className="h-full flex items-center gap-2">
+              <Tooltip title="Review Order">
+                <Button
+                  size="small"
+                  icon={<IconEye size={14} />}
+                  onClick={() => setReviewingOrder(order)}
+                />
+              </Tooltip>
+              {order.status === "pending_review" && (
+                <>
+                  <Tooltip title="Quick Approve">
+                    <Button
+                      size="small"
+                      icon={<IconCheck size={14} />}
+                      className="text-green-600 border-green-300 hover:bg-green-50"
+                      onClick={() => quickApprove(order)}
+                    />
+                  </Tooltip>
+                  <Tooltip title="Quick Reject">
+                    <Button
+                      size="small"
+                      icon={<IconX size={14} />}
+                      danger
+                      onClick={() => setReviewingOrder(order)}
+                    />
+                  </Tooltip>
+                </>
+              )}
+              {order.status === "approved" && (
+                <Tooltip title="Move to Production">
+                  <Button
+                    size="small"
+                    icon={<IconTool size={14} />}
+                    className="text-emerald-400 border-emerald-800 hover:bg-emerald-950/30"
+                    onClick={() => moveToProduction(order)}
+                  />
+                </Tooltip>
+              )}
+              {order.status === "in_production" && (
+                <Tooltip title="Mark Completed">
+                  <Button
+                    size="small"
+                    icon={<IconPackageExport size={14} />}
+                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                    onClick={() => markCompleted(order)}
+                  />
+                </Tooltip>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [quickApprove, moveToProduction, markCompleted]
+  );
 
   return (
     <div className="flex min-h-screen bg-transparent">
@@ -417,176 +670,26 @@ export default function AdminCustomOrdersPage() {
               <p className="text-gray-500 font-medium">No orders found</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {orders.map((order, idx) => (
-                <motion.div
-                  key={order.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.03 }}
-                  className="!bg-zinc-950 rounded-2xl border border-zinc-800 p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start gap-4 flex-wrap">
-                    {/* Design thumbnails */}
-                    <div className="flex gap-1.5 shrink-0">
-                      {["front", "back", "leftSleeve", "rightSleeve"]
-                        .filter((s) => order.designImages?.[s])
-                        .slice(0, 2)
-                        .map((s) => (
-                          <img
-                            key={s}
-                            src={order.designImages[s]}
-                            alt={s}
-                            className="w-14 h-14 rounded-xl border border-zinc-800 object-contain !bg-zinc-900"
-                          />
-                        ))}
-                      {Object.values(order.designImages || {}).filter(Boolean).length === 0 && (
-                        <div className="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
-                          📷
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900 dark:text-white text-sm">
-                          {order.user?.name || "Unknown User"}
-                        </span>
-                        <StatusBadge status={order.status} />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{order.user?.email}</p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2.5 py-1 rounded-full font-medium">
-                          {order.clothType}
-                        </span>
-                        <span
-                          className="text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1"
-                          style={{
-                            backgroundColor: order.clothColor?.hex + "22",
-                            color: order.clothColor?.hex === "#FFFFFF" ? "#374151" : order.clothColor?.hex,
-                          }}
-                        >
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: order.clothColor?.hex }}
-                          />
-                          {order.clothColor?.label}
-                        </span>
-                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 px-2.5 py-1 rounded-full">
-                          Qty: {order.quantity}
-                        </span>
-                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 px-2.5 py-1 rounded-full capitalize">
-                          {order.printPlacement?.replace(/_/g, " ")}
-                        </span>
-                        {order.quote?.totalAmount != null && (
-                          <span className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full font-semibold border border-emerald-200 dark:border-emerald-800">
-                            Quoted: ₹{order.quote.totalAmount.toLocaleString("en-IN")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Date + Actions */}
-                    <div className="shrink-0 text-right flex flex-col items-end gap-2">
-                      <p className="text-xs text-gray-400">
-                        {format(new Date(order.createdAt), "dd MMM yyyy")}
-                      </p>
-                      <div className="flex gap-2">
-                        <Tooltip title="Review Order">
-                          <Button
-                            size="small"
-                            icon={<IconEye size={14} />}
-                            onClick={() => setReviewingOrder(order)}
-                          />
-                        </Tooltip>
-                        {order.status === "pending_review" && (
-                          <>
-                            <Tooltip title="Quick Approve">
-                              <Button
-                                size="small"
-                                icon={<IconCheck size={14} />}
-                                className="text-green-600 border-green-300 hover:bg-green-50"
-                                onClick={async () => {
-                                  const token = getToken();
-                                  if (!token) return;
-                                  try {
-                                    await axios.patch(
-                                      `/api/admin/custom-orders/${order.id}`,
-                                      { status: "approved" },
-                                      { headers: { Authorization: `Bearer ${token}` } }
-                                    );
-                                    toast.success("Order approved!");
-                                    fetchOrders();
-                                  } catch {
-                                    toast.error("Failed to approve");
-                                  }
-                                }}
-                              />
-                            </Tooltip>
-                            <Tooltip title="Quick Reject">
-                              <Button
-                                size="small"
-                                icon={<IconX size={14} />}
-                                danger
-                                onClick={() => setReviewingOrder(order)}
-                              />
-                            </Tooltip>
-                          </>
-                        )}
-                        {order.status === "approved" && (
-                          <Tooltip title="Move to Production">
-                            <Button
-                              size="small"
-                              icon={<IconTool size={14} />}
-                              className="text-emerald-400 border-emerald-800 hover:bg-emerald-950/30"
-                              onClick={async () => {
-                                const token = getToken();
-                                if (!token) return;
-                                try {
-                                  await axios.patch(
-                                    `/api/admin/custom-orders/${order.id}`,
-                                    { status: "in_production" },
-                                    { headers: { Authorization: `Bearer ${token}` } }
-                                  );
-                                  toast.success("Moved to production!");
-                                  fetchOrders();
-                                } catch {
-                                  toast.error("Failed to update");
-                                }
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                        {order.status === "in_production" && (
-                          <Tooltip title="Mark Completed">
-                            <Button
-                              size="small"
-                              icon={<IconPackageExport size={14} />}
-                              className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                              onClick={async () => {
-                                const token = getToken();
-                                if (!token) return;
-                                try {
-                                  await axios.patch(
-                                    `/api/admin/custom-orders/${order.id}`,
-                                    { status: "completed" },
-                                    { headers: { Authorization: `Bearer ${token}` } }
-                                  );
-                                  toast.success("Order completed!");
-                                  fetchOrders();
-                                } catch {
-                                  toast.error("Failed to update");
-                                }
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+            <div className="!bg-zinc-950 rounded-2xl border border-zinc-800 p-2">
+              {isClient ? (
+                <div style={{ width: "100%", height: 560 }}>
+                  <AgGridReact
+                    theme={myDarkTheme}
+                    modules={[AllCommunityModule]}
+                    rowData={orders}
+                    columnDefs={columnDefs}
+                    defaultColDef={{ sortable: true, resizable: true }}
+                    getRowId={(p) => String(p.data.id)}
+                    animateRows
+                    rowHeight={84}
+                    headerHeight={44}
+                    suppressCellFocus
+                    overlayNoRowsTemplate="No orders found"
+                  />
+                </div>
+              ) : (
+                <div className="h-[560px]" />
+              )}
             </div>
           )}
         </motion.div>

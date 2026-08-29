@@ -1,12 +1,28 @@
 "use client";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
-import { Table, Tag, Button, Modal, Form, Input, Select, message, Card, Pagination } from "antd";
+import { Tag, Button, Modal, Form, Input, Select, message, Card, Pagination } from "antd";
 import { IconCheck, IconX, IconEye, IconSearch, IconCash } from "@tabler/icons-react";
 import { formatPrice } from "@/lib/formatPrice";
 import { format } from "date-fns";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const authHeaders = () => ({
   "Content-Type": "application/json",
@@ -17,6 +33,11 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setIsClient(true), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRefund, setSelectedRefund] = useState(null);
   const [form] = Form.useForm();
@@ -268,108 +289,104 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
     </motion.div>
   );
 
-  const columns = [
-    {
-      title: "Refund ID",
-      key: "id",
-      width: 100,
-      render: (_, record) => <span className="font-mono">#{record.id}</span>,
-    },
-    {
-      title: "Order ID",
-      dataIndex: "orderId",
-      key: "orderId",
-      width: 120,
-      render: (id) => <span className="font-mono">#{id}</span>,
-    },
-    {
-      title: "Customer",
-      dataIndex: "customer",
-      key: "customer",
-      width: 150,
-    },
-    {
-      title: "Amount",
-      dataIndex: "amount",
-      key: "amount",
-      width: 120,
-      render: (amount) => (
-        <span className="font-semibold">₹{formatPrice(amount)}</span>
-      ),
-    },
-    {
-      title: "Reason",
-      dataIndex: "reason",
-      key: "reason",
-      width: 200,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (status) => (
-        <Tag color={getStatusColor(status)} className="capitalize">
-          {status}
-        </Tag>
-      ),
-    },
-    {
-      title: "Requested Date",
-      dataIndex: "requestedDate",
-      key: "requestedDate",
-      width: 130,
-      render: (date) => format(new Date(date), "MMM dd, yyyy"),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 200,
-      fixed: "right",
-      render: (_, record) => (
-        <div className="flex gap-2">
-          {record.status === "pending" && (
-            <>
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Refund ID",
+        width: 100,
+        cellRenderer: (p) => <span className="font-mono">#{p.data.id}</span>,
+      },
+      {
+        headerName: "Order ID",
+        field: "orderId",
+        width: 120,
+        cellRenderer: (p) => <span className="font-mono">#{p.value}</span>,
+      },
+      {
+        headerName: "Customer",
+        field: "customer",
+        width: 150,
+      },
+      {
+        headerName: "Amount",
+        field: "amount",
+        width: 120,
+        cellRenderer: (p) => <span className="font-semibold">₹{formatPrice(p.value)}</span>,
+      },
+      {
+        headerName: "Reason",
+        field: "reason",
+        width: 200,
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 120,
+        cellRenderer: (p) => (
+          <Tag color={getStatusColor(p.value)} className="capitalize">
+            {p.value}
+          </Tag>
+        ),
+      },
+      {
+        headerName: "Requested Date",
+        field: "requestedDate",
+        width: 130,
+        cellRenderer: (p) => format(new Date(p.value), "MMM dd, yyyy"),
+      },
+      {
+        headerName: "Actions",
+        width: 220,
+        pinned: "right",
+        cellRenderer: (p) => {
+          const record = p.data;
+          return (
+            <div className="h-full flex items-center gap-2">
+              {record.status === "pending" && (
+                <>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<IconCheck className="w-3 h-3" />}
+                    onClick={() => handleApprove(record)}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    danger
+                    size="small"
+                    icon={<IconX className="w-3 h-3" />}
+                    onClick={() => handleReject(record)}
+                  >
+                    Reject
+                  </Button>
+                </>
+              )}
+              {record.status === "processing" && record.gateway !== "razorpay" && (
+                <Button
+                  size="small"
+                  icon={<IconCash className="w-3 h-3" />}
+                  onClick={() => handleComplete(record)}
+                  className="!text-emerald-500 !border-emerald-800"
+                >
+                  Mark Refunded
+                </Button>
+              )}
               <Button
-                type="primary"
+                type="text"
                 size="small"
-                icon={<IconCheck className="w-3 h-3" />}
-                onClick={() => handleApprove(record)}
+                icon={<IconEye className="w-3 h-3" />}
+                onClick={() => handleViewDetails(record)}
               >
-                Approve
+                View
               </Button>
-              <Button
-                danger
-                size="small"
-                icon={<IconX className="w-3 h-3" />}
-                onClick={() => handleReject(record)}
-              >
-                Reject
-              </Button>
-            </>
-          )}
-          {record.status === "processing" && record.gateway !== "razorpay" && (
-            <Button
-              size="small"
-              icon={<IconCash className="w-3 h-3" />}
-              onClick={() => handleComplete(record)}
-              className="!text-emerald-500 !border-emerald-800"
-            >
-              Mark Refunded
-            </Button>
-          )}
-          <Button
-            type="text"
-            size="small"
-            icon={<IconEye className="w-3 h-3" />}
-            onClick={() => handleViewDetails(record)}
-          >
-            View
-          </Button>
-        </div>
-      ),
-    },
-  ];
+            </div>
+          );
+        },
+      },
+    ],
+    [handleApprove, handleReject, handleComplete, handleViewDetails]
+  );
 
   return (
     <motion.div
@@ -414,28 +431,46 @@ const RefundManagement = ({ refunds = [], onUpdateRefunds }) => {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden">
-          <Table
-            dataSource={paginatedRefunds.map((r) => ({ ...r, key: r.id }))}
-            columns={columns}
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: filteredRefunds.length,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} refund requests`,
-              onChange: (page, size) => {
+        <div className="!bg-zinc-950 rounded-lg shadow-sm border border-zinc-800 overflow-hidden p-2">
+          {isClient ? (
+            <div style={{ width: "100%", height: 560 }}>
+              <AgGridReact
+                theme={myDarkTheme}
+                modules={[AllCommunityModule]}
+                rowData={paginatedRefunds}
+                columnDefs={columnDefs}
+                defaultColDef={{ sortable: true, resizable: true }}
+                getRowId={(p) => String(p.data.id)}
+                animateRows
+                rowHeight={56}
+                headerHeight={44}
+                suppressCellFocus
+                overlayNoRowsTemplate="No refunds found"
+              />
+            </div>
+          ) : (
+            <div className="h-[560px]" />
+          )}
+        </div>
+        {filteredRefunds.length > 0 && (
+          <div className="flex justify-end pt-3">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={filteredRefunds.length}
+              showSizeChanger
+              showTotal={(total) => `Total ${total} refund requests`}
+              onChange={(page, size) => {
                 setCurrentPage(page);
                 setPageSize(size);
-              },
-              onShowSizeChange: (current, size) => {
+              }}
+              onShowSizeChange={(current, size) => {
                 setCurrentPage(1);
                 setPageSize(size);
-              },
-            }}
-            scroll={{ x: 1000 }}
-          />
-        </div>
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Mobile/Tablet Grid View - xs: 1 col, sm: 2 cols, md: 2 cols */}

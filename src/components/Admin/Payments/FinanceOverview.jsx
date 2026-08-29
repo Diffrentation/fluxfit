@@ -1,8 +1,24 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Card, Select, Row, Col, Statistic, Table, Tag, message } from "antd";
+import { Card, Select, Row, Col, Statistic, Tag, message } from "antd";
 import { formatPrice } from "@/lib/formatPrice";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  colorSchemeDark,
+} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const myDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#09090b",
+  foregroundColor: "#e4e4e7",
+  headerBackgroundColor: "#18181b",
+  borderColor: "#27272a",
+  rowHoverColor: "#18181b",
+});
 
 const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -18,7 +34,48 @@ const statusColor = {
   returned: "orange",
 };
 
+const orderStatusColumnDefs = [
+  {
+    headerName: "Status",
+    field: "status",
+    flex: 1,
+    cellRenderer: (p) => (
+      <Tag color={statusColor[p.value] || "default"} className="capitalize">
+        {p.value}
+      </Tag>
+    ),
+  },
+  { headerName: "Count", field: "count", flex: 1 },
+  {
+    headerName: "Total",
+    field: "total",
+    flex: 1,
+    cellRenderer: (p) => `₹${formatPrice(p.value)}`,
+  },
+];
+
+const paymentMethodColumnDefs = [
+  {
+    headerName: "Method",
+    field: "method",
+    flex: 1,
+    cellRenderer: (p) => <span className="uppercase">{p.value}</span>,
+  },
+  { headerName: "Count", field: "count", flex: 1 },
+  {
+    headerName: "Amount",
+    field: "amount",
+    flex: 1,
+    cellRenderer: (p) => `₹${formatPrice(p.value)}`,
+  },
+];
+
 const FinanceOverview = () => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setIsClient(true), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [period, setPeriod] = useState("month");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
@@ -140,52 +197,48 @@ const FinanceOverview = () => {
           <Row gutter={[16, 16]}>
             <Col xs={24} md={12}>
               <Card title="Orders by Status" size="small">
-                <Table
-                  size="small"
-                  rowKey="status"
-                  pagination={false}
-                  dataSource={data.ordersByStatus}
-                  columns={[
-                    {
-                      title: "Status",
-                      dataIndex: "status",
-                      render: (v) => (
-                        <Tag color={statusColor[v] || "default"} className="capitalize">
-                          {v}
-                        </Tag>
-                      ),
-                    },
-                    { title: "Count", dataIndex: "count" },
-                    {
-                      title: "Total",
-                      dataIndex: "total",
-                      render: (v) => `₹${formatPrice(v)}`,
-                    },
-                  ]}
-                />
+                {isClient ? (
+                  <div style={{ width: "100%", height: 280 }}>
+                    <AgGridReact
+                      theme={myDarkTheme}
+                      modules={[AllCommunityModule]}
+                      rowData={data.ordersByStatus}
+                      columnDefs={orderStatusColumnDefs}
+                      defaultColDef={{ sortable: true, resizable: true }}
+                      getRowId={(p) => String(p.data.status)}
+                      animateRows
+                      rowHeight={40}
+                      headerHeight={36}
+                      suppressCellFocus
+                      overlayNoRowsTemplate="No data"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-[280px]" />
+                )}
               </Card>
             </Col>
             <Col xs={24} md={12}>
               <Card title="Payments by Method" size="small">
-                <Table
-                  size="small"
-                  rowKey="method"
-                  pagination={false}
-                  dataSource={data.paymentsByMethod}
-                  columns={[
-                    {
-                      title: "Method",
-                      dataIndex: "method",
-                      render: (v) => <span className="uppercase">{v}</span>,
-                    },
-                    { title: "Count", dataIndex: "count" },
-                    {
-                      title: "Amount",
-                      dataIndex: "amount",
-                      render: (v) => `₹${formatPrice(v)}`,
-                    },
-                  ]}
-                />
+                {isClient ? (
+                  <div style={{ width: "100%", height: 280 }}>
+                    <AgGridReact
+                      theme={myDarkTheme}
+                      modules={[AllCommunityModule]}
+                      rowData={data.paymentsByMethod}
+                      columnDefs={paymentMethodColumnDefs}
+                      defaultColDef={{ sortable: true, resizable: true }}
+                      getRowId={(p) => String(p.data.method)}
+                      animateRows
+                      rowHeight={40}
+                      headerHeight={36}
+                      suppressCellFocus
+                      overlayNoRowsTemplate="No data"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-[280px]" />
+                )}
               </Card>
             </Col>
           </Row>
