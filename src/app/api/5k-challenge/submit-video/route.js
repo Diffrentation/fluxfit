@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Challenge } from "@/models";
 import jwt from "jsonwebtoken";
+import { authenticateUser } from "@/lib/auth";
 
 export async function POST(request) {
   try {
+    const { error: authError, user } = await authenticateUser(request);
+    if (authError) return authError;
+
     const token = request.cookies.get("ff_5k_token")?.value;
     if (!token) {
       return NextResponse.json({ success: false, error: "Not logged in" }, { status: 401 });
@@ -22,6 +26,13 @@ export async function POST(request) {
     const challenge = await Challenge.findById(decoded.challengeId);
     if (!challenge) {
       return NextResponse.json({ success: false, error: "Challenge not found" }, { status: 404 });
+    }
+
+    if (!challenge.user || String(challenge.user) !== String(user._id)) {
+      return NextResponse.json(
+        { success: false, error: "This challenge does not belong to your account." },
+        { status: 403 }
+      );
     }
 
     if (challenge.status !== "registered" && challenge.status !== "active") {

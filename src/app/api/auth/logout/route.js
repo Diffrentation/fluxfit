@@ -66,6 +66,15 @@ export async function POST(request) {
       { status: 200 }
     );
     clearRefreshTokenCookie(response);
+    // The 5K session is account-specific as well. Clear it so a later user of
+    // this browser can never see the previous participant's challenge data.
+    response.cookies.set("ff_5k_token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 0,
+      path: "/",
+    });
     return response;
   } catch (error) {
     console.error("Logout error:", error);
@@ -78,6 +87,13 @@ export async function POST(request) {
       { status: 200 }
     );
     clearRefreshTokenCookie(response);
+    response.cookies.set("ff_5k_token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 0,
+      path: "/",
+    });
     return response;
   }
 }

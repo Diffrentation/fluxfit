@@ -97,6 +97,52 @@ const backfillVariantImages = (productLike) => {
   });
 };
 
+// Product data persists every size/colour combination as a separate SKU. When
+// editing, combine the compatible saved SKUs back into the multi-size rows the
+// admin used when creating the product. Colour remains part of the key: that
+// avoids inventing size/colour combinations that were never created.
+const groupPersistedVariantsForEditor = (productLike) => {
+  const variantsWithImages = backfillVariantImages(productLike);
+  const groups = new Map();
+
+  variantsWithImages.forEach((variant) => {
+    const size = normaliseSizes(variant)[0];
+    const color = normaliseColors(variant)[0];
+    if (!size || !color) return;
+
+    const images = (variant.images || []).filter(Boolean);
+    const key = JSON.stringify({
+      color: color.toLowerCase(),
+      price: Number(variant.price) || 0,
+      originalPrice: variant.originalPrice ?? null,
+      stock: Number(variant.stock) || 0,
+      image: variant.image || null,
+      images,
+      isActive: variant.isActive !== false,
+    });
+
+    const existing = groups.get(key);
+    if (existing) {
+      if (!existing.sizes.includes(size)) existing.sizes.push(size);
+      return;
+    }
+
+    const { _id, id, sku, size: _size, sizes: _sizes, color: _color, colors: _colors, ...sharedVariant } = variant;
+    groups.set(key, {
+      ...sharedVariant,
+      size,
+      sizes: [size],
+      color,
+      colors: [color],
+      images,
+      sku: "",
+      _randSuffix: Math.floor(1000 + Math.random() * 9000),
+    });
+  });
+
+  return [...groups.values()];
+};
+
 const ProductForm = ({ visible, product, onClose, onSave }) => {
   const [form] = Form.useForm();
   const watchedValues = Form.useWatch([], form);
@@ -308,7 +354,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
             )
               .trim()
               .toLowerCase();
-            setVariants(backfillVariantImages(productData));
+            setVariants(groupPersistedVariantsForEditor(productData));
             setNameValue(productData.name || "");
             setMetaTitleValue(productData.metaTitle || "");
           }
@@ -323,7 +369,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
           initialEditSlugRef.current = String(product?.slug || "")
             .trim()
             .toLowerCase();
-          setVariants(backfillVariantImages(product));
+          setVariants(groupPersistedVariantsForEditor(product));
           setNameValue(product.name || "");
           setMetaTitleValue(product.metaTitle || "");
         } finally {
@@ -339,7 +385,7 @@ const ProductForm = ({ visible, product, onClose, onSave }) => {
         initialEditSlugRef.current = String(product?.slug || "")
           .trim()
           .toLowerCase();
-        setVariants(backfillVariantImages(product));
+        setVariants(groupPersistedVariantsForEditor(product));
         setNameValue(product.name || "");
         setMetaTitleValue(product.metaTitle || "");
       } else {

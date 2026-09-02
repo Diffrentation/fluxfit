@@ -1,8 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ChallengeDashboard() {
+  const router = useRouter();
+  const { isAuthenticated, hydrated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [challengeData, setChallengeData] = useState(null);
   
@@ -16,12 +20,25 @@ export default function ChallengeDashboard() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!hydrated || isAuthenticated) return;
+    router.replace("/auth/login?redirect=/5k-challenge/dashboard");
+  }, [hydrated, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (!hydrated || !isAuthenticated) return;
     checkSession();
-  }, []);
+    // The session check only needs to run when the signed-in account changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, isAuthenticated]);
+
+  const authHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   const checkSession = async () => {
     try {
-      const res = await fetch("/api/5k-challenge/login");
+      const res = await fetch("/api/5k-challenge/login", { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setChallengeData(data.data);
@@ -39,7 +56,7 @@ export default function ChallengeDashboard() {
     try {
       const res = await fetch("/api/5k-challenge/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ email, orderNumber }),
       });
       const data = await res.json();
@@ -62,7 +79,7 @@ export default function ChallengeDashboard() {
     try {
       const res = await fetch("/api/5k-challenge/submit-video", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ videoUrl }),
       });
       const data = await res.json();
@@ -79,7 +96,7 @@ export default function ChallengeDashboard() {
     }
   };
 
-  if (loading) {
+  if (!hydrated || !isAuthenticated || loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 

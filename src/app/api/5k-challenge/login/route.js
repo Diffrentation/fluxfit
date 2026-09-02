@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Challenge, Order } from "@/models";
 import jwt from "jsonwebtoken";
+import { authenticateUser } from "@/lib/auth";
 
 export async function POST(request) {
   try {
+    const { error, user } = await authenticateUser(request);
+    if (error) return error;
+
     await connectDB();
     const { email, orderNumber } = await request.json();
 
@@ -24,6 +28,13 @@ export async function POST(request) {
       );
     }
 
+    if (!order.user || String(order.user) !== String(user._id)) {
+      return NextResponse.json(
+        { success: false, error: "This order does not belong to your account." },
+        { status: 403 }
+      );
+    }
+
     // 2. Find Challenge
     const challenge = await Challenge.findOne({ order: order._id, email: email.toLowerCase() });
     
@@ -31,6 +42,13 @@ export async function POST(request) {
       return NextResponse.json(
         { success: false, error: "No 5K Challenge found for this email and order combination." },
         { status: 401 }
+      );
+    }
+
+    if (!challenge.user || String(challenge.user) !== String(user._id)) {
+      return NextResponse.json(
+        { success: false, error: "This challenge does not belong to your account." },
+        { status: 403 }
       );
     }
 
@@ -72,6 +90,9 @@ export async function POST(request) {
 export async function GET(request) {
   // Check if logged in
   try {
+    const { error, user } = await authenticateUser(request);
+    if (error) return error;
+
     const token = request.cookies.get("ff_5k_token")?.value;
     if (!token) {
       return NextResponse.json({ success: false, error: "Not logged in" }, { status: 401 });
@@ -79,16 +100,26 @@ export async function GET(request) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key-change-in-production");
     await connectDB();
-    const challenge = await Challenge.findById(decoded.challengeId);
-    
+    const challenge = await Challenge.findById(decoded.challengeId).populate("order", "orderNumber");
+
     if (!challenge) {
       return NextResponse.json({ success: false, error: "Challenge not found" }, { status: 401 });
+    }
+
+    if (!challenge.user || String(challenge.user) !== String(user._id)) {
+      const response = NextResponse.json(
+        { success: false, error: "Challenge session does not match this account." },
+        { status: 401 }
+      );
+      response.cookies.set("ff_5k_token", "", { httpOnly: true, maxAge: 0, path: "/" });
+      return response;
     }
 
     return NextResponse.json({
       success: true,
       data: {
         challengeId: challenge.challengeId,
+        orderNumber: challenge.order?.orderNumber,
         status: challenge.status,
         views: challenge.views,
         likes: challenge.likes,
@@ -97,6 +128,8 @@ export async function GET(request) {
         videoUrl: challenge.videoUrl,
         platform: challenge.platform,
         name: challenge.name,
+        email: challenge.email,
+        socialHandle: challenge.socialHandle,
       }
     });
   } catch (error) {

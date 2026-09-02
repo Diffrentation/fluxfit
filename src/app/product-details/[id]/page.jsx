@@ -204,25 +204,64 @@ function ProductDetails() {
     return true;
   };
 
+  const getProductCategoryId = useCallback((productLike) => {
+    const category = productLike?.category;
+    return String(
+      typeof category === "object" && category !== null
+        ? category.id || category._id || ""
+        : category || ""
+    );
+  }, []);
+
   const fetchRelatedProducts = useCallback(async (categoryId, signal, excludeProduct) => {
     try {
-      const { data } = await axios.get(
-        `/api/products?category=${encodeURIComponent(categoryId)}&limit=4&status=active`,
-        { signal }
-      );
-      if (data.success && Array.isArray(data.data?.products)) {
-        setRelatedProducts(
-          data.data.products
-            .filter((p) => isOtherThanCurrentProduct(p, params.id, excludeProduct))
-            .map((p) => normalizeProductForCard(p))
-            .filter(Boolean)
+      const targetCount = 5;
+      const currentCategoryId = String(categoryId || "");
+      let selectedProducts = [];
+
+      if (currentCategoryId) {
+        const { data } = await axios.get(
+          `/api/products?category=${encodeURIComponent(currentCategoryId)}&limit=${targetCount + 1}&status=active`,
+          { signal }
         );
+        if (data.success && Array.isArray(data.data?.products)) {
+          selectedProducts = data.data.products
+            .filter((p) => isOtherThanCurrentProduct(p, params.id, excludeProduct))
+            .slice(0, targetCount);
+        }
       }
+
+      // Fill remaining cards from other categories only. This keeps products
+      // from the current category first while avoiding a short recommendation row.
+      if (selectedProducts.length < targetCount) {
+        const { data } = await axios.get(
+          `/api/products?limit=100&status=active`,
+          { signal }
+        );
+        if (data.success && Array.isArray(data.data?.products)) {
+          const selectedIds = new Set(
+            selectedProducts.map((p) => String(p._id || p.id || ""))
+          );
+          const fallbackProducts = data.data.products.filter((p) => {
+            const id = String(p._id || p.id || "");
+            return (
+              !selectedIds.has(id) &&
+              isOtherThanCurrentProduct(p, params.id, excludeProduct) &&
+              getProductCategoryId(p) !== currentCategoryId
+            );
+          });
+          selectedProducts = [...selectedProducts, ...fallbackProducts].slice(0, targetCount);
+        }
+      }
+
+      setRelatedProducts(
+        selectedProducts.map((p) => normalizeProductForCard(p)).filter(Boolean)
+      );
     } catch (error) {
       if (axios.isCancel?.(error) || error.name === "CanceledError") return;
       console.error("Failed to fetch related products", error);
     }
-  }, [params.id]);
+  }, [getProductCategoryId, params.id]);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -252,8 +291,7 @@ function ProductDetails() {
             typeof cat === "object" && cat !== null
               ? cat.id || cat._id
               : cat;
-          if (categoryId)
-            fetchRelatedProducts(categoryId, ac.signal, productData);
+          fetchRelatedProducts(categoryId, ac.signal, productData);
         } else {
           message.error("Product not found");
           setProduct(null);

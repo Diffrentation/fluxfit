@@ -11,7 +11,7 @@ export async function PUT(request, { params }) {
 
     await connectDB();
     const { id } = await params;
-    const { status, adminNotes, views, likes, comments } = await request.json();
+    const { status, adminNotes, views, likes, comments, deadline } = await request.json();
 
     const challenge = await Challenge.findById(id);
     if (!challenge) {
@@ -23,6 +23,13 @@ export async function PUT(request, { params }) {
     if (views !== undefined) challenge.views = views;
     if (likes !== undefined) challenge.likes = likes;
     if (comments !== undefined) challenge.comments = comments;
+    if (deadline) {
+      const parsedDeadline = new Date(deadline);
+      if (isNaN(parsedDeadline.getTime())) {
+        return NextResponse.json({ success: false, error: "Invalid deadline date" }, { status: 400 });
+      }
+      challenge.deadline = parsedDeadline;
+    }
 
     await challenge.save();
 

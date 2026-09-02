@@ -2,9 +2,61 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Challenge, Order } from "@/models";
 import { sendChallengeEmail } from "@/lib/email";
+import jwt from "jsonwebtoken";
+import { authenticateUser } from "@/lib/auth";
+
+export async function GET(request) {
+  try {
+    const { error, user } = await authenticateUser(request);
+    if (error) return error;
+
+    const { searchParams } = new URL(request.url);
+    const orderNumber = searchParams.get("orderNumber")?.trim();
+    if (!orderNumber) {
+      return NextResponse.json(
+        { success: false, error: "Order number is required." },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+    const order = await Order.findOne({ orderNumber }).select("user status");
+    if (!order || !order.user || String(order.user) !== String(user._id)) {
+      return NextResponse.json(
+        { success: false, error: "Order not found for this account." },
+        { status: 404 }
+      );
+    }
+
+    if (order.status !== "delivered") {
+      return NextResponse.json({
+        success: true,
+        data: {
+          eligible: false,
+          status: order.status,
+          message: "You can join the 5K Challenge after this order has been delivered.",
+        },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { eligible: true, status: order.status },
+    });
+  } catch (error) {
+    console.error("5K eligibility check error:", error);
+    return NextResponse.json(
+      { success: false, error: "Unable to check order eligibility." },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request) {
   try {
+    const { error, user } = await authenticateUser(request);
+    if (error) return error;
+
     await connectDB();
     const body = await request.json();
     const {
@@ -41,6 +93,13 @@ export async function POST(request) {
       return NextResponse.json(
         { success: false, error: "Order not found. Please check your Order Number." },
         { status: 404 }
+      );
+    }
+
+    if (!order.user || String(order.user._id) !== String(user._id)) {
+      return NextResponse.json(
+        { success: false, error: "This order does not belong to your account." },
+        { status: 403 }
       );
     }
 
@@ -94,7 +153,7 @@ export async function POST(request) {
     const challenge = await Challenge.create({
       challengeId,
       order: order._id,
-      user: order.user ? order.user._id : null,
+      user: user._id,
       name,
       email,
       socialHandle,
@@ -107,17 +166,45 @@ export async function POST(request) {
     // Send registration email asynchronously (don't await so we don't slow down response)
     sendChallengeEmail(email, "registration", challenge).catch(err => console.error("Error sending 5k email:", err));
 
-    return NextResponse.json(
+    // Log the user straight into their challenge session so they land on the
+    // video-submission view instead of the registration form on next load.
+    const token = jwt.sign(
+      { challengeId: challenge._id },
+      process.env.JWT_SECRET || "your-secret-key-change-in-production",
+      { expiresIn: "7d" }
+    );
+
+    const response = NextResponse.json(
       {
         success: true,
         message: "Successfully registered for the 5K Challenge!",
         data: {
           challengeId: challenge.challengeId,
+          orderNumber: order.orderNumber,
+          name: challenge.name,
+          email: challenge.email,
+          socialHandle: challenge.socialHandle,
+          platform: challenge.platform,
+          status: challenge.status,
+          views: challenge.views,
+          likes: challenge.likes,
+          comments: challenge.comments,
+          videoUrl: challenge.videoUrl,
           deadline: challenge.deadline,
         },
       },
       { status: 201 }
     );
+
+    response.cookies.set("ff_5k_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Error registering challenge:", error);
     return NextResponse.json(
