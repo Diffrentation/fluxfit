@@ -62,13 +62,13 @@ export function normalizeProductForCard(product) {
   };
 }
 
-/** Storefront URL: prefer SEO slug, then id. */
+/** Storefront URL: always the product id (slugs are still accepted by the API for old links). */
 export function getProductDetailPath(product) {
   if (!product) return "/product-list";
-  const slug = typeof product.slug === "string" ? product.slug.trim() : "";
-  if (slug) return `/product-details/${slug}`;
   const id = product.id ?? product._id;
   if (id != null && id !== "") return `/product-details/${String(id)}`;
+  const slug = typeof product.slug === "string" ? product.slug.trim() : "";
+  if (slug) return `/product-details/${slug}`;
   return "/product-list";
 }
 

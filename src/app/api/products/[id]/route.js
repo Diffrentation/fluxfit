@@ -338,12 +338,29 @@ export async function PUT(request, { params }) {
       }
     }
 
+    const effectiveBasePriceForValidation =
+      updateData.basePrice !== undefined ? updateData.basePrice : product.basePrice;
+
     if (originalPrice !== undefined) {
       if (originalPrice !== null && originalPrice < 0) {
         errors.push({ field: "originalPrice", message: "Original price must be greater than or equal to 0" });
+      } else if (
+        originalPrice !== null &&
+        originalPrice < effectiveBasePriceForValidation
+      ) {
+        errors.push({ field: "originalPrice", message: "Original price cannot be less than the base price" });
       } else {
         updateData.originalPrice = originalPrice ? parseFloat(originalPrice) : null;
       }
+    } else if (
+      updateData.basePrice !== undefined &&
+      product.originalPrice != null &&
+      product.originalPrice < updateData.basePrice
+    ) {
+      errors.push({
+        field: "basePrice",
+        message: "Base price cannot exceed the existing original price",
+      });
     }
 
     if (discount !== undefined) {
@@ -359,7 +376,10 @@ export async function PUT(request, { params }) {
     const metaTitleForSlug =
       metaTitle !== undefined ? metaTitle?.trim() : product.metaTitle;
 
-    if (slugFromClientProvided || name !== undefined || metaTitle !== undefined) {
+    // Only regenerate the slug when the client explicitly sets one, or when
+    // the product is renamed — editing metaTitle alone (an SEO-only field)
+    // must not silently change the canonical URL slug.
+    if (slugFromClientProvided || name !== undefined) {
       const currentSlugNorm = String(product.slug || "").toLowerCase().trim();
       const rawSlug = slugFromClientProvided ? slug : undefined;
       const slugSource = rawSlug || metaTitleForSlug || nameForSlug;
@@ -384,7 +404,9 @@ export async function PUT(request, { params }) {
           _id: { $ne: product._id },
           isDeleted: false,
         });
-        updateData.slug = existingProduct ? `${nextSlug}-${Date.now()}` : nextSlug;
+        updateData.slug = existingProduct
+          ? `${nextSlug}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
+          : nextSlug;
       }
     }
 
@@ -407,6 +429,7 @@ export async function PUT(request, { params }) {
       if (!Array.isArray(variants)) {
         errors.push({ field: "variants", message: "Variants must be an array" });
       } else {
+        const seenVariantKeys = new Set();
         variants.forEach((variant, index) => {
           if (!variant.size?.trim()) {
             errors.push({ field: `variants[${index}].size`, message: "Variant size is required" });
@@ -423,6 +446,17 @@ export async function PUT(request, { params }) {
             errors.push({ field: `variants[${index}].stock`, message: "Variant stock is required" });
           } else if (variant.stock < 0) {
             errors.push({ field: `variants[${index}].stock`, message: "Variant stock must be >= 0" });
+          }
+
+          if (variant.size?.trim() && variant.color?.trim()) {
+            const key = `${variant.size.trim().toLowerCase()}::${variant.color.trim().toLowerCase()}`;
+            if (seenVariantKeys.has(key)) {
+              errors.push({
+                field: `variants[${index}]`,
+                message: `Duplicate variant: size "${variant.size}" + color "${variant.color}" already exists`,
+              });
+            }
+            seenVariantKeys.add(key);
           }
         });
         if (!errors.some(e => e.field.startsWith("variants["))) {
@@ -544,9 +578,19 @@ export async function PUT(request, { params }) {
       }, { status: 400 });
     }
 
-    // Update product
+    // Update product. Retry once with a re-randomized slug if a concurrent
+    // request won the uniqueness race between the check above and this save.
     Object.assign(product, updateData);
-    await product.save();
+    try {
+      await product.save();
+    } catch (saveError) {
+      if (saveError.code === 11000 && saveError.keyPattern?.slug) {
+        product.slug = `${updateData.slug || product.slug}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
+        await product.save();
+      } else {
+        throw saveError;
+      }
+    }
 
     // Fetch updated product using pipeline for consistent response
     const updatedResult = await Product.aggregate([

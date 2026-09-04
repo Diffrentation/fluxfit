@@ -5,6 +5,11 @@ import Category from "@/models/category.model";
 import Brand from "@/models/brand.model";
 import { parseCSV, validateBulkProducts } from "@/lib/csvParser";
 import mongoose from "mongoose";
+import slugify from "slugify";
+
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 /**
  * POST /api/products/bulk-upload
@@ -129,7 +134,9 @@ export async function POST(request) {
       created: [],
       failed: [],
       skipped: [],
+      warnings: [],
     };
+    const slugsUsedInBatch = new Set();
 
     for (let i = 0; i < validation.valid.length; i++) {
       const productData = validation.valid[i];
@@ -162,14 +169,21 @@ export async function POST(request) {
             productData.isPopular === "true" || productData.isPopular === true,
         };
 
-        // Generate slug if not provided
+        // Generate slug if not provided. Uses the same slugify() rules as the
+        // single-product create/update routes so slugs are consistent
+        // (unicode/diacritics handling, etc.) whichever path created them.
         if (!productData.slug && productFields.name) {
-          productFields.slug = productFields.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+          productFields.slug = slugify(productFields.name, {
+            lower: true,
+            strict: true,
+            trim: true,
+          });
         } else if (productData.slug) {
-          productFields.slug = productData.slug.toLowerCase().trim();
+          productFields.slug = slugify(productData.slug, {
+            lower: true,
+            strict: true,
+            trim: true,
+          });
         }
 
         // Handle category - try to find by name or ID
@@ -182,7 +196,7 @@ export async function POST(request) {
               $or: [
                 {
                   name: {
-                    $regex: new RegExp(`^${productData.category}$`, "i"),
+                    $regex: new RegExp(`^${escapeRegex(productData.category)}$`, "i"),
                   },
                 },
                 { slug: productData.category.toLowerCase() },
@@ -217,7 +231,7 @@ export async function POST(request) {
           } else {
             brand = await Brand.findOne({
               $or: [
-                { name: { $regex: new RegExp(`^${productData.brand}$`, "i") } },
+                { name: { $regex: new RegExp(`^${escapeRegex(productData.brand)}$`, "i") } },
                 { slug: productData.brand.toLowerCase() },
               ],
             });
@@ -276,15 +290,17 @@ export async function POST(request) {
         }
 
         // Handle variants if provided
+        let variantsParseError = null;
         if (productData.variants) {
           try {
             const variants = JSON.parse(productData.variants);
             if (Array.isArray(variants)) {
               productFields.variants = variants;
+            } else {
+              variantsParseError = "variants column must be a JSON array";
             }
           } catch (e) {
-            // If not JSON, try to parse as string format
-            console.warn("Could not parse variants:", e);
+            variantsParseError = `variants column is not valid JSON: ${e.message}`;
           }
         } else if (productData.size && productData.color) {
           // Create a single variant from size and color
@@ -314,19 +330,33 @@ export async function POST(request) {
           productFields.metaKeywords = keywords;
         }
 
-        // Check if product with same slug already exists
+        // Check if product with same slug already exists in the DB, or
+        // earlier in this same CSV batch (rows sharing a name would
+        // otherwise both pass the DB check before either is saved, and the
+        // second insert would fail with an opaque duplicate-key error).
         const existingProduct = await Product.findOne({
           slug: productFields.slug,
           isDeleted: false,
         });
 
-        if (existingProduct) {
+        if (existingProduct || slugsUsedInBatch.has(productFields.slug)) {
           results.skipped.push({
             index: i + 2,
             product: productFields.name,
-            reason: `Product with slug "${productFields.slug}" already exists`,
+            reason: existingProduct
+              ? `Product with slug "${productFields.slug}" already exists`
+              : `Duplicate slug "${productFields.slug}" earlier in this CSV file`,
           });
           continue;
+        }
+        slugsUsedInBatch.add(productFields.slug);
+
+        if (variantsParseError) {
+          results.warnings.push({
+            index: i + 2,
+            product: productFields.name,
+            warning: `${variantsParseError} — product created without variants`,
+          });
         }
 
         // Create product
@@ -359,10 +389,12 @@ export async function POST(request) {
             created: results.created.length,
             failed: results.failed.length,
             skipped: results.skipped.length,
+            warnings: results.warnings.length,
           },
           created: results.created,
           failed: results.failed,
           skipped: results.skipped,
+          warnings: results.warnings,
         },
       },
       { status: 200 }

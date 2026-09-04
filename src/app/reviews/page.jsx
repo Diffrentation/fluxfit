@@ -92,7 +92,7 @@ export default function ReviewsPage() {
                   <p className="font-medium">{review.user?.name || "Anonymous"}</p>
                   <p className="text-xs text-gray-500">
                     {review.product?.name ? (
-                      <Link href={`/product-details/${review.product.slug || review.product.id}`}>
+                      <Link href={`/product-details/${review.product.id || review.product.slug}`}>
                         {review.product.name}
                       </Link>
                     ) : (

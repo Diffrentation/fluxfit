@@ -76,7 +76,12 @@ export async function GET(request) {
         if (categoryDoc) categoryId = categoryDoc._id;
       }
 
-      if (categoryId) {
+      if (!categoryId) {
+        // Category param was given but didn't resolve to a real category —
+        // return an empty result set instead of silently ignoring the filter
+        // and returning the whole unfiltered catalog.
+        query.category = new mongoose.Types.ObjectId();
+      } else if (categoryId) {
         const selectedCategoryDoc = await Category.findOne({
           _id: categoryId,
           isDeleted: false,
@@ -98,6 +103,7 @@ export async function GET(request) {
                 connectToField: "parent",
                 as: "descendants",
                 restrictSearchWithMatch: { isDeleted: false },
+                maxDepth: 20,
               },
             },
             {
@@ -293,7 +299,10 @@ export async function GET(request) {
         Product.ensureIndexes().catch(console.error);
 
         delete query.$text;
-        query.name = { $regex: search.trim(), $options: "i" };
+        query.name = {
+          $regex: search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          $options: "i",
+        };
 
         if (sortObj.score) {
           delete sortObj.score;
@@ -440,6 +449,17 @@ export async function POST(request) {
         field: "originalPrice",
         message: "Original price must be greater than or equal to 0",
       });
+    } else if (
+      originalPrice !== undefined &&
+      originalPrice !== null &&
+      basePrice !== undefined &&
+      basePrice !== null &&
+      originalPrice < basePrice
+    ) {
+      errors.push({
+        field: "originalPrice",
+        message: "Original price cannot be less than the base price",
+      });
     }
 
     if (discount !== undefined && (discount < 0 || discount > 100)) {
@@ -495,6 +515,7 @@ export async function POST(request) {
 
     // Validate variants
     if (variants && Array.isArray(variants)) {
+      const seenVariantKeys = new Set();
       variants.forEach((variant, index) => {
         if (!variant.size || !variant.size.trim()) {
           errors.push({
@@ -530,6 +551,17 @@ export async function POST(request) {
             message: "Variant stock must be greater than or equal to 0",
           });
         }
+
+        if (variant.size?.trim() && variant.color?.trim()) {
+          const key = `${variant.size.trim().toLowerCase()}::${variant.color.trim().toLowerCase()}`;
+          if (seenVariantKeys.has(key)) {
+            errors.push({
+              field: `variants[${index}]`,
+              message: `Duplicate variant: size "${variant.size}" + color "${variant.color}" already exists`,
+            });
+          }
+          seenVariantKeys.add(key);
+        }
       });
     }
 
@@ -559,10 +591,12 @@ export async function POST(request) {
       });
     }
 
-    // Ensure slug uniqueness before saving
+    // Ensure slug uniqueness before saving. A concurrent request could still
+    // race past this check before either save completes, so the create call
+    // below also retries once on a duplicate-key error.
     const existingProduct = await Product.findOne({ slug, isDeleted: false });
     if (existingProduct) {
-      slug = `${slug}-${Date.now()}`;
+      slug = `${slug}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
     }
 
     // Stock is auto-computed by pre-save middleware from variants; send 0 as placeholder.
@@ -617,9 +651,19 @@ export async function POST(request) {
       );
     }
 
-    // Create product
+    // Create product. Retry once with a re-randomized slug if a concurrent
+    // request won the uniqueness race between the check above and this save.
     const newProduct = new Product(productData);
-    await newProduct.save();
+    try {
+      await newProduct.save();
+    } catch (saveError) {
+      if (saveError.code === 11000 && saveError.keyPattern?.slug) {
+        newProduct.slug = `${slug}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
+        await newProduct.save();
+      } else {
+        throw saveError;
+      }
+    }
 
     // Populate category and brand for response
     await newProduct.populate("category", "name slug");

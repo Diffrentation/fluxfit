@@ -413,7 +413,10 @@ productSchema.statics.search = async function (query, filters = {}) {
       this.ensureIndexes().catch(console.error);
 
       delete searchQuery.$text;
-      searchQuery.name = { $regex: query, $options: "i" };
+      searchQuery.name = {
+        $regex: query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        $options: "i",
+      };
 
       let fallbackSort = sort;
       if (typeof sort === "string" && sort.includes("score")) {
@@ -464,12 +467,20 @@ productSchema.pre("save", function (next) {
     }
   }
 
-  // 2. Auto-generate SKU for any variant that lacks one
+  // 2. Auto-generate SKU for any variant that lacks one. Mixes in a base-36
+  // timestamp fragment (not just a 4-digit random number) so two variants
+  // generated in the same request/millisecond don't collide, and checks
+  // against SKUs already used elsewhere on this product before accepting one.
   if (Array.isArray(this.variants) && this.variants.length > 0) {
     const namePrefix = (this.name || "")
       .replace(/[^a-zA-Z0-9]/g, "")
       .slice(0, 3)
       .toUpperCase();
+    const usedSkus = new Set(
+      this.variants
+        .map((v) => (v.sku ? String(v.sku).trim().toUpperCase() : ""))
+        .filter(Boolean)
+    );
     this.variants.forEach((variant) => {
       if (!variant.sku || !String(variant.sku).trim()) {
         const colorCode = (variant.color || "")
@@ -479,10 +490,16 @@ productSchema.pre("save", function (next) {
         const sizeCode = (variant.size || "")
           .replace(/[^a-zA-Z0-9]/g, "")
           .toUpperCase();
-        const rand = Math.floor(1000 + Math.random() * 9000);
-        variant.sku = [namePrefix, colorCode, sizeCode, rand]
-          .filter(Boolean)
-          .join("-");
+        let candidate;
+        do {
+          const timeFragment = Date.now().toString(36).slice(-4).toUpperCase();
+          const rand = Math.floor(100 + Math.random() * 900);
+          candidate = [namePrefix, colorCode, sizeCode, timeFragment, rand]
+            .filter(Boolean)
+            .join("-");
+        } while (usedSkus.has(candidate));
+        usedSkus.add(candidate);
+        variant.sku = candidate;
       }
     });
 
@@ -490,10 +507,15 @@ productSchema.pre("save", function (next) {
     this.stock = this.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
   }
 
-  // 4. Auto-manage inStock flag
-  const hasVariantStock =
-    Array.isArray(this.variants) && this.variants.some((v) => v.stock > 0 && v.isActive !== false);
-  this.inStock = this.stock > 0 || hasVariantStock;
+  // 4. Auto-manage inStock flag, unless this save explicitly set it (e.g. an
+  // admin override to force "in stock" for a backorderable item, or to hide
+  // an item despite remaining stock) — otherwise that override was silently
+  // discarded on every save.
+  if (!this.isModified("inStock")) {
+    const hasVariantStock =
+      Array.isArray(this.variants) && this.variants.some((v) => v.stock > 0 && v.isActive !== false);
+    this.inStock = this.stock > 0 || hasVariantStock;
+  }
 
   if (typeof next === 'function') next();
 });

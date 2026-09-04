@@ -84,15 +84,15 @@ export async function POST(request, { params }) {
       );
     }
 
-    if (isNaN(adjustment)) {
+    if (isNaN(adjustment) || !Number.isInteger(Number(adjustment))) {
       return NextResponse.json(
         {
           success: false,
-          message: "Adjustment must be a number",
+          message: "Adjustment must be a whole number",
           errors: [
             {
               field: "adjustment",
-              message: "Adjustment must be a valid number",
+              message: "Adjustment must be a valid integer (stock cannot be fractional)",
             },
           ],
         },
@@ -100,7 +100,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    const adjustmentValue = parseInt(adjustment);
+    const adjustmentValue = Number(adjustment);
 
     // Validate variant ID if provided
     if (variantId && !mongoose.Types.ObjectId.isValid(variantId)) {
@@ -174,6 +174,24 @@ export async function POST(request, { params }) {
       );
       product.stock = totalStock;
       product.inStock = totalStock > 0;
+    } else if (product.variants && product.variants.length > 0) {
+      // Total stock is derived from variant stocks (see Product pre-save
+      // hook), so adjusting it directly here would be silently overwritten
+      // on the very next save — the caller must target a specific variant.
+      return NextResponse.json(
+        {
+          success: false,
+          message: "This product has variants — specify a variantId to adjust stock",
+          errors: [
+            {
+              field: "variantId",
+              message:
+                "Product total stock is computed from variant stock and cannot be adjusted directly. Provide variantId to adjust a specific variant.",
+            },
+          ],
+        },
+        { status: 400 }
+      );
     } else {
       // Adjust main product stock
       const newStock = previousStock + adjustmentValue;
