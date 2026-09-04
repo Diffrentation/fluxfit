@@ -69,10 +69,14 @@ const Footer = () => {
   ];
 
   const socialLinks = [
-    { icon: IconBrandFacebook, link: "#", label: "Facebook" },
-    { icon: IconBrandTwitter, link: "#", label: "Twitter" },
-    { icon: IconBrandInstagram, link: "#", label: "Instagram" },
-    { icon: IconBrandLinkedin, link: "#", label: "LinkedIn" },
+    { icon: IconBrandFacebook, link: settings?.socialMedia?.facebook || "#", label: "Facebook" },
+    { icon: IconBrandTwitter, link: settings?.socialMedia?.twitter || "#", label: "Twitter" },
+    {
+      icon: IconBrandInstagram,
+      link: settings?.socialMedia?.instagram || "https://instagram.com/fluxfix_fashion",
+      label: "Instagram",
+    },
+    { icon: IconBrandLinkedin, link: settings?.socialMedia?.linkedin || "#", label: "LinkedIn" },
   ];
 
   const toggleSection = (section) => {
@@ -106,6 +110,9 @@ const Footer = () => {
                     key={index}
                     href={social.link}
                     aria-label={social.label}
+                    {...(social.link !== "#"
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                     className="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full hover:bg-[#1e9a58] hover:border-[#1e9a58] hover:text-white transition-all duration-300 hover:-translate-y-1"
                   >
                     <Icon className="w-5 h-5" />

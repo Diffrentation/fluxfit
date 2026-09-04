@@ -2,6 +2,19 @@
 const nextConfig = {
   /* config options here */
   reactCompiler: true,
+  experimental: {
+    // Without this, the client Router Cache treats every dynamic route
+    // (product-list, product-details, etc. all use `dynamic = "force-dynamic"`
+    // or client-fetched data) as instantly stale, so navigating *back* to one
+    // tears down and remounts it from scratch — refetching product data and
+    // flashing a loading state, which reads as the page "refreshing" even
+    // though it's a client-side transition, not a real reload. This keeps a
+    // recently-visited dynamic page's rendered tree (and component state)
+    // around for 30s so back/forward reuses it instantly instead.
+    staleTimes: {
+      dynamic: 30,
+    },
+  },
   images: {
     remotePatterns: [
       {

@@ -8,6 +8,30 @@ import {
 import { publicApiUrl } from "@/lib/apiBaseUrl";
 import { toastApiError } from "@/lib/appToast";
 
+// Module-level (not component state) cache of the last successful response
+// per query string, so it survives this hook's component remounting — which
+// happens on every back/forward navigation to this page since the route's
+// client tree isn't preserved. Without this, going back always starts from
+// an empty product list + loading spinner even though the exact same data
+// was just on screen a moment ago, which reads as the page "refreshing".
+// Capped and unbounded-lifetime-per-entry is fine here: it only ever holds
+// a handful of recently-viewed filter combinations for one page session.
+const productsCache = new Map();
+const MAX_CACHE_ENTRIES = 20;
+
+function buildQueryString(queryParams) {
+  const qs = new URLSearchParams();
+  Object.entries(queryParams || {}).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    if (Array.isArray(v)) {
+      v.forEach((item) => qs.append(k, String(item)));
+    } else {
+      qs.set(k, String(v));
+    }
+  });
+  return qs.toString();
+}
+
 /**
  * Fetches catalog products from GET /api/products with stable request cancellation.
  * Params are derived with useMemo so we do not recreate objects unnecessarily.
@@ -29,12 +53,6 @@ export function usePublicProducts({
   minRating,
   inStockOnly,
 }) {
-  const [products, setProducts] = useState([]);
-  const [pagination, setPagination] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const abortRef = useRef(null);
-
   const queryParams = useMemo(
     () =>
       buildPublicProductsQuery({
@@ -72,25 +90,29 @@ export function usePublicProducts({
       inStockOnly,
     ]
   );
+  const queryString = useMemo(() => buildQueryString(queryParams), [queryParams]);
+
+  const cachedForInit = productsCache.get(queryString);
+  const [products, setProducts] = useState(() => cachedForInit?.products ?? []);
+  const [pagination, setPagination] = useState(() => cachedForInit?.pagination ?? null);
+  // Only show the loading state when there's nothing cached to show in the
+  // meantime — a query we've already fetched this session still revalidates
+  // in the background, but the grid stays populated instead of flashing to
+  // empty, which is what made returning to this page look like a reload.
+  const [loading, setLoading] = useState(() => !cachedForInit);
+  const [error, setError] = useState(null);
+  const abortRef = useRef(null);
 
   const fetchProducts = useCallback(async () => {
     abortRef.current?.abort();
     abortRef.current = new AbortController();
     const signal = abortRef.current.signal;
 
-    setLoading(true);
+    const key = buildQueryString(queryParams);
+    if (!productsCache.has(key)) setLoading(true);
     setError(null);
     try {
-      const qs = new URLSearchParams();
-      Object.entries(queryParams || {}).forEach(([k, v]) => {
-        if (v === undefined || v === null || v === "") return;
-        if (Array.isArray(v)) {
-          v.forEach((item) => qs.append(k, String(item)));
-        } else {
-          qs.set(k, String(v));
-        }
-      });
-      const url = `${publicApiUrl("/api/products")}?${qs.toString()}`;
+      const url = `${publicApiUrl("/api/products")}?${key}`;
       if (process.env.NODE_ENV !== "production") {
         console.log("[usePublicProducts] GET", url);
       }
@@ -99,9 +121,19 @@ export function usePublicProducts({
       if (!res.ok || !data?.success) {
         throw new Error(data?.message || `Failed to load products (${res.status})`);
       }
-      const raw = data.data?.products || [];
-      setProducts(raw.map(normalizeProductForCard).filter(Boolean));
-      setPagination(data.data?.pagination || null);
+      const normalized = (data.data?.products || [])
+        .map(normalizeProductForCard)
+        .filter(Boolean);
+      const paginationData = data.data?.pagination || null;
+
+      if (productsCache.size >= MAX_CACHE_ENTRIES && !productsCache.has(key)) {
+        const oldestKey = productsCache.keys().next().value;
+        productsCache.delete(oldestKey);
+      }
+      productsCache.set(key, { products: normalized, pagination: paginationData });
+
+      setProducts(normalized);
+      setPagination(paginationData);
     } catch (e) {
       if (e.name === "AbortError") {
         return;

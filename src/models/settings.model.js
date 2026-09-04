@@ -20,7 +20,7 @@ const settingsSchema = new mongoose.Schema(
       socialMedia: {
         facebook: { type: String, default: "" },
         twitter: { type: String, default: "" },
-        instagram: { type: String, default: "" },
+        instagram: { type: String, default: "https://instagram.com/fluxfix_fashion" },
         linkedin: { type: String, default: "" },
         youtube: { type: String, default: "" },
       },

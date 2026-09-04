@@ -10,8 +10,8 @@ import {
   MobileNavToggle,
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
-import { useMemo, useState, useEffect, useRef } from "react";
-import { IconShoppingCart, IconUser, IconChevronDown, IconLogout } from "@tabler/icons-react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { IconShoppingCart, IconUser, IconChevronDown, IconLogout, IconArrowLeft } from "@tabler/icons-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -82,6 +82,28 @@ export function Nav() {
   const cartCount = getCartCount();
   const router = useRouter();
 
+  // Home has nowhere to "go back" to, so it's the only page without the icon.
+  const showBackButton = pathname !== "/";
+
+  // Next's `history.state` shape isn't a reliable signal for "is there an
+  // in-app page behind this one" (it doesn't consistently expose a usable
+  // index here), so track navigation depth ourselves: this increments on
+  // every pathname change for as long as Nav stays mounted (i.e. the whole
+  // client-side session), so a value > 1 means the user really did arrive
+  // via at least one prior in-app page rather than landing here directly.
+  const navDepthRef = useRef(0);
+  useEffect(() => {
+    navDepthRef.current += 1;
+  }, [pathname]);
+
+  const handleBack = useCallback(() => {
+    if (navDepthRef.current > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  }, [router]);
+
 
 
   const showAuthChrome = hydrated && isAuthenticated && user;
@@ -95,7 +117,19 @@ export function Nav() {
       <Navbar>
         <ChallengeBanner />
         <NavBody>
-          <NavbarLogo />
+          <div className="flex items-center gap-2">
+            {showBackButton && (
+              <button
+                type="button"
+                onClick={handleBack}
+                aria-label="Go back"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition-colors hover:bg-[#f4fbf7] hover:text-[#1e9a58] hover:border-[#1e9a58] dark:border-neutral-700 dark:text-neutral-300"
+              >
+                <IconArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            <NavbarLogo />
+          </div>
           <NavItems items={desktopNavItems} />
           <div className="flex items-center gap-2 xl:gap-4">
             {!showAuthChrome ? (
@@ -221,7 +255,19 @@ export function Nav() {
 
         <MobileNav>
           <MobileNavHeader>
-            <NavbarLogo />
+            <div className="flex items-center gap-2">
+              {showBackButton && (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  aria-label="Go back"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition-colors hover:bg-[#f4fbf7] hover:text-[#1e9a58] active:scale-95 dark:border-neutral-700 dark:text-neutral-300"
+                >
+                  <IconArrowLeft className="h-4 w-4" />
+                </button>
+              )}
+              <NavbarLogo />
+            </div>
             <div className="flex items-center gap-2">
               <Link
                 href="/5k-challenge"
