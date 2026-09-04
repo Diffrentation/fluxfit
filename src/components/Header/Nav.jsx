@@ -97,7 +97,7 @@ export function Nav() {
         <NavBody>
           <NavbarLogo />
           <NavItems items={desktopNavItems} />
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 xl:gap-4">
             {!showAuthChrome ? (
               <>
                 <NavbarButton
@@ -222,10 +222,18 @@ export function Nav() {
         <MobileNav>
           <MobileNavHeader>
             <NavbarLogo />
-            <MobileNavToggle
-              isOpen={isMobileMenuOpen}
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            />
+            <div className="flex items-center gap-2">
+              <Link
+                href="/5k-challenge"
+                className="rounded-md border border-[#1e9a58] px-2.5 py-1.5 text-xs font-bold text-[#1e9a58] transition-colors hover:bg-[#1e9a58] hover:text-white"
+              >
+                5K Challenge
+              </Link>
+              <MobileNavToggle
+                isOpen={isMobileMenuOpen}
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              />
+            </div>
           </MobileNavHeader>
           <MobileNavMenu
             isOpen={isMobileMenuOpen}

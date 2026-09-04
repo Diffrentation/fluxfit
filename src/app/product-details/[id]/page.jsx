@@ -27,7 +27,6 @@ import {
   IconLock,
   IconFileDescription,
   IconStars,
-  IconMessageCircleQuestion,
   IconWiperWash,
   IconMedal,
   IconMoonStars,
@@ -36,7 +35,6 @@ import {
   IconReceipt,
   IconPackage,
   IconShield,
-  IconQrcode,
   IconChevronDown,
   IconCircleCheck,
 } from "@tabler/icons-react";
@@ -775,7 +773,7 @@ function ProductDetails() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-10 relative overflow-hidden">
+    <div className="bg-gray-50 min-h-screen pt-28 lg:pt-32 relative overflow-hidden">
       
       {/* Background Decor Elements */}
       <div className="absolute top-10 right-10 grid grid-cols-4 gap-3 opacity-20 pointer-events-none z-0">
@@ -1116,28 +1114,28 @@ function ProductDetails() {
               <IconTruck className="w-8 h-8 text-[#1e9a58]" />
               <div>
                 <p className="text-sm font-bold text-[#0d1c2f]">Free Shipping</p>
-                <p className="text-xs text-gray-500 font-medium">On orders over $50</p>
+                <p className="text-xs text-gray-500 font-medium">On orders above ₹999</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <IconShieldCheck className="w-8 h-8 text-[#1e9a58]" />
+              <IconReceipt className="w-8 h-8 text-[#1e9a58]" />
               <div>
-                <p className="text-sm font-bold text-[#0d1c2f]">2 Years Warranty</p>
-                <p className="text-xs text-gray-500 font-medium">Quality Assured</p>
+                <p className="text-sm font-bold text-[#0d1c2f]">Cash on Delivery</p>
+                <p className="text-xs text-gray-500 font-medium">Pay when your order arrives</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <IconRefresh className="w-8 h-8 text-[#1e9a58]" />
               <div>
-                <p className="text-sm font-bold text-[#0d1c2f]">30 Days Returns</p>
-                <p className="text-xs text-gray-500 font-medium">Hassle Free</p>
+                <p className="text-sm font-bold text-[#0d1c2f]">7-Day Easy Returns</p>
+                <p className="text-xs text-gray-500 font-medium">Hassle-free return support</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <IconLock className="w-8 h-8 text-[#1e9a58]" />
               <div>
-                <p className="text-sm font-bold text-[#0d1c2f]">Secure Payment</p>
-                <p className="text-xs text-gray-500 font-medium">100% Protected</p>
+                <p className="text-sm font-bold text-[#0d1c2f]">Secure Payments</p>
+                <p className="text-xs text-gray-500 font-medium">UPI, cards &amp; net banking</p>
               </div>
             </div>
           </div>
@@ -1179,8 +1177,6 @@ function ProductDetails() {
               { id: "features", label: "Features", icon: IconStars },
               { id: "shipping", label: "Shipping", icon: IconTruck },
               { id: "reviews", label: "Reviews", icon: IconStar },
-              { id: "qa", label: "Q&A", icon: IconMessageCircleQuestion },
-              { id: "care", label: "Care Guide", icon: IconWiperWash },
             ].map((tab, index) => {
               const Icon = tab.icon;
               return (
@@ -1367,35 +1363,21 @@ function ProductDetails() {
                     )}
 
                     {/* More Information */}
-                    <div id="more-info" className={`grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-100 ${activeSection === 'more-info' ? 'lg:grid' : 'lg:hidden'}`}>
+                    <div id="more-info" className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-100 ${activeSection === 'more-info' ? 'lg:grid' : 'lg:hidden'}`}>
                       {/* Specifications */}
                       {product.specifications && product.specifications.length > 0 && (
-                      <div className="lg:col-span-2">
+                      <div className="col-span-full">
                         <h3 className="font-bold text-[#0d1c2f] mb-4">Product Specifications</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                           {product.specifications.map((spec, i) => (
-                            <div key={i} className="flex justify-between items-center border-b border-gray-100 py-2">
-                              <span className="text-sm text-gray-500 font-medium">{spec.label}</span>
-                              <span className="text-sm font-bold text-[#0d1c2f]">{spec.value}</span>
+                            <div key={i} className="rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3">
+                              <span className="block text-xs font-semibold uppercase tracking-wide text-gray-500">{spec.label}</span>
+                              <span className="mt-1 block text-sm font-bold leading-snug text-[#0d1c2f]">{spec.value}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                       )}
-
-                      {/* Authenticity Verified */}
-                      <div className="lg:col-span-1 bg-[#f4faf7] rounded-2xl p-6 flex flex-col justify-center border border-[#e4f7ed]">
-                        <div className="flex items-start gap-3 mb-4">
-                          <IconShieldCheck className="w-6 h-6 text-[#1e9a58] shrink-0" />
-                          <div>
-                            <h4 className="font-bold text-[#1e9a58]">Authenticity Verified</h4>
-                            <p className="text-xs text-gray-600 mt-1">Every product is 100% original and quality-checked.</p>
-                          </div>
-                        </div>
-                        <div className="bg-white rounded-lg p-3 flex items-center justify-center gap-2 border border-[#e4f7ed] text-[#1e9a58] font-bold text-xs cursor-pointer hover:bg-[#1e9a58] hover:text-white transition-colors">
-                          <IconQrcode className="w-4 h-4" /> Scan QR to Verify
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1847,12 +1829,6 @@ function ProductDetails() {
                     </div>
                   </div>
                 </div>
-              )}
-              {activeTab === "qa" && (
-                <div className="p-8 text-center text-gray-500">Q&A section coming soon.</div>
-              )}
-              {activeTab === "care" && (
-                <div className="p-8 text-center text-gray-500">Care Guide coming soon.</div>
               )}
             </motion.div>
           </AnimatePresence>

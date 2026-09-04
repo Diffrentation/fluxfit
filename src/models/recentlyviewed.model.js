@@ -36,15 +36,23 @@ const recentlyViewedSchema = new mongoose.Schema(
 recentlyViewedSchema.index({ "products.product": 1 });
 recentlyViewedSchema.index({ "products.viewedAt": -1 });
 
+const getProductIdString = (item) => {
+  const productId = item?.product?._id || item?.product;
+  return productId ? String(productId) : null;
+};
+
 // TTL index to automatically remove old entries (30 days)
 recentlyViewedSchema.index({ "products.viewedAt": 1 }, { expireAfterSeconds: 2592000 });
 
 // Method to add product
 recentlyViewedSchema.methods.addProduct = function (productId) {
   const idStr = productId.toString();
-  // Remove if already exists
+  // Remove existing or invalid entries before adding the product again.
   this.products = this.products.filter(
-    (p) => (p.product._id ? p.product._id.toString() : p.product.toString()) !== idStr
+    (p) => {
+      const currentProductId = getProductIdString(p);
+      return currentProductId && currentProductId !== idStr;
+    }
   );
 
   // Add to beginning
@@ -66,7 +74,10 @@ recentlyViewedSchema.methods.addProduct = function (productId) {
 recentlyViewedSchema.methods.removeProduct = function (productId) {
   const idStr = productId.toString();
   this.products = this.products.filter(
-    (p) => (p.product._id ? p.product._id.toString() : p.product.toString()) !== idStr
+    (p) => {
+      const currentProductId = getProductIdString(p);
+      return currentProductId && currentProductId !== idStr;
+    }
   );
   this.lastUpdated = new Date();
   return this.save();

@@ -268,7 +268,7 @@ function RecentlyViewedProducts() {
               onClick={() => router.push("/product-list")}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-600 dark:bg-blue-700 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors shadow-lg hover:shadow-xl"
+              className="px-4 sm:px-5 py-2 sm:py-2.5 bg-[#1e9a58] text-white rounded-lg text-sm font-semibold hover:bg-[#188149] transition-colors shadow-lg hover:shadow-xl"
             >
               View All Products
             </motion.button>

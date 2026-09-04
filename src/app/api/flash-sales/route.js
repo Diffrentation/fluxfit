@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import FlashSale from "@/models/flashsale.model";
+import "@/models/product.model";
 
 /**
  * GET /api/flash-sales

@@ -184,7 +184,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 const getJwtSecret = () =>
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
-// Short-lived access token (Bearer)
+// Access token lasts for the full user session.
 userSchema.methods.generateAccessToken = function () {
   const payload = {
     userId: this._id,
@@ -193,7 +193,7 @@ userSchema.methods.generateAccessToken = function () {
     role: this.role,
     type: "access",
   };
-  const expiresIn = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
+  const expiresIn = process.env.JWT_ACCESS_EXPIRES_IN || "7d";
   return jwt.sign(payload, getJwtSecret(), { expiresIn });
 };
 

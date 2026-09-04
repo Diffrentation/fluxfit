@@ -85,7 +85,7 @@ export const NavItems = ({ items, className, onItemClick }) => {
     <motion.div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center lg:mr-64 justify-center space-x-2 text-sm font-medium text-zinc-600 transition duration-200 lg:flex lg:space-x-2",
+        "absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-1 text-xs font-medium text-zinc-600 transition duration-200 lg:ml-24 lg:mr-[350px] lg:flex xl:ml-28 xl:mr-[310px] xl:space-x-2 xl:text-sm",
         className
       )}
     >
@@ -96,7 +96,7 @@ export const NavItems = ({ items, className, onItemClick }) => {
             onMouseEnter={() => setHovered(idx)}
             onClick={onItemClick}
             className={cn(
-              "relative px-4 py-2 transition-colors flex flex-col items-center",
+              "relative px-2.5 py-2 whitespace-nowrap transition-colors flex flex-col items-center xl:px-4",
               (hovered === idx || active) ? "text-[#1e9a58]" : "text-neutral-600 dark:text-neutral-300"
             )}
             key={`link-${idx}`}

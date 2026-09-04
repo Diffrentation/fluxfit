@@ -19,7 +19,7 @@ export default function AuthLayout({ children }) {
         <div className="w-full lg:w-5/12 flex flex-col justify-center relative mt-4 lg:mt-0">
           
           <div className="mb-6 lg:mb-10 text-center lg:text-left flex flex-col items-center lg:items-start">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#111827] mb-3 tracking-tight">
+            <h1 className="mt-12 lg:mt-16 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#111827] mb-3 tracking-tight">
               Welcome to <br className="hidden lg:block" />
               <span className="text-[#1e9a58]">FluxFit</span>
             </h1>

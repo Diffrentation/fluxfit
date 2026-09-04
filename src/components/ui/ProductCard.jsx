@@ -69,8 +69,10 @@ const ProductCard = ({ product, onQuickView }) => {
     onQuickView?.(product);
   };
 
-  const price = parseFloat(product.price).toFixed(2);
-  const discountPercent = getVariantAwarePricing(product, null).discountPercent;
+  const pricing = getVariantAwarePricing(product, null);
+  const price = pricing.price;
+  const originalPrice = pricing.originalPrice;
+  const discountPercent = pricing.discountPercent;
 
   return (
     <div
@@ -134,12 +136,22 @@ const ProductCard = ({ product, onQuickView }) => {
         <h3 className="text-[#0d1c2f] font-bold text-xs sm:text-sm mb-1 line-clamp-2 min-h-[32px] sm:min-h-[36px] leading-snug">
           {product.name}
         </h3>
-        <p className="text-[#00c0a3] font-extrabold text-sm sm:text-base mb-1.5 sm:mb-2">
-          ₹{parseFloat(price).toLocaleString("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </p>
+        <div className="flex items-baseline gap-2 mb-1.5 sm:mb-2">
+          <span className="text-[#00c0a3] font-extrabold text-sm sm:text-base">
+            ₹{price.toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+          {originalPrice && (
+            <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
+              ₹{originalPrice.toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
+          )}
+        </div>
 
         {/* Action Buttons (Always Visible) */}
         <div className="mt-auto flex flex-col gap-1.5 pt-1.5 border-t border-gray-100">

@@ -155,12 +155,20 @@ export async function POST(request) {
       );
     }
 
+    const normalizeVariantValue = (value) =>
+      String(value ?? "").trim().toLowerCase();
+
     let itemPrice = product.basePrice;
+    let matchingVariant = null;
 
     if (variant.size || variant.color) {
-      const matchingVariant = variants.find((v) => {
-        const sizeMatch = !variant.size || v.size === variant.size;
-        const colorMatch = !variant.color || v.color === variant.color;
+      matchingVariant = variants.find((v) => {
+        const sizeMatch =
+          !variant.size ||
+          normalizeVariantValue(v.size) === normalizeVariantValue(variant.size);
+        const colorMatch =
+          !variant.color ||
+          normalizeVariantValue(v.color) === normalizeVariantValue(variant.color);
         return sizeMatch && colorMatch && v.isActive !== false;
       });
 
@@ -181,17 +189,13 @@ export async function POST(request) {
       }
 
       itemPrice = matchingVariant.price;
+      // Persist the variant values exactly as stored in the catalog so later
+      // cart operations use one consistent size/color representation.
+      variant.size = matchingVariant.size ?? variant.size;
+      variant.color = matchingVariant.color ?? variant.color;
     }
 
-    const variantForStock =
-      variant.size || variant.color
-        ? variants.find(
-            (v) =>
-              (!variant.size || v.size === variant.size) &&
-              (!variant.color || v.color === variant.color) &&
-              v.isActive !== false,
-          )
-        : null;
+    const variantForStock = matchingVariant;
 
     const availableStock = variantForStock
       ? variantForStock.stock ?? 0
